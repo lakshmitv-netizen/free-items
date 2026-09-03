@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.swp
+
+# Reference repos: cloned read-only for inspiration/context only.
+# Never merged into the prototype and never committed to this hub.
+references/
