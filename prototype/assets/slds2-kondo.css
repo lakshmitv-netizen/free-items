@@ -1,0 +1,257 @@
+/* =====================================================================
+   SLDS 2 "Kondo" reskin layer  —  matched to Figma node 43-11725
+   ---------------------------------------------------------------------
+   The base stylesheet (@salesforce-ux/design-system 2.264.0) ships the
+   SLDS 2 styling hooks but RESOLVES them to the legacy SLDS 1 values —
+   e.g. --slds-g-color-accent-1 resolves to the old cerulean #0176d3 and
+   the radius scale to the tighter legacy steps. That is why the app reads
+   as SLDS 1 even though styles.css already targets the Figma values via
+   fallbacks (a fallback only applies when a hook is *undefined*, and the
+   base package defines them).
+
+   The fix, and the core of this layer: RE-DEFINE the key SLDS 2 global
+   hooks at :root with the authentic Kondo / Figma values. Because both
+   the base components and styles.css consume these same hooks, this one
+   move re-tints and re-rounds the entire app in a single stroke — the
+   Kondo electric-blue accent (#066afe) and the 4/8/12 radius scale.
+
+   Everything below the hook block is restrained, Figma-faithful polish —
+   NOT a flashier invention. Loaded AFTER styles.css so it wins over the
+   base package's hook definitions. Purely additive; no markup/JS changes.
+
+   Verified Figma tokens (node 43-11725):
+     accent-1 electric blue 50 = #066afe   accent-2 electric blue 40 = #0250d9
+     on-surface-3 (titles)     = #001e5b   on-surface-2 = #2e2e2e  on-surface-1 = #5c5c5c
+     border-1 = #c9c9c9  border-2 = #5c5c5c  surface-container-2 = #f3f3f3  -3 = #e5e5e5
+     brand-base-20 (path current) = #002775   info-container-1 (promo) = #d8e6fe
+     radius-border 1/2/3 = 4/8/12 px          font = SF Pro
+   ===================================================================== */
+
+:root {
+  /* --- Kondo accent (electric blue) — overrides the legacy cerulean the
+         base package resolves these hooks to. This is the big one. --- */
+  --slds-g-color-accent-1: #066afe;          /* electric blue 50 */
+  --slds-g-color-accent-2: #0250d9;          /* electric blue 40 */
+  --slds-g-color-border-accent-1: #066afe;
+  --slds-g-color-accent-container-1: #066afe;
+  --slds-g-color-on-accent-1: #ffffff;
+
+  /* --- Kondo radius scale (Figma: 4 / 8 / 12) — overrides the tighter
+         legacy steps so cards + controls round correctly. --- */
+  --slds-g-radius-border-1: 4px;
+  --slds-g-radius-border-2: 8px;
+  --slds-g-radius-border-3: 12px;
+
+  /* --- Kondo neutrals / ink from the Figma variable set --- */
+  --slds-g-color-on-surface-1: #5c5c5c;
+  --slds-g-color-on-surface-2: #2e2e2e;
+  --slds-g-color-on-surface-3: #001e5b;      /* deep navy record titles */
+  --slds-g-color-border-1: #c9c9c9;
+  --slds-g-color-border-2: #5c5c5c;
+  --slds-g-color-surface-container-2: #f3f3f3;
+  --slds-g-color-surface-container-3: #e5e5e5;
+
+  /* Local aliases for this layer’s polish rules. */
+  --k-accent: #066afe;
+  --k-accent-strong: #0250d9;
+  --k-accent-wash: color-mix(in oklab, #066afe, transparent 92%);
+  --k-surface: #ffffff;
+  --k-canvas: #f3f3f3;
+  --k-border: #c9c9c9;
+  --k-border-soft: #e5e5e5;
+  --k-ink: #001e5b;
+  --k-ink-2: #2e2e2e;
+  --k-ink-muted: #5c5c5c;
+  /* Subtle Kondo elevation (Figma box-shadow/1 is a soft, tight shadow). */
+  --k-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --k-shadow-raise: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px -6px rgba(0, 0, 0, 0.12);
+  --k-shadow-focus: 0 0 0 3px color-mix(in oklab, #066afe, transparent 76%);
+}
+
+/* ------------------------------ Canvas / type ------------------------------ */
+html, body {
+  background: var(--k-canvas);
+  color: var(--k-ink-2);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ================================= CHROME ================================= */
+.mfg-global-header.slds-global-header_container { border-bottom: 1px solid var(--k-border-soft); }
+.mfg-context-bar.slds-context-bar { border-bottom: 1px solid var(--k-border-soft); }
+.mfg-context-bar .slds-context-bar__item.slds-is-active,
+.mfg-context-bar .slds-context-bar__item.slds-is-active:hover { border-bottom-color: var(--k-accent); }
+.mfg-context-bar .slds-is-active .slds-context-bar__label-action { color: var(--k-accent); }
+.mfg-context-bar__edit .slds-button__icon { fill: var(--k-accent); }
+
+/* ================================= CARDS ================================= */
+/* Clean white cards on the neutral canvas: 8px radius, hairline, soft shadow. */
+.mfg-page-header,
+.mfg-path-wrapper,
+.mfg-tabs-card,
+.mfg-assortment-card {
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  border: 1px solid var(--k-border);
+  box-shadow: var(--k-shadow-card);
+  background: var(--k-surface);
+}
+.mfg-assortment-card { box-shadow: var(--k-shadow-raise); }
+
+/* SLDS 2 record-home title: deep-navy, slightly tighter. */
+.mfg-record-name { color: var(--k-ink); letter-spacing: -0.01em; }
+.mfg-card-title { color: var(--k-ink); }
+.slds-icon-standard-orders { background: var(--k-accent); border-radius: var(--slds-g-radius-border-2, 8px); }
+
+/* ================================= BUTTONS ================================= */
+/* Figma buttons are gently rounded rectangles (NOT pills), weightier labels. */
+.slds-button {
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  transition: background-color .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.slds-button_neutral {
+  background: var(--k-surface);
+  border: 1px solid var(--k-border);
+  color: var(--k-accent-strong);
+  min-height: 2rem;
+}
+.slds-button_neutral:hover,
+.slds-button_neutral:focus { background: var(--k-canvas); border-color: var(--k-border); }
+.slds-button_brand {
+  background: var(--k-accent);
+  border-color: var(--k-accent);
+  color: #fff;
+  min-height: 2rem;
+}
+.slds-button_brand:hover,
+.slds-button_brand:focus { background: var(--k-accent-strong); border-color: var(--k-accent-strong); }
+
+/* Button group: segments share a rounded-rect outer frame. */
+.slds-button-group .slds-button { border-radius: 0; }
+.slds-button-group .slds-button:first-child { border-top-left-radius: var(--slds-g-radius-border-1, 4px); border-bottom-left-radius: var(--slds-g-radius-border-1, 4px); }
+.slds-button-group .slds-button:last-child  { border-top-right-radius: var(--slds-g-radius-border-1, 4px); border-bottom-right-radius: var(--slds-g-radius-border-1, 4px); }
+
+.slds-button_icon { border-radius: var(--slds-g-radius-border-1, 4px); color: var(--k-ink-muted); }
+.slds-button_icon:hover { background: var(--k-accent-wash); }
+
+/* Focus: SLDS 2 accent ring. */
+.slds-button:focus-visible,
+.slds-input:focus,
+.slds-select:focus,
+.slds-combobox__input:focus,
+.slds-textarea:focus {
+  outline: none;
+  box-shadow: var(--k-shadow-focus);
+  border-color: var(--k-accent);
+}
+
+/* ============================ INPUTS / SELECTS ============================ */
+/* Figma fields: 4px radius, thin #c9c9c9 border. */
+.slds-input,
+.slds-select,
+.slds-combobox__input,
+.slds-textarea {
+  border-radius: var(--slds-g-radius-border-1, 4px);
+  border: 1px solid var(--k-border);
+  min-height: 2rem;
+  color: var(--k-ink-2);
+  background: var(--k-surface);
+}
+.slds-input::placeholder { color: var(--k-ink-muted); }
+.slds-input:hover,
+.slds-select:hover,
+.slds-combobox__input:hover { border-color: var(--k-ink-muted); }
+
+/* Header search: rounded-rect (8px) on a light fill — matches the Figma. */
+.mfg-global-header__item_search .slds-input {
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  border: 1px solid var(--k-border);
+  background: var(--k-surface);
+}
+.mfg-global-header__item_search .slds-input:focus { border-color: var(--k-accent); }
+
+/* ================================== PATH ================================== */
+/* Pill-ended track, deep-navy current step (brand-base-20) — as in Figma. */
+.mfg-path-wrapper .slds-path__item:first-child .slds-path__link { border-top-left-radius: 999px; border-bottom-left-radius: 999px; }
+.mfg-path-wrapper .slds-path__item:last-child  .slds-path__link { border-top-right-radius: 999px; border-bottom-right-radius: 999px; }
+.mfg-path-wrapper .slds-path__stage { border-radius: 50%; }
+
+/* ================================== TABS ================================== */
+.mfg-tabs .slds-is-active .slds-tabs_default__link {
+  color: var(--k-accent);
+  box-shadow: inset 0 -3px 0 var(--k-accent);
+}
+
+/* ============================ CHECKBOXES / TOGGLES ============================ */
+.slds-checkbox_faux,
+.slds-checkbox .slds-checkbox_faux { border-radius: var(--slds-g-radius-border-1, 4px); border-color: var(--k-border); }
+.slds-checkbox_faux_container .slds-checkbox_faux { border-radius: 999px; }
+input:checked ~ .slds-checkbox_faux,
+.slds-checkbox [type="checkbox"]:checked + .slds-checkbox__label .slds-checkbox_faux {
+  background: var(--k-accent);
+  border-color: var(--k-accent);
+}
+/* toggle "on" fill → electric blue */
+.mfg-toggle input[type="checkbox"]:checked + .slds-checkbox_faux_container .slds-checkbox_faux { background: var(--k-accent); border-color: var(--k-accent); }
+
+/* ================================= AVATARS ================================= */
+.slds-avatar, .slds-avatar_circle { border-radius: 999px; }
+
+/* =============================== DATA TABLE =============================== */
+/* Light header, hairline grid lines, refreshed density. */
+.mfg-grid thead th {
+  color: var(--k-ink-muted);
+  background: var(--k-canvas);
+  border-bottom: 1px solid var(--k-border);
+  border-right-color: var(--k-border-soft);
+  text-transform: none;
+  font-weight: var(--slds-g-font-weight-6, 600);
+}
+.mfg-grid tbody td {
+  border-bottom-color: var(--k-border-soft);
+  border-right-color: var(--k-border-soft);
+  color: var(--k-ink-2);
+}
+.mfg-grid tbody tr:hover td { background: var(--k-accent-wash); }
+.mfg-grid .mfg-product-link,
+.mfg-grid .mfg-value-link,
+.mfg-link { color: var(--k-accent); }
+
+/* ================================ POPOVERS ================================ */
+.mfg-qty-popover,
+.mfg-template__menu {
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  border-color: var(--k-border);
+  box-shadow: var(--k-shadow-raise);
+}
+
+/* ============================= Inline-edit bar ============================= */
+.mfg-edit-footer { border-top: 1px solid var(--k-border); }
+.mfg-edit-footer__icon { fill: var(--k-accent); }
+
+/* =====================================================================
+   Full-screen-width record page (single-variant / variant B)
+   ---------------------------------------------------------------------
+   `body.mfg-single` is set by app.js on the standalone ?variant= page.
+   On the 3-variant showcase page this class is absent, so that layout
+   keeps its centered column untouched. Here we let the record page fill
+   the viewport edge-to-edge, like a real Lightning record home.
+   ===================================================================== */
+body.mfg-single .mfg-page {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding-left: var(--slds-g-spacing-5, 20px);
+  padding-right: var(--slds-g-spacing-5, 20px);
+  box-sizing: border-box;
+}
+body.mfg-single .mfg-page-header,
+body.mfg-single .mfg-path-wrapper,
+body.mfg-single .mfg-tabs-card,
+body.mfg-single .mfg-variant-stack,
+body.mfg-single .mfg-variant-section,
+body.mfg-single .mfg-assortment-card {
+  width: auto;
+  max-width: none;
+}
+body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-grid { width: 100%; }

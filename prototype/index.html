@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Prevent the browser from serving a stale index.html so ?v= asset bumps always take effect -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Orders · ON-00000101 — Field Sales Execution</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/@salesforce-ux/design-system@2.264.0/assets/styles/salesforce-lightning-design-system.min.css"
+  />
+  <link rel="stylesheet" href="assets/styles.css?v=79" />
+  <link rel="stylesheet" href="assets/slds2-kondo.css?v=79" />
+</head>
+<body>
+  <!-- ============================ GLOBAL HEADER ============================ -->
+  <header class="slds-global-header_container mfg-global-header">
+    <div class="slds-global-header slds-grid slds-grid_align-spread">
+      <div class="slds-global-header__item">
+        <div class="slds-global-header__logo mfg-logo" role="img" aria-label="Salesforce">
+          <svg class="slds-icon" aria-hidden="true" viewBox="0 0 48 34" width="40" height="28">
+            <use xlink:href="assets/icons/salesforce-cloud.svg#cloud"></use>
+          </svg>
+        </div>
+      </div>
+
+      <div class="slds-global-header__item slds-global-header__item_search">
+        <div class="slds-form-element">
+          <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left">
+            <svg class="slds-icon slds-input__icon slds-input__icon_left slds-icon-text-default" aria-hidden="true">
+              <use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#search"></use>
+            </svg>
+            <input type="search" class="slds-input" placeholder="Search..." aria-label="Search" />
+          </div>
+        </div>
+      </div>
+
+      <div class="slds-global-header__item">
+        <ul class="slds-global-actions">
+          <li class="slds-global-actions__item"><button class="slds-button slds-button_icon slds-global-actions__item-action" title="Home"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#home"></use></svg><span class="slds-assistive-text">Home</span></button></li>
+          <li class="slds-global-actions__item mfg-favorites">
+            <button class="slds-button slds-button_icon" title="Favorites"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#favorite"></use></svg><span class="slds-assistive-text">Favorites</span></button>
+            <button class="slds-button slds-button_icon mfg-favorites__toggle" title="Favorites list"><svg class="slds-button__icon slds-button__icon_x-small" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg><span class="slds-assistive-text">Open favorites</span></button>
+          </li>
+          <li class="slds-global-actions__item"><button class="slds-button slds-button_icon" title="Create"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#add"></use></svg><span class="slds-assistive-text">Create</span></button></li>
+          <li class="slds-global-actions__item"><button class="slds-button slds-button_icon" title="Guidance"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#trailblazer_ext"></use></svg><span class="slds-assistive-text">Guidance</span></button></li>
+          <li class="slds-global-actions__item"><button class="slds-button slds-button_icon" title="Help"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#help"></use></svg><span class="slds-assistive-text">Help</span></button></li>
+          <li class="slds-global-actions__item"><button class="slds-button slds-button_icon" title="Setup"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#setup"></use></svg><span class="slds-assistive-text">Setup</span></button></li>
+          <li class="slds-global-actions__item"><button class="slds-button slds-button_icon" title="Notifications"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#notification"></use></svg><span class="slds-assistive-text">Notifications</span></button></li>
+          <li class="slds-global-actions__item">
+            <button class="slds-button slds-global-actions__avatar" title="Chantelle Rep">
+              <span class="slds-avatar slds-avatar_circle slds-avatar_medium mfg-avatar"><abbr class="slds-avatar__initials" title="Chantelle Rep">CR</abbr></span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ APP NAVIGATION ============================ -->
+  <div class="slds-context-bar mfg-context-bar">
+    <div class="slds-context-bar__primary">
+      <div class="slds-context-bar__item slds-context-bar__dropdown-trigger slds-no-hover mfg-app-launcher">
+        <button class="slds-button slds-icon-waffle_container" title="App Launcher">
+          <span class="slds-icon-waffle">
+            <span class="slds-r1"></span><span class="slds-r2"></span><span class="slds-r3"></span>
+            <span class="slds-r4"></span><span class="slds-r5"></span><span class="slds-r6"></span>
+            <span class="slds-r7"></span><span class="slds-r8"></span><span class="slds-r9"></span>
+          </span>
+          <span class="slds-assistive-text">App Launcher</span>
+        </button>
+      </div>
+      <span class="slds-context-bar__label-action slds-context-bar__app-name">
+        <span class="slds-truncate mfg-app-name" title="Field Sales Execution">Field Sales Execution</span>
+      </span>
+    </div>
+
+    <nav class="slds-context-bar__secondary" role="navigation" aria-label="Global">
+      <ul class="slds-grid">
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Home</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
+        <li class="slds-context-bar__item slds-is-active"><a href="#" class="slds-context-bar__label-action" aria-current="page"><span class="slds-truncate">Orders</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Contacts</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Accounts</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Visits</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Calendar</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">More</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
+      </ul>
+    </nav>
+    <div class="mfg-context-bar__edit">
+      <button class="slds-button slds-button_icon" title="Edit page"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#edit"></use></svg><span class="slds-assistive-text">Edit page</span></button>
+    </div>
+  </div>
+
+  <!-- ============================ PAGE BODY ============================ -->
+  <div class="mfg-page">
+    <!-- Single-variant back-nav breadcrumb is injected here, ABOVE the record card -->
+    <div id="mfg-breadcrumb-slot" class="mfg-breadcrumb-slot"></div>
+    <!-- ---------- Page header (record home) ---------- -->
+    <div class="slds-page-header slds-page-header_record-home mfg-page-header">
+      <div class="slds-page-header__row">
+        <div class="slds-page-header__col-title">
+          <div class="slds-media">
+            <div class="slds-media__figure">
+              <span class="slds-icon_container slds-icon-standard-orders" title="Orders">
+                <svg class="slds-icon slds-icon_medium" aria-hidden="true"><use xlink:href="assets/icons/standard-sprite/svg/symbols.svg#orders"></use></svg>
+              </span>
+            </div>
+            <div class="slds-media__body">
+              <div class="slds-page-header__name">
+                <div class="slds-page-header__name-title">
+                  <h1>
+                    <span class="slds-page-header__title-label">Orders</span>
+                    <span class="slds-page-header__title slds-truncate mfg-record-name" title="ON-00000101">ON-00000101</span>
+                  </h1>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="slds-page-header__col-actions">
+          <div class="slds-page-header__controls">
+            <div class="mfg-style-switch" role="group" aria-label="Promotion popover style">
+              <span class="mfg-style-switch__label">Promo popover</span>
+              <button type="button" class="mfg-style-switch__btn is-active" data-style="bar">Progress bar</button>
+              <button type="button" class="mfg-style-switch__btn" data-style="rounding">Rounding</button>
+            </div>
+            <div class="slds-button-group" role="group">
+              <button class="slds-button slds-button_neutral">Edit</button>
+              <button class="slds-button slds-button_neutral">Delete</button>
+              <button class="slds-button slds-button_neutral">Clone</button>
+              <button class="slds-button slds-button_icon slds-button_icon-border-filled" title="More actions">
+                <svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#down"></use></svg>
+                <span class="slds-assistive-text">More actions</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slds-page-header__row slds-page-header__row_gutters">
+        <div class="slds-page-header__col-details">
+          <ul class="slds-page-header__detail-row">
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate" title="Order Number">Order Number</div>
+              <a href="#" class="slds-truncate mfg-link" title="ON-00000101">ON-00000101</a>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate" title="Order Start Date">Order Start Date</div>
+              <p class="slds-truncate" title="12/5/2025">12/5/2025</p>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate" title="Owner">Owner</div>
+              <a href="#" class="slds-truncate mfg-link" title="Chantelle Rep">Chantelle Rep</a>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate" title="Account Name">Account Name</div>
+              <a href="#" class="slds-truncate mfg-link" title="NTO Store #201">NTO Store #201</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- Path ---------- -->
+    <div class="mfg-path-wrapper">
+      <div class="slds-path">
+        <div class="slds-grid slds-path__track">
+          <div class="slds-grid slds-path__scroller-container">
+            <div class="slds-path__scroller" role="application">
+              <div class="slds-path__scroller_inner">
+                <ul class="slds-path__nav" role="listbox" aria-orientation="horizontal">
+                  <li class="slds-path__item slds-is-current slds-is-active" role="presentation">
+                    <a aria-selected="true" class="slds-path__link" href="#" role="option" tabindex="0">
+                      <span class="slds-path__stage"><svg class="slds-icon slds-icon_x-small" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#check"></use></svg></span>
+                      <span class="slds-path__title">Draft</span>
+                    </a>
+                  </li>
+                  <li class="slds-path__item slds-is-incomplete" role="presentation">
+                    <a aria-selected="false" class="slds-path__link" href="#" role="option" tabindex="-1">
+                      <span class="slds-path__stage"><svg class="slds-icon slds-icon_x-small" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#check"></use></svg></span>
+                      <span class="slds-path__title">Activated</span>
+                    </a>
+                  </li>
+                  <li class="slds-path__item slds-is-incomplete" role="presentation">
+                    <a aria-selected="false" class="slds-path__link" href="#" role="option" tabindex="-1">
+                      <span class="slds-path__stage"><svg class="slds-icon slds-icon_x-small" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#check"></use></svg></span>
+                      <span class="slds-path__title">Superseded</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="slds-grid slds-path__action">
+            <button class="slds-button slds-button_brand slds-path__mark-complete">
+              <svg class="slds-button__icon slds-button__icon_left" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#check"></use></svg>
+              Mark as Complete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- Record tabs ---------- -->
+    <div class="slds-card mfg-tabs-card">
+      <div class="slds-tabs_default mfg-tabs">
+        <ul class="slds-tabs_default__nav" role="tablist">
+          <li class="slds-tabs_default__item" role="presentation"><a class="slds-tabs_default__link" role="tab" tabindex="-1" data-tab="details" href="#">Details</a></li>
+          <li class="slds-tabs_default__item" role="presentation"><a class="slds-tabs_default__link" role="tab" tabindex="-1" data-tab="related" href="#">Related</a></li>
+          <li class="slds-tabs_default__item" role="presentation">
+            <a class="slds-tabs_default__link" role="tab" tabindex="-1" data-tab="recommended" href="#">
+              <svg class="slds-icon slds-icon_x-small slds-icon-text-default mfg-tab-icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#sparkle"></use></svg>
+              Recommended Products
+            </a>
+          </li>
+          <li class="slds-tabs_default__item slds-is-active" role="presentation"><a class="slds-tabs_default__link" role="tab" tabindex="0" aria-selected="true" data-tab="assortment" href="#">Assortment Products</a></li>
+          <li class="slds-tabs_default__item" role="presentation"><a class="slds-tabs_default__link" role="tab" tabindex="-1" data-tab="cart" href="#">Cart (5)</a></li>
+        </ul>
+
+        <div class="slds-tabs_default__content slds-show" role="tabpanel">
+          <!-- ================= ASSORTMENT LINE ITEMS ================= -->
+          <!-- Template card; app.js clones this into 3 explorable blocks (A/B/C). -->
+          <div class="mfg-variant-stack" id="variant-stack">
+          <article class="slds-card mfg-assortment-card">
+            <!-- Card header -->
+            <div class="slds-card__header mfg-assortment-header">
+              <div class="mfg-assortment-header__title">
+                <header class="slds-media slds-media_center">
+                  <div class="slds-media__figure">
+                    <span class="slds-icon_container mfg-lead-list-icon" title="Assortment Line Items">
+                      <svg class="slds-icon slds-icon_small" aria-hidden="true"><use xlink:href="assets/icons/standard-sprite/svg/symbols.svg#lead_list"></use></svg>
+                    </span>
+                  </div>
+                  <div class="slds-media__body">
+                    <h2 class="slds-card__header-title">
+                      <span class="mfg-card-title">Assortment Line Items (2000+)</span>
+                    </h2>
+                    <p class="slds-text-body_small mfg-selected-count" id="selected-count">0 line selected</p>
+                  </div>
+                </header>
+              </div>
+
+              <div class="mfg-assortment-header__actions">
+                <label class="slds-checkbox_toggle slds-grid mfg-toggle">
+                  <input type="checkbox" name="prefill" />
+                  <span class="slds-checkbox_faux_container" aria-live="assertive">
+                    <span class="slds-checkbox_faux"></span>
+                  </span>
+                  <span class="slds-form-element__label slds-m-bottom_none mfg-toggle__label">Pre-fill suggested Quantity</span>
+                </label>
+
+                <label class="slds-checkbox_toggle slds-grid mfg-toggle">
+                  <input type="checkbox" name="instant-pricing" checked />
+                  <span class="slds-checkbox_faux_container" aria-live="assertive">
+                    <span class="slds-checkbox_faux"></span>
+                  </span>
+                  <span class="slds-form-element__label slds-m-bottom_none mfg-toggle__label">Instant Pricing</span>
+                </label>
+
+                <div class="mfg-template">
+                  <span class="slds-form-element__label mfg-template__label">Order Item Template</span>
+                  <div class="slds-form-element__control">
+                    <div class="slds-combobox_container">
+                      <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click">
+                        <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                          <input type="text" class="slds-input slds-combobox__input" value="Standard Products" readonly aria-label="Order Item Template" />
+                          <span class="slds-icon_container slds-input__icon slds-input__icon_right">
+                            <svg class="slds-icon slds-icon slds-icon_x-small slds-icon-text-default" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#down"></use></svg>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter row -->
+            <div class="slds-card__body mfg-filter-row">
+              <div class="mfg-filter">
+                <label class="slds-form-element__label" for="f-category">Category</label>
+                <div class="slds-select_container"><select class="slds-select" id="f-category"><option>All</option><option>Beverages</option></select></div>
+              </div>
+              <div class="mfg-filter">
+                <label class="slds-form-element__label" for="f-subcategory">Sub-Category</label>
+                <div class="slds-select_container"><select class="slds-select" id="f-subcategory"><option>All</option><option>Soft Drinks</option></select></div>
+              </div>
+              <div class="mfg-filter">
+                <label class="slds-form-element__label" for="f-brand">Brand</label>
+                <div class="slds-select_container"><select class="slds-select" id="f-brand"><option>All</option><option>Pepsi</option></select></div>
+              </div>
+              <div class="mfg-filter">
+                <label class="slds-form-element__label" for="f-promotion">Promotion</label>
+                <div class="slds-select_container"><select class="slds-select" id="f-promotion"><option>All</option></select></div>
+              </div>
+              <div class="mfg-filter mfg-filter_search">
+                <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left">
+                  <svg class="slds-icon slds-input__icon slds-input__icon_left slds-icon-text-default" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#search"></use></svg>
+                  <input type="search" class="slds-input" placeholder="Search..." aria-label="Search line items" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Data grid + contextual free-items side panel -->
+            <div class="mfg-grid-layout">
+            <div class="mfg-grid-wrapper">
+              <table class="slds-table slds-table_bordered slds-table_fixed-layout slds-tree slds-table_tree mfg-grid" role="treegrid" aria-label="Assortment Line Items">
+                <thead>
+                  <tr class="slds-line-height_reset">
+                    <th class="mfg-col-expand" scope="col"><span class="slds-assistive-text">Expand</span></th>
+                    <th class="mfg-col-num" scope="col"><span class="slds-truncate">#</span></th>
+                    <th class="mfg-col-check" scope="col">
+                      <span class="slds-checkbox">
+                        <input type="checkbox" name="select-all" id="select-all" class="mfg-select-all" />
+                        <label class="slds-checkbox__label" for="select-all"><span class="slds-checkbox_faux"></span><span class="slds-assistive-text">Select all</span></label>
+                      </span>
+                    </th>
+                    <th class="mfg-col-product" scope="col"><div class="slds-truncate" title="Product Name">Product Name</div></th>
+                    <th scope="col"><div class="slds-truncate" title="Category">Category</div></th>
+                    <th scope="col"><div class="slds-truncate" title="Brand">Brand</div></th>
+                    <th scope="col"><div class="slds-truncate" title="Promotion">Promotion</div></th>
+                    <th scope="col"><div class="slds-truncate" title="UoM">UoM</div></th>
+                    <th class="mfg-num-col" scope="col"><div class="slds-truncate" title="List Price">List Price</div></th>
+                    <th class="mfg-num-col" scope="col"><div class="slds-truncate" title="Suggested Qty">Suggeste…</div></th>
+                    <th class="mfg-num-col" scope="col"><div class="slds-truncate" title="Order Qty">Order Qty</div></th>
+                    <th class="mfg-num-col" scope="col"><div class="slds-truncate" title="Discount">Discount</div></th>
+                    <th class="mfg-num-col" scope="col"><div class="slds-truncate" title="Net Unit Price">Net Unit P…</div></th>
+                    <th class="mfg-num-col" scope="col"><div class="slds-truncate" title="Sp. Price">Sp. Price</div></th>
+                    <th class="mfg-num-col" scope="col"><div class="slds-truncate" title="Net Total">Net Total</div></th>
+                    <th class="mfg-col-rowaction" scope="col"><span class="slds-assistive-text">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="grid-body" class="mfg-grid-body">
+                  <!-- rows injected by app.js -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Contextual free-items panel: populated while an Order Qty is being edited -->
+            <aside class="mfg-free-panel" id="free-panel" aria-label="Free items for this product" hidden>
+              <!-- injected by app.js -->
+            </aside>
+            </div>
+
+            <!-- Order summary — block footer for this grid -->
+            <footer class="mfg-order-summary">
+              <button class="mfg-order-summary__toggle" aria-expanded="true">
+                <svg class="slds-icon slds-icon_x-small" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg>
+                <span>Order Summary</span>
+              </button>
+              <div class="mfg-order-summary__totals">
+                <div class="mfg-total"><span class="mfg-total__label">Total Price</span> <span class="mfg-total__value">$0.00</span></div>
+                <span class="mfg-total__divider" aria-hidden="true"></span>
+                <div class="mfg-total"><span class="mfg-total__label">Total Tax Amount</span> <span class="mfg-total__value">$0.00</span></div>
+                <span class="mfg-total__divider" aria-hidden="true"></span>
+                <div class="mfg-total"><span class="mfg-total__label">Total Price With Tax</span> <span class="mfg-total__value">$0.00</span></div>
+              </div>
+            </footer>
+          </article>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ INLINE-EDIT SAVE BAR ============================ -->
+  <div class="mfg-edit-footer" id="edit-footer" role="region" aria-label="Unsaved changes" hidden>
+    <div class="mfg-edit-footer__msg">
+      <svg class="mfg-edit-footer__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#info"></use></svg>
+      <span id="edit-count">1 item edited</span>
+    </div>
+    <div class="mfg-edit-footer__actions">
+      <button type="button" class="slds-button slds-button_neutral mfg-edit-cancel">Cancel</button>
+      <button type="button" class="slds-button slds-button_brand mfg-edit-save">Save</button>
+    </div>
+  </div>
+
+  <script src="assets/data.js?v=79"></script>
+  <script src="assets/app.js?v=79"></script>
+</body>
+</html>
