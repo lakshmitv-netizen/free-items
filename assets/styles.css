@@ -315,7 +315,8 @@ body.mfg-single .mfg-style-switch { display: none; }
   padding: var(--mfg-spacing-2) var(--mfg-spacing-3); cursor: pointer;
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-3);
 }
-.mfg-template__option:hover { background: var(--mfg-surface-container-1, #f3f3f3); }
+.mfg-template__option:hover,
+.mfg-template__option.is-active { background: var(--mfg-surface-container-1, #f3f3f3); }
 .mfg-template__option.is-selected { font-weight: var(--slds-g-font-weight-6, 600); background: #eef4fd; }
 
 /* ----------------------------- Filter row ----------------------------- */
@@ -861,6 +862,15 @@ td.mfg-free-table__value {
   text-align: right; white-space: nowrap;
   font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg);
 }
+/* List price is struck through (it's waived); the $0.00 free price sits beside
+   it as the true final price. */
+.mfg-free-table__list-price {
+  text-decoration: line-through;
+  color: var(--mfg-on-surface-1);
+  font-weight: var(--slds-g-font-weight-4, 400);
+  margin-right: var(--mfg-spacing-1, 4px);
+}
+.mfg-free-table__free-price { color: var(--mfg-success-fg); font-weight: var(--slds-g-font-weight-7, 700); }
 .mfg-free-table__row.is-locked .mfg-free-table__qty { color: var(--mfg-on-surface-1); }
 .mfg-free-table__row.is-locked { color: var(--mfg-on-surface-1); }
 
@@ -916,7 +926,9 @@ td.mfg-free-table__value {
   max-height: 260px; overflow-y: auto;
   border-bottom: 1px solid var(--mfg-surface-container-3);
 }
-.mfg-free-acc__body .mfg-free-table { border: 0; border-radius: 0; }
+/* overflow:visible so the sticky thead is not clipped by the table's own
+   overflow:hidden — sticky then anchors to the scrolling .mfg-free-acc__body. */
+.mfg-free-acc__body .mfg-free-table { border: 0; border-radius: 0; overflow: visible; }
 /* The value column is right-aligned; override the generic (more specific) thead
    th left-align so the LIST PRICE label lines up over its values. */
 .mfg-free-table thead th.mfg-free-table__value { text-align: right; }
@@ -1113,3 +1125,31 @@ td.mfg-free-table__value {
 .mfg-rnd-badge { align-self: flex-start; }
 .mfg-rnd-note { display: inline-flex; align-items: center; gap: var(--mfg-spacing-1); font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
 .mfg-rnd-note-icon { width: var(--slds-g-sizing-4, 12px); height: var(--slds-g-sizing-4, 12px); fill: var(--slds-g-color-palette-green-50, #2e844a); }
+
+/* ── Accessibility: shared keyboard focus ring for custom controls ──
+   Matches the existing .mfg-qty-cell / .mfg-free-acc__head pattern so keyboard
+   users get a visible focus indicator on controls that previously showed none.
+   :focus-visible keeps this keyboard-only — mouse interaction looks unchanged. */
+.mfg-style-switch__btn:focus-visible,
+.mfg-template__option:focus-visible,
+.mfg-free-panel__rail:focus-visible,
+.mfg-free-panel__collapse:focus-visible,
+.mfg-detail-tab:focus-visible,
+.mfg-rnd-btn:focus-visible,
+.mfg-col-resizer:focus-visible,
+.mfg-free-summary__cta:focus-visible {
+  outline: 2px solid var(--mfg-accent-1);
+  outline-offset: -2px;
+}
+
+/* ── Accessibility: respect reduced-motion preference ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -61,7 +61,7 @@
       '<td class="mfg-num-col">' + valueCell(r.netUnit) + "</td>" +
       '<td class="mfg-num-col">' + r.spPrice + "</td>" +
       '<td class="mfg-num-col mfg-nettotal-cell">' + r.netTotal + "</td>" +
-      '<td class="mfg-col-rowaction"><button class="mfg-row-action" title="Row actions">' + icon(UTIL, "down") + "</button></td>"
+      '<td class="mfg-col-rowaction"><button class="mfg-row-action" title="Row actions" aria-label="Row actions">' + icon(UTIL, "down") + "</button></td>"
     );
   }
 
@@ -531,7 +531,10 @@
               (it.note ? '<span class="mfg-free-item__note">' + esc(it.note) + "</span>" : "") +
             "</td>" +
             '<td class="mfg-free-table__qty">' + fmtNum(it.units) + "</td>" +
-            '<td class="mfg-free-table__value">' + fmtMoney(it.value) + "</td>" +
+            '<td class="mfg-free-table__value">' +
+              '<span class="mfg-free-table__list-price">' + fmtMoney(it.value) + "</span> " +
+              '<span class="mfg-free-table__free-price">' + fmtMoney(0) + "</span>" +
+            "</td>" +
           "</tr>"
         );
       }).join("");
@@ -542,7 +545,7 @@
           '<th scope="col">' + esc(lead.header) + "</th>" +
           '<th scope="col">Free item</th>' +
           '<th scope="col" class="mfg-free-table__qty">Qty</th>' +
-          '<th scope="col" class="mfg-free-table__value">List Price</th>' +
+          '<th scope="col" class="mfg-free-table__value">Price</th>' +
         "</tr></thead>" +
         "<tbody>" + body + "</tbody>" +
       "</table>"
@@ -834,12 +837,18 @@
 
     var active = "details";
     var current = null; // last row's data
+    var trigger = null; // product link that opened the panel (for focus return)
 
     function render() {
       if (!current) return;
+      // Roving tabindex + aria-controls/labelledby so the panel is a proper
+      // tab/tabpanel pair for screen readers.
       var tabsHTML = DETAIL_TABS.map(function (t) {
-        return '<button type="button" class="mfg-detail-tab' + (t.id === active ? " is-active" : "") +
-          '" data-tab="' + t.id + '" role="tab" aria-selected="' + (t.id === active) + '">' + t.label + "</button>";
+        var on = t.id === active;
+        return '<button type="button" class="mfg-detail-tab' + (on ? " is-active" : "") +
+          '" data-tab="' + t.id + '" id="mfg-dtab-' + t.id + '" role="tab"' +
+          ' aria-selected="' + on + '" tabindex="' + (on ? "0" : "-1") + '"' +
+          ' aria-controls="mfg-dpanel">' + t.label + "</button>";
       }).join("");
       var tab = DETAIL_TABS.filter(function (t) { return t.id === active; })[0] || DETAIL_TABS[0];
       panel.innerHTML =
@@ -847,31 +856,51 @@
           '<div class="mfg-detail-panel__title">' + esc(current.product) + "</div>" +
           '<button type="button" class="mfg-detail-panel__close" aria-label="Close panel">' + icon(UTIL, "close", "mfg-detail-panel__close-icon") + "</button>" +
         "</div>" +
-        '<div class="mfg-detail-panel__tabs" role="tablist">' + tabsHTML + "</div>" +
-        '<div class="mfg-detail-panel__body">' + tab.body(current) + "</div>";
+        '<div class="mfg-detail-panel__tabs" role="tablist" aria-label="Product detail sections">' + tabsHTML + "</div>" +
+        '<div class="mfg-detail-panel__body" id="mfg-dpanel" role="tabpanel" tabindex="0" aria-labelledby="mfg-dtab-' + active + '">' + tab.body(current) + "</div>";
     }
 
-    function open(tr) {
+    function open(tr, triggerEl) {
       current = rowData(tr);
       active = "details";
+      trigger = triggerEl || null;
       render();
       panel.hidden = false;
+      var closeBtn = panel.querySelector(".mfg-detail-panel__close");
+      if (closeBtn) closeBtn.focus(); // move focus into the newly opened panel
     }
-    function close() { panel.hidden = true; }
+    function close() {
+      panel.hidden = true;
+      if (trigger) { trigger.focus(); trigger = null; } // return focus to the opener
+    }
 
     // click a product name → open the panel for that row
     body.addEventListener("click", function (e) {
       var link = e.target.closest(".mfg-product-link");
       if (!link) return;
       e.preventDefault();
-      open(link.closest("tr"));
+      open(link.closest("tr"), link);
     });
 
     // tab switching + close
     panel.addEventListener("click", function (e) {
       if (e.target.closest(".mfg-detail-panel__close")) { close(); return; }
       var tabBtn = e.target.closest(".mfg-detail-tab");
-      if (tabBtn) { active = tabBtn.getAttribute("data-tab"); render(); }
+      if (tabBtn) { active = tabBtn.getAttribute("data-tab"); render(); panel.querySelector(".mfg-detail-tab.is-active").focus(); }
+    });
+
+    // keyboard: Arrow keys rove tabs; Escape closes the panel
+    panel.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { close(); return; }
+      var tabBtn = e.target.closest(".mfg-detail-tab");
+      if (!tabBtn) return;
+      var idx = DETAIL_TABS.findIndex(function (t) { return t.id === active; });
+      var next;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = DETAIL_TABS[(idx + 1) % DETAIL_TABS.length];
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = DETAIL_TABS[(idx - 1 + DETAIL_TABS.length) % DETAIL_TABS.length];
+      else if (e.key === "Home") next = DETAIL_TABS[0];
+      else if (e.key === "End") next = DETAIL_TABS[DETAIL_TABS.length - 1];
+      if (next) { e.preventDefault(); active = next.id; render(); panel.querySelector(".mfg-detail-tab.is-active").focus(); }
     });
   }
 
@@ -903,6 +932,7 @@
       pop = document.createElement("section");
       pop.className = "slds-popover slds-popover_small slds-nubbin_top mfg-qty-popover" + (tiers.length ? " mfg-qty-popover_promo" : "");
       pop.setAttribute("role", "dialog");
+      pop.setAttribute("aria-label", "Order quantity options");
       document.body.appendChild(pop);
     }
 
@@ -969,6 +999,9 @@
     if (!edit) return;
     var qty = overrideValue != null ? overrideValue : (parseInt(edit.input.value, 10) || 0);
     var cell = edit.cell, netEl = edit.netEl, net = edit.net, orig = edit.orig, card = edit.card;
+    // If focus is still inside the editor (keyboard commit via Enter/Escape),
+    // return it to the qty cell so keyboard users don't get dropped to <body>.
+    var refocus = cell.contains(document.activeElement) || (edit.popover && edit.popover.contains(document.activeElement));
     edit.input.removeEventListener("input", refreshPopover);
     if (edit.popover && edit.popover.parentNode) edit.popover.parentNode.removeChild(edit.popover);
 
@@ -977,6 +1010,7 @@
     if (netEl) netEl.textContent = fmtMoney(qty * net); // Net Total is plain black, not a link
     hideFreePanel();
     edit = null;
+    if (refocus) cell.focus();
 
     if (edited) markEdited(cell, netEl, net, orig);
     // keep the free-items summary (variant B) in sync with the new qty
@@ -1126,13 +1160,28 @@
     var resizer = document.createElement("span");
     resizer.className = "mfg-col-resizer";
     resizer.title = "Drag to resize";
+    // Keyboard-operable separator: focusable, labeled, resizable with arrows.
+    resizer.setAttribute("role", "separator");
+    resizer.setAttribute("aria-orientation", "vertical");
+    resizer.setAttribute("aria-label", "Resize Product Name column");
+    resizer.setAttribute("tabindex", "0");
     th.appendChild(resizer);
 
+    function clampW(w) { return Math.max(140, Math.min(560, w)); }
     var startX = 0, startW = 0;
     function onMove(e) {
-      var w = Math.max(140, Math.min(560, startW + (e.clientX - startX)));
-      card.style.setProperty("--mfg-product-col-w", w + "px");
+      card.style.setProperty("--mfg-product-col-w", clampW(startW + (e.clientX - startX)) + "px");
     }
+    resizer.addEventListener("keydown", function (e) {
+      var step = e.shiftKey ? 40 : 10;
+      var delta = 0;
+      if (e.key === "ArrowRight") delta = step;
+      else if (e.key === "ArrowLeft") delta = -step;
+      else return;
+      e.preventDefault();
+      var cur = th.getBoundingClientRect().width;
+      card.style.setProperty("--mfg-product-col-w", clampW(cur + delta) + "px");
+    });
     function onUp() {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
@@ -1198,18 +1247,37 @@
       if (!btn) return;
       POPOVER_STYLE = btn.getAttribute("data-style");
       styleSwitch.querySelectorAll(".mfg-style-switch__btn").forEach(function (b) {
-        b.classList.toggle("is-active", b === btn);
+        var on = b === btn;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-pressed", String(on));
       });
       if (edit) { refreshPopover(); positionPopover(); }
     });
   }
 
   // --- tab switching (visual only) ------------------------------------------
-  document.querySelectorAll(".mfg-tabs .slds-tabs_default__link").forEach(function (link) {
-    link.addEventListener("click", function (e) {
-      e.preventDefault();
-      document.querySelectorAll(".mfg-tabs .slds-tabs_default__item").forEach(function (li) { li.classList.remove("slds-is-active"); });
-      link.closest(".slds-tabs_default__item").classList.add("slds-is-active");
+  // Visual class + full ARIA tab state so the selected tab is announced and the
+  // tablist follows the APG roving-tabindex + Arrow-key pattern.
+  var TAB_LINKS = Array.prototype.slice.call(document.querySelectorAll(".mfg-tabs .slds-tabs_default__link"));
+  function activateTab(link, focus) {
+    TAB_LINKS.forEach(function (l) {
+      var active = l === link;
+      var li = l.closest(".slds-tabs_default__item");
+      if (li) li.classList.toggle("slds-is-active", active);
+      l.setAttribute("aria-selected", String(active));
+      l.setAttribute("tabindex", active ? "0" : "-1");
+    });
+    if (focus) link.focus();
+  }
+  TAB_LINKS.forEach(function (link, i) {
+    link.addEventListener("click", function (e) { e.preventDefault(); activateTab(link); });
+    link.addEventListener("keydown", function (e) {
+      var next;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = TAB_LINKS[(i + 1) % TAB_LINKS.length];
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = TAB_LINKS[(i - 1 + TAB_LINKS.length) % TAB_LINKS.length];
+      else if (e.key === "Home") next = TAB_LINKS[0];
+      else if (e.key === "End") next = TAB_LINKS[TAB_LINKS.length - 1];
+      if (next) { e.preventDefault(); activateTab(next, true); }
     });
   });
 
@@ -1337,47 +1405,95 @@
   // Order Item Template dropdown: switching to "Free Items" lets the buyer add
   // free items directly to the order (populating the "Added from free-items list"
   // accordion in the Order Summary); "Standard Products" clears them.
+  var COMBO_SEQ = 0;
   function setupTemplateDropdowns() {
     var OPTIONS = ["Standard Products", "Free Items"];
     document.querySelectorAll(".mfg-template .slds-combobox").forEach(function (combobox) {
       var input = combobox.querySelector(".slds-combobox__input");
       if (!input) return;
+      var uid = "mfg-combo-" + (++COMBO_SEQ);
       var listbox = document.createElement("div");
       listbox.className = "slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid mfg-template__menu";
       listbox.setAttribute("role", "listbox");
+      listbox.id = uid + "-listbox";
       listbox.hidden = true;
-      listbox.innerHTML = OPTIONS.map(function (opt) {
-        return '<div class="slds-listbox__item mfg-template__option' + (opt === input.value ? " is-selected" : "") +
-          '" role="option" data-value="' + esc(opt) + '">' + esc(opt) + "</div>";
+      listbox.innerHTML = OPTIONS.map(function (opt, i) {
+        var sel = opt === input.value;
+        return '<div class="slds-listbox__item mfg-template__option' + (sel ? " is-selected" : "") +
+          '" role="option" id="' + uid + "-opt-" + i + '" aria-selected="' + sel + '" data-value="' + esc(opt) + '">' + esc(opt) + "</div>";
       }).join("");
       combobox.appendChild(listbox);
 
-      function close() { listbox.hidden = true; combobox.classList.remove("slds-is-open"); }
-      function open() { listbox.hidden = false; combobox.classList.add("slds-is-open"); }
+      // APG combobox wiring on the (readonly) input.
+      input.setAttribute("role", "combobox");
+      input.setAttribute("aria-haspopup", "listbox");
+      input.setAttribute("aria-expanded", "false");
+      input.setAttribute("aria-controls", listbox.id);
 
-      var trigger = combobox.querySelector(".slds-combobox__form-element") || input;
-      trigger.addEventListener("click", function (e) {
-        e.stopPropagation();
-        if (listbox.hidden) open(); else close();
-      });
-      listbox.addEventListener("click", function (e) {
-        e.stopPropagation();
-        var opt = e.target.closest(".mfg-template__option");
-        if (!opt) return;
+      var options = Array.prototype.slice.call(listbox.querySelectorAll(".mfg-template__option"));
+      var active = -1; // highlighted option index while open
+
+      function setActive(i) {
+        active = i;
+        options.forEach(function (o, k) { o.classList.toggle("is-active", k === i); });
+        input.setAttribute("aria-activedescendant", i >= 0 ? options[i].id : "");
+        if (i >= 0) options[i].scrollIntoView({ block: "nearest" });
+      }
+      function isOpen() { return !listbox.hidden; }
+      function open() {
+        listbox.hidden = false;
+        combobox.classList.add("slds-is-open");
+        input.setAttribute("aria-expanded", "true");
+        var selIdx = options.findIndex(function (o) { return o.classList.contains("is-selected"); });
+        setActive(selIdx >= 0 ? selIdx : 0);
+      }
+      function close() {
+        listbox.hidden = true;
+        combobox.classList.remove("slds-is-open");
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
+        setActive(-1);
+      }
+      function selectOption(opt) {
         var value = opt.getAttribute("data-value");
         input.value = value;
-        listbox.querySelectorAll(".mfg-template__option").forEach(function (o) {
-          o.classList.toggle("is-selected", o === opt);
+        options.forEach(function (o) {
+          var on = o === opt;
+          o.classList.toggle("is-selected", on);
+          o.setAttribute("aria-selected", String(on));
         });
         DIRECT_FREE = value === "Free Items" ? DIRECT_FREE_SEED.slice() : [];
         refreshAllFreeSummaries();
         close();
+      }
+
+      var trigger = combobox.querySelector(".slds-combobox__form-element") || input;
+      trigger.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (isOpen()) close(); else open();
       });
+      input.addEventListener("keydown", function (e) {
+        switch (e.key) {
+          case "ArrowDown": e.preventDefault(); if (!isOpen()) { open(); } else { setActive((active + 1) % options.length); } break;
+          case "ArrowUp": e.preventDefault(); if (!isOpen()) { open(); } else { setActive((active - 1 + options.length) % options.length); } break;
+          case "Home": if (isOpen()) { e.preventDefault(); setActive(0); } break;
+          case "End": if (isOpen()) { e.preventDefault(); setActive(options.length - 1); } break;
+          case "Enter":
+          case " ": if (isOpen() && active >= 0) { e.preventDefault(); selectOption(options[active]); } else if (!isOpen()) { e.preventDefault(); open(); } break;
+          case "Escape": if (isOpen()) { e.preventDefault(); close(); } break;
+          case "Tab": if (isOpen()) close(); break;
+        }
+      });
+      listbox.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var opt = e.target.closest(".mfg-template__option");
+        if (opt) selectOption(opt);
+      });
+      combobox._closeMenu = close;
     });
     document.addEventListener("click", function () {
-      document.querySelectorAll(".mfg-template__menu").forEach(function (m) {
-        m.hidden = true;
-        m.closest(".slds-combobox").classList.remove("slds-is-open");
+      document.querySelectorAll(".mfg-template .slds-combobox").forEach(function (c) {
+        if (c._closeMenu) c._closeMenu();
       });
     });
   }

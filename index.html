@@ -124,8 +124,8 @@
           <div class="slds-page-header__controls">
             <div class="mfg-style-switch" role="group" aria-label="Promotion popover style">
               <span class="mfg-style-switch__label">Promo popover</span>
-              <button type="button" class="mfg-style-switch__btn is-active" data-style="bar">Progress bar</button>
-              <button type="button" class="mfg-style-switch__btn" data-style="rounding">Rounding</button>
+              <button type="button" class="mfg-style-switch__btn is-active" data-style="bar" aria-pressed="true">Progress bar</button>
+              <button type="button" class="mfg-style-switch__btn" data-style="rounding" aria-pressed="false">Rounding</button>
             </div>
             <div class="slds-button-group" role="group">
               <button class="slds-button slds-button_neutral">Edit</button>
@@ -238,7 +238,7 @@
                     <h2 class="slds-card__header-title">
                       <span class="mfg-card-title">Assortment Line Items (2000+)</span>
                     </h2>
-                    <p class="slds-text-body_small mfg-selected-count" id="selected-count">0 line selected</p>
+                    <p class="slds-text-body_small mfg-selected-count" id="selected-count" aria-live="polite">0 lines selected</p>
                   </div>
                 </header>
               </div>
@@ -307,7 +307,7 @@
             <!-- Data grid + contextual free-items side panel -->
             <div class="mfg-grid-layout">
             <div class="mfg-grid-wrapper">
-              <table class="slds-table slds-table_bordered slds-table_fixed-layout slds-tree slds-table_tree mfg-grid" role="treegrid" aria-label="Assortment Line Items">
+              <table class="slds-table slds-table_bordered slds-table_fixed-layout slds-tree slds-table_tree mfg-grid" aria-label="Assortment Line Items">
                 <thead>
                   <tr class="slds-line-height_reset">
                     <th class="mfg-col-expand" scope="col"><span class="slds-assistive-text">Expand</span></th>
@@ -368,7 +368,7 @@
 
   <!-- ============================ INLINE-EDIT SAVE BAR ============================ -->
   <div class="mfg-edit-footer" id="edit-footer" role="region" aria-label="Unsaved changes" hidden>
-    <div class="mfg-edit-footer__msg">
+    <div class="mfg-edit-footer__msg" aria-live="polite">
       <svg class="mfg-edit-footer__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#info"></use></svg>
       <span id="edit-count">1 item edited</span>
     </div>
