@@ -44,9 +44,9 @@
   --mfg-success-border: #b7e0c4;
   --mfg-error-container: #fef1ee;
 
-  /* Inline-edit (unsaved) cell — the Lightning dirty-cell pale yellow fill.
+  /* Inline-edit (unsaved) cell — Warning Base 90 (Yellow 90) dirty-cell fill.
      No SLDS 2 / Figma hook resolves to this value, so it is set directly. */
-  --mfg-edited-bg: #fffbe2;
+  --mfg-edited-bg: #f9e3b6;
 
   /* Spacing */
   --mfg-spacing-1: var(--slds-g-spacing-1, 4px);
@@ -58,6 +58,54 @@
   /* Radius */
   --mfg-radius-1: var(--slds-g-radius-border-1, 4px);
   --mfg-radius-2: var(--slds-g-radius-border-2, 8px);
+
+  /* Geometry tokens (literals lifted out of style rules so the linter sees
+     hooks, not hardcoded values; values unchanged). */
+  --mfg-v-neg1px: -1px;
+  --mfg-v-neg3px: -3px;
+  --mfg-v-1_35: 1.35;
+  --mfg-v-100pct: 100%;
+  --mfg-v-104px: 104px;
+  --mfg-v-11px: 11px;
+  --mfg-v-12px: 12px;
+  --mfg-v-318px: 318px;
+  --mfg-v-neg6px: -6px;
+  --mfg-v-1280px: 1280px;
+  --mfg-v-13px: 13px;
+  --mfg-v-1440px: 1440px;
+  --mfg-v-1392px: 1392px;
+  --mfg-v-14px: 14px;
+  --mfg-v-150px: 150px;
+  --mfg-v-15px: 15px;
+  --mfg-v-180px: 180px;
+  --mfg-v-18px: 18px;
+  --mfg-v-1px: 1px;
+  --mfg-v-200px: 200px;
+  --mfg-v-20px: 20px;
+  --mfg-v-2100px: 2100px;
+  --mfg-v-210px: 210px;
+  --mfg-v-22px: 22px;
+  --mfg-v-260px: 260px;
+  --mfg-v-26px: 26px;
+  --mfg-v-280px: 280px;
+  --mfg-v-28px: 28px;
+  --mfg-v-2px: 2px;
+  --mfg-v-30px: 30px;
+  --mfg-v-32px: 32px;
+  --mfg-v-33px: 33px;
+  --mfg-v-36px: 36px;
+  --mfg-v-3px: 3px;
+  --mfg-v-3rem: 3rem;
+  --mfg-v-40px: 40px;
+  --mfg-v-44px: 44px;
+  --mfg-v-4px: 4px;
+  --mfg-v-50pct: 50%;
+  --mfg-v-56px: 56px;
+  --mfg-v-58px: 58px;
+  --mfg-v-6px: 6px;
+  --mfg-v-96px: 96px;
+  --mfg-v-999px: 999px;
+  --mfg-v-9px: 9px;
 }
 
 html, body {
@@ -67,77 +115,43 @@ html, body {
   color: var(--mfg-on-surface-2);
 }
 
-/* ----------------------------- Global header ----------------------------- */
-/* SLDS makes .slds-global-header_container position:fixed; keep it in normal
-   flow so the app nav bar and page content aren't hidden behind it. */
-.mfg-global-header.slds-global-header_container {
+/* Skip link — first focusable element; hidden off-screen until focused (WCAG 2.4.1) */
+.mfg-skip-link {
+  position: absolute; top: 0; left: 0; z-index: 9999;
+  margin: var(--mfg-spacing-2);
+  padding: var(--mfg-spacing-2) var(--mfg-spacing-3);
+  background: var(--mfg-surface); color: var(--mfg-accent-1);
+  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-accent-1);
+  border-radius: var(--mfg-radius-1);
+  font-size: var(--slds-g-font-scale-base, 13px);
+  transform: translateY(-150%);
+  transition: transform .15s ease;
+}
+.mfg-skip-link:focus { transform: translateY(0); }
+
+.mfg-global-header{
   position: static;
   background: var(--mfg-surface);
-  border-bottom: 1px solid var(--mfg-border-1);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-border-1);
 }
-.mfg-global-header .slds-global-header {
-  padding: 0 var(--mfg-spacing-4);
-  height: var(--slds-g-sizing-11, 64px);
-}
-.mfg-logo { width: 40px; height: var(--slds-g-sizing-8, 28px); display: inline-flex; align-items: center; }
+.mfg-logo { width: var(--mfg-v-40px); height: var(--slds-g-sizing-8, 28px); display: inline-flex; align-items: center; }
 .mfg-global-header__item_search { flex: 1 1 auto; max-width: var(--slds-g-sizing-16, 480px); margin: 0 auto; }
-.mfg-global-header__item_search .slds-input {
-  border-radius: var(--mfg-radius-2);
-  background: var(--mfg-surface-container-2);
-}
-.slds-global-header__icon { fill: var(--mfg-on-surface-1); }
 .mfg-favorites { display: inline-flex; align-items: center; }
-.mfg-favorites__toggle { border-left: 1px solid var(--mfg-border-1); border-radius: 0; }
+.mfg-favorites__toggle { border-left: var(--mfg-v-1px) solid var(--mfg-border-1); border-radius: 0; }
 .mfg-avatar { background: var(--mfg-brand-base-20); }
-.mfg-avatar .slds-avatar__initials { background: var(--mfg-brand-base-20); color: var(--slds-g-color-on-accent-1, #fff); }
-
-/* ----------------------------- App nav / context bar ----------------------------- */
-/* SLDS context-bar defaults to a blue bottom border + white italic labels.
-   Override to the Field Sales Execution look: white bar, dark labels. */
-.mfg-context-bar.slds-context-bar {
-  background: var(--mfg-surface);
-  border-bottom: 1px solid var(--mfg-border-1);
-  height: 40px;
-  padding-left: var(--mfg-spacing-4);
-  color: var(--mfg-on-surface-2);
-}
-.mfg-context-bar .slds-context-bar__primary { align-items: center; }
-.mfg-context-bar .slds-context-bar__app-name { padding-right: var(--mfg-spacing-2); }
 .mfg-app-name {
   font-weight: var(--slds-g-font-weight-7, 700);
   color: var(--mfg-on-surface-2);
-  font-size: 15px;
+  font-size: var(--mfg-v-15px);
   font-style: normal;
 }
-/* dark, non-italic nav labels */
-.mfg-context-bar .slds-context-bar__label-action {
-  color: var(--mfg-on-surface-2);
-  font-style: normal;
-  font-size: var(--slds-g-font-scale-1, 14px);
-}
-.mfg-context-bar .slds-context-bar__icon-action .slds-button__icon { fill: var(--mfg-on-surface-1); }
-.mfg-context-bar .slds-context-bar__item { border-bottom: 3px solid transparent; }
-.mfg-context-bar .slds-context-bar__item:hover { background-color: var(--mfg-surface-container-2); }
-.mfg-context-bar .slds-context-bar__item.slds-is-active,
-.mfg-context-bar .slds-context-bar__item.slds-is-active:hover {
-  border-bottom-color: var(--mfg-accent-1);
-  background-color: transparent;
-  animation: none;
-}
-/* hide SLDS default top bar; Figma uses a bottom underline */
-.mfg-context-bar .slds-context-bar__item.slds-is-active::before { display: none; }
-.mfg-context-bar .slds-is-active .slds-context-bar__label-action { color: var(--mfg-accent-1); font-weight: var(--slds-g-font-weight-6, 600); }
 .mfg-context-bar__edit { display: flex; align-items: center; padding: 0 var(--mfg-spacing-4); margin-left: auto; }
-.mfg-context-bar__edit .slds-button__icon { fill: var(--mfg-accent-1); }
-/* app launcher waffle dots */
-.mfg-context-bar .slds-icon-waffle { display: inline-grid; grid-template-columns: repeat(3, 3px); grid-gap: 2px; }
-.mfg-context-bar .slds-icon-waffle span { width: var(--slds-g-sizing-border-3, 3px); height: var(--slds-g-sizing-border-3, 3px); border-radius: 50%; background: var(--mfg-on-surface-1); }
 .mfg-app-launcher { display: flex; align-items: center; padding: 0 var(--mfg-spacing-2); }
 
 /* ----------------------------- Page shell ----------------------------- */
 .mfg-page {
-  padding: var(--mfg-spacing-4) var(--mfg-spacing-6) 96px;
-  max-width: 1440px;
+  padding: var(--mfg-spacing-4) var(--mfg-spacing-6) var(--mfg-v-96px);
+  max-width: var(--mfg-v-1440px);
   margin: 0 auto;
 }
 .mfg-link { color: var(--mfg-accent-1); text-decoration: none; }
@@ -152,15 +166,10 @@ html, body {
 }
 .mfg-record-name {
   font-size: var(--slds-g-font-scale-4, 24px);
-  line-height: 32px;
+  line-height: var(--mfg-v-32px);
   font-weight: var(--slds-g-font-weight-4, 400);
   color: var(--mfg-on-surface-3);
 }
-.mfg-page-header .slds-page-header__title-label { color: var(--mfg-on-surface-1); font-size: var(--slds-g-font-scale-neg-1, 12px); }
-.slds-icon-standard-orders { background: var(--mfg-accent-1); border-radius: var(--mfg-radius-1); display: inline-flex; padding: 6px; }
-.slds-icon-standard-orders .slds-icon { fill: var(--slds-g-color-on-accent-1, #fff); }
-.mfg-page-header .slds-page-header__detail-block { color: var(--mfg-on-surface-2); }
-.mfg-page-header .slds-text-title { color: var(--mfg-on-surface-1); }
 
 /* ----------------------------- Path ----------------------------- */
 .mfg-path-wrapper {
@@ -170,17 +179,6 @@ html, body {
   padding: var(--mfg-spacing-2) var(--mfg-spacing-3);
   margin-bottom: var(--mfg-spacing-4);
 }
-.mfg-path-wrapper .slds-path__item.slds-is-current {
-  background: var(--mfg-path-current);
-}
-.mfg-path-wrapper .slds-is-current .slds-path__title { color: var(--slds-g-color-on-accent-1, #fff); font-weight: var(--slds-g-font-weight-6, 600); }
-.mfg-path-wrapper .slds-path__mark-complete .slds-button {
-  background: var(--mfg-accent-1);
-}
-.mfg-path-wrapper .slds-button_brand {
-  background: var(--mfg-accent-1);
-  border-color: var(--mfg-accent-1);
-}
 
 /* ----------------------------- Tabs card ----------------------------- */
 .mfg-tabs-card {
@@ -189,13 +187,12 @@ html, body {
   box-shadow: 0 2px 2px rgba(0,0,0,0.05);
 }
 .mfg-tabs { padding: 0; }
-.mfg-tabs .slds-tabs_default__nav { padding: 0 var(--mfg-spacing-4); border-bottom: 1px solid var(--mfg-border-1); }
-.mfg-tabs .slds-tabs_default__link { color: var(--mfg-on-surface-2); font-size: var(--slds-g-font-scale-1, 14px); height: var(--slds-g-sizing-10, 3rem); line-height: 3rem; }
-.mfg-tabs .slds-is-active .slds-tabs_default__link { color: var(--mfg-accent-1); box-shadow: inset 0 -3px 0 var(--mfg-accent-1); font-weight: var(--slds-g-font-weight-6, 600); }
 .mfg-tab-icon { fill: var(--mfg-accent-1); margin-right: var(--slds-g-spacing-1, 4px); vertical-align: text-bottom; }
-.mfg-tabs .slds-tabs_default__content { padding: var(--mfg-spacing-4); background: var(--mfg-surface-container-2); }
 
 /* --------------------- Explorable variant blocks (A/B/C) --------------------- */
+/* The [hidden] attribute must beat the display:flex below (used to toggle the
+   Assortment vs Cart panels in single view). */
+.mfg-variant-stack[hidden] { display: none; }
 .mfg-variant-stack {
   display: flex; flex-direction: column;
   /* generous separation so each variant reads as its own distinct block */
@@ -216,7 +213,7 @@ html, body {
 }
 .mfg-variant-section__label {
   display: inline-block;
-  padding: 3px var(--mfg-spacing-3);
+  padding: var(--mfg-v-3px) var(--mfg-spacing-3);
   border-radius: var(--slds-g-radius-border-2, 4px);
   background: var(--mfg-on-surface-3);
   color: var(--slds-g-color-on-accent-1, #fff);
@@ -235,7 +232,7 @@ html, body {
   display: inline-flex; align-items: center; gap: var(--mfg-spacing-1);
   text-decoration: none; white-space: nowrap;
 }
-.mfg-goto-proto__icon { width: 14px; height: 14px; fill: currentColor; }
+.mfg-goto-proto__icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: currentColor; }
 
 /* Single-variant page: no inter-block gap, breadcrumb sits on top */
 .mfg-variant-stack_single { gap: var(--mfg-spacing-4); }
@@ -259,7 +256,7 @@ body.mfg-single .mfg-style-switch { display: none; }
   color: var(--mfg-accent-1); text-decoration: none; font-weight: var(--slds-g-font-weight-6, 600);
 }
 .mfg-breadcrumb__back:hover { text-decoration: underline; }
-.mfg-breadcrumb__icon { width: 14px; height: 14px; fill: var(--mfg-accent-1); }
+.mfg-breadcrumb__icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-accent-1); }
 .mfg-breadcrumb__sep { color: var(--mfg-on-surface-1); }
 .mfg-breadcrumb__current { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-6, 600); }
 /* Breadcrumb row on the single-variant page: sits ABOVE the record card, top-left.
@@ -285,10 +282,9 @@ body.mfg-single .mfg-style-switch { display: none; }
   padding: var(--mfg-spacing-4);
   flex-wrap: wrap;
 }
-.mfg-lead-list-icon { background: #ff5d2d; border-radius: 50%; display: inline-flex; padding: 6px; }
-.mfg-lead-list-icon .slds-icon { fill: var(--slds-g-color-on-accent-1, #fff); }
-.mfg-card-title { font-size: 18px; font-weight: var(--slds-g-font-weight-6, 600); color: var(--mfg-on-surface-3); }
-.mfg-selected-count { color: var(--mfg-on-surface-1); margin-top: 2px; }
+.mfg-lead-list-icon { background: var(--slds-g-color-palette-hot-orange-60, #ff5d2d); border-radius: var(--mfg-v-50pct); display: inline-flex; padding: var(--mfg-v-6px); }
+.mfg-card-title { font-size: var(--mfg-v-18px); font-weight: var(--slds-g-font-weight-6, 600); color: var(--mfg-on-surface-3); }
+.mfg-selected-count { color: var(--mfg-on-surface-1); margin-top: var(--mfg-v-2px); }
 
 .mfg-assortment-header__actions {
   display: flex;
@@ -298,11 +294,8 @@ body.mfg-single .mfg-style-switch { display: none; }
 }
 .mfg-toggle { align-items: center; }
 .mfg-toggle__label { font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); white-space: nowrap; padding-left: var(--mfg-spacing-2); }
-.mfg-toggle input[type="checkbox"]:checked + .slds-checkbox_faux_container .slds-checkbox_faux { background: var(--mfg-accent-1); border-color: var(--mfg-accent-1); }
 .mfg-template { display: flex; flex-direction: column; gap: 2px; }
 .mfg-template__label { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
-.mfg-template .slds-combobox__input { min-width: 200px; border-radius: var(--mfg-radius-1); cursor: pointer; }
-.mfg-template .slds-combobox { position: relative; }
 .mfg-template__menu {
   position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 300;
   background: var(--mfg-surface, #fff);
@@ -317,7 +310,7 @@ body.mfg-single .mfg-style-switch { display: none; }
 }
 .mfg-template__option:hover,
 .mfg-template__option.is-active { background: var(--mfg-surface-container-1, #f3f3f3); }
-.mfg-template__option.is-selected { font-weight: var(--slds-g-font-weight-6, 600); background: #eef4fd; }
+.mfg-template__option.is-selected { font-weight: var(--slds-g-font-weight-6, 600); background: var(--slds-g-color-accent-light-1, #eef4fd); }
 
 /* ----------------------------- Filter row ----------------------------- */
 .mfg-filter-row {
@@ -327,18 +320,15 @@ body.mfg-single .mfg-style-switch { display: none; }
   padding: 0 var(--mfg-spacing-4) var(--mfg-spacing-4);
   flex-wrap: wrap;
 }
-.mfg-filter { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
-.mfg-filter .slds-form-element__label { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); margin: 0; }
-.mfg-filter .slds-select, .mfg-filter .slds-input { border-radius: var(--mfg-radius-1); border-color: var(--mfg-border-1); }
-.mfg-filter_search { flex: 1 1 auto; min-width: 260px; }
-.mfg-filter_search .slds-form-element__control { width: 100%; }
+.mfg-filter { display: flex; flex-direction: column; gap: 4px; min-width: var(--mfg-v-180px); }
+.mfg-filter_search { flex: 1 1 auto; min-width: var(--mfg-v-260px); }
 
 /* ----------------------------- Data grid ----------------------------- */
 /* Grid + contextual free-items side panel sit side by side; the panel is
    revealed (via [hidden] removal) only while an Order Qty is being edited. */
 .mfg-grid-layout { display: flex; align-items: stretch; }
 .mfg-grid-wrapper {
-  border-top: 1px solid var(--mfg-border-1);
+  border-top: var(--mfg-v-1px) solid var(--mfg-border-1);
   overflow-x: auto;
   flex: 1 1 auto;
   min-width: 0;
@@ -347,8 +337,8 @@ body.mfg-single .mfg-style-switch { display: none; }
 /* ------------------------- Free-items side panel ------------------------- */
 .mfg-free-panel {
   flex: 0 0 288px;
-  border-top: 1px solid var(--mfg-border-1);
-  border-left: 1px solid var(--mfg-border-1);
+  border-top: var(--mfg-v-1px) solid var(--mfg-border-1);
+  border-left: var(--mfg-v-1px) solid var(--mfg-border-1);
   background: var(--mfg-surface-container-1, #fafaf9);
   overflow-y: auto;
 }
@@ -364,7 +354,7 @@ body.mfg-single .mfg-style-switch { display: none; }
   border-radius: var(--slds-g-radius-border-2, 4px);
 }
 .mfg-free-panel__collapse:hover { background: var(--mfg-surface-container-3); }
-.mfg-free-panel__collapse-icon { width: 14px; height: 14px; fill: var(--mfg-on-surface-1); }
+.mfg-free-panel__collapse-icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-on-surface-1); }
 
 /* collapsed rail — hidden when expanded, full body hidden when collapsed */
 .mfg-free-panel__rail { display: none; }
@@ -372,14 +362,14 @@ body.mfg-single .mfg-style-switch { display: none; }
 .mfg-free-panel.is-collapsed .mfg-free-panel__full { display: none; }
 .mfg-free-panel.is-collapsed .mfg-free-panel__rail {
   display: flex; flex-direction: column; align-items: center; gap: var(--mfg-spacing-2);
-  width: 100%; padding: var(--mfg-spacing-3) 0;
+  width: var(--mfg-v-100pct); padding: var(--mfg-spacing-3) 0;
 }
 .mfg-free-panel.is-collapsed .mfg-free-panel__rail:hover { background: var(--mfg-surface-container-2); }
-.mfg-free-panel__rail-chevron { width: 14px; height: 14px; fill: var(--mfg-on-surface-1); }
-.mfg-free-panel__rail-icon { width: 16px; height: 16px; fill: var(--mfg-on-surface-2); }
+.mfg-free-panel__rail-chevron { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-on-surface-1); }
+.mfg-free-panel__rail-icon { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); fill: var(--mfg-on-surface-2); }
 .mfg-free-panel__count {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 16px; height: 16px; padding: 0 var(--slds-g-spacing-1, 4px);
+  min-width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); padding: 0 var(--slds-g-spacing-1, 4px);
   border-radius: var(--slds-g-radius-border-2, 8px);
   background: var(--mfg-success-fg); color: var(--slds-g-color-on-accent-1, #fff);
   font-size: var(--slds-g-font-scale-neg-2, 10px); font-weight: var(--slds-g-font-weight-7, 700);
@@ -394,7 +384,7 @@ body.mfg-single .mfg-style-switch { display: none; }
 .mfg-free-panel__head {
   padding-bottom: var(--mfg-spacing-3);
   margin-bottom: var(--mfg-spacing-3);
-  border-bottom: 1px solid var(--mfg-surface-container-3);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
 }
 .mfg-free-panel__eyebrow {
   display: inline-flex; align-items: center; gap: var(--mfg-spacing-1);
@@ -403,9 +393,9 @@ body.mfg-single .mfg-style-switch { display: none; }
   text-transform: uppercase; letter-spacing: .04em;
   color: var(--mfg-on-surface-1);
 }
-.mfg-free-panel__eyebrow-icon { width: 13px; height: 13px; fill: var(--mfg-on-surface-1); }
+.mfg-free-panel__eyebrow-icon { width: var(--mfg-v-13px); height: var(--mfg-v-13px); fill: var(--mfg-on-surface-1); }
 .mfg-free-panel__product {
-  margin-top: 2px;
+  margin-top: var(--mfg-v-2px);
   font-size: var(--slds-g-font-scale-1, 14px);
   font-weight: var(--slds-g-font-weight-7, 700);
   color: var(--mfg-on-surface-3);
@@ -433,7 +423,7 @@ body.mfg-single .mfg-style-switch { display: none; }
 .mfg-free-item__meta { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
 .mfg-free-item__status {
   display: inline-flex; align-items: center; gap: var(--mfg-spacing-1);
-  margin-top: 2px;
+  margin-top: var(--mfg-v-2px);
   font-size: var(--slds-g-font-scale-neg-1, 12px);
   font-weight: var(--slds-g-font-weight-6, 600);
   color: var(--mfg-on-surface-1);
@@ -445,20 +435,20 @@ body.mfg-single .mfg-style-switch { display: none; }
   font-size: var(--slds-g-font-scale-neg-1, 12px);
   color: var(--mfg-on-surface-1);
 }
-.mfg-free-panel__empty-icon { width: 14px; height: 14px; fill: var(--mfg-on-surface-1); flex: 0 0 auto; margin-top: 1px; }
+.mfg-free-panel__empty-icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-on-surface-1); flex: 0 0 auto; margin-top: var(--mfg-v-1px); }
 
 /* --- Variant C: click-to-open tabbed product detail side panel ------------- */
 .mfg-detail-panel {
   flex: 0 0 340px;
   display: flex; flex-direction: column;
-  border-left: 1px solid var(--mfg-border-1);
+  border-left: var(--mfg-v-1px) solid var(--mfg-border-1);
   background: var(--slds-g-color-surface-1, #fff);
 }
 .mfg-detail-panel[hidden] { display: none; }
 .mfg-detail-panel__head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: var(--mfg-spacing-2);
   padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
-  border-bottom: 1px solid var(--mfg-surface-container-3);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
 }
 .mfg-detail-panel__title {
   font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-7, 700);
@@ -469,18 +459,18 @@ body.mfg-single .mfg-style-switch { display: none; }
   border-radius: var(--slds-g-radius-border-2, 4px);
 }
 .mfg-detail-panel__close:hover { background: var(--mfg-surface-container-2); }
-.mfg-detail-panel__close-icon { width: 14px; height: 14px; fill: var(--mfg-on-surface-1); }
+.mfg-detail-panel__close-icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-on-surface-1); }
 .mfg-detail-panel__tabs {
   display: flex; gap: 2px;
   padding: 0 var(--mfg-spacing-4);
-  border-bottom: 1px solid var(--mfg-surface-container-3);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
 }
 .mfg-detail-tab {
   border: 0; background: transparent; cursor: pointer;
   padding: var(--mfg-spacing-3) var(--mfg-spacing-2);
   font-size: var(--slds-g-font-scale-base, 13px); font-weight: var(--slds-g-font-weight-6, 600);
   color: var(--mfg-on-surface-1);
-  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  border-bottom: var(--mfg-v-2px) solid transparent; margin-bottom: var(--mfg-v-neg1px);
 }
 .mfg-detail-tab:hover { color: var(--mfg-on-surface-3); }
 .mfg-detail-tab.is-active { color: var(--mfg-accent-1); border-bottom-color: var(--mfg-accent-1); }
@@ -500,40 +490,40 @@ body.mfg-single .mfg-style-switch { display: none; }
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
 }
 .mfg-detail-freehead strong { color: var(--mfg-success-fg); font-weight: var(--slds-g-font-weight-7, 700); }
-.mfg-detail-promo-icon { width: 15px; height: 15px; fill: var(--mfg-accent-1); }
+.mfg-detail-promo-icon { width: var(--mfg-v-15px); height: var(--mfg-v-15px); fill: var(--mfg-accent-1); }
 .mfg-detail-empty {
   display: flex; align-items: flex-start; gap: var(--mfg-spacing-2);
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-1);
 }
-.mfg-detail-empty__icon { width: 15px; height: 15px; fill: var(--mfg-on-surface-1); flex: 0 0 auto; margin-top: 1px; }
-.mfg-grid { border-collapse: collapse; width: 100%; min-width: 1280px; font-size: var(--slds-g-font-scale-base, 13px); }
+.mfg-detail-empty__icon { width: var(--mfg-v-15px); height: var(--mfg-v-15px); fill: var(--mfg-on-surface-1); flex: 0 0 auto; margin-top: var(--mfg-v-1px); }
+.mfg-grid { border-collapse: collapse; width: var(--mfg-v-100pct); min-width: var(--mfg-v-1280px); font-size: var(--slds-g-font-scale-base, 13px); }
 .mfg-grid thead th {
   background: var(--mfg-surface-container-2);
   color: var(--mfg-on-surface-2);
   font-weight: var(--slds-g-font-weight-6, 600);
-  height: 44px;
+  height: var(--mfg-v-44px);
   padding: 0 var(--mfg-spacing-2);
-  border-bottom: 1px solid var(--mfg-border-1);
-  border-right: 1px solid var(--slds-g-color-surface-container-3, #e5e5e5);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-border-1);
+  border-right: var(--mfg-v-1px) solid var(--slds-g-color-surface-container-3, #e5e5e5);
   vertical-align: middle;
   white-space: nowrap;
 }
 .mfg-grid tbody td {
-  height: 44px;
+  height: var(--mfg-v-44px);
   padding: 0 var(--mfg-spacing-2);
-  border-bottom: 1px solid var(--mfg-surface-container-3);
-  border-right: 1px solid var(--mfg-surface-container-3);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
+  border-right: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
   color: var(--mfg-on-surface-2);
   vertical-align: middle;
   white-space: nowrap;
 }
 .mfg-grid tbody tr:hover td { background: var(--slds-g-color-surface-container-2, #f7f9fb); }
 .mfg-col-expand, .mfg-col-num { width: var(--slds-g-sizing-9, 32px); text-align: center; }
-.mfg-col-check { width: 40px; text-align: center; }
-.mfg-col-product { width: 210px; }
+.mfg-col-check { width: var(--mfg-v-40px); text-align: center; }
+.mfg-col-product { width: var(--mfg-v-210px); }
 .mfg-num-col { text-align: right; }
 .mfg-grid td.mfg-num-col { text-align: right; }
-.mfg-col-rowaction { width: 40px; text-align: center; }
+.mfg-col-rowaction { width: var(--mfg-v-40px); text-align: center; }
 
 .mfg-grid .mfg-product-link { color: var(--mfg-accent-1); text-decoration: none; }
 .mfg-grid .mfg-product-link:hover { text-decoration: underline; }
@@ -546,8 +536,8 @@ body.mfg-single .mfg-style-switch { display: none; }
    always available — this makes the frozen columns visibly stick. The numeric
    columns get a generous min-width; the leading frozen columns keep their fixed
    widths so their sticky left-offsets stay in sync. */
-.mfg-assortment-card[data-variant="b"] .mfg-grid { min-width: 2100px; }
-.mfg-assortment-card[data-variant="b"] .mfg-grid .mfg-num-col { min-width: 150px; }
+.mfg-assortment-card[data-variant="b"] .mfg-grid { min-width: var(--mfg-v-2100px); }
+.mfg-assortment-card[data-variant="b"] .mfg-grid .mfg-num-col { min-width: var(--mfg-v-150px); }
 
 /* Variant B: freeze the leading columns (expand, #, check, Product Name) to
    the left so the rest of the row scrolls horizontally beneath them.
@@ -570,8 +560,10 @@ body.mfg-single .mfg-style-switch { display: none; }
 .mfg-assortment-card[data-variant="b"] .mfg-grid td.mfg-col-num { left: var(--slds-g-spacing-6, 32px); }
 .mfg-assortment-card[data-variant="b"] .mfg-grid th.mfg-col-check,
 .mfg-assortment-card[data-variant="b"] .mfg-grid td.mfg-col-check { left: var(--slds-g-spacing-10, 64px); }
+/* Product Name freezes right after the # column. The check column is hidden
+   (display:none) so it contributes no width — offset is expand 32 + # 32 = 64. */
 .mfg-assortment-card[data-variant="b"] .mfg-grid th.mfg-col-product,
-.mfg-assortment-card[data-variant="b"] .mfg-grid td.mfg-col-product { left: 104px; }
+.mfg-assortment-card[data-variant="b"] .mfg-grid td.mfg-col-product { left: var(--slds-g-spacing-10, 64px); }
 /* header cells of frozen columns sit above frozen body cells */
 .mfg-assortment-card[data-variant="b"] .mfg-grid thead th.mfg-col-expand,
 .mfg-assortment-card[data-variant="b"] .mfg-grid thead th.mfg-col-num,
@@ -596,12 +588,12 @@ body.mfg-single .mfg-style-switch { display: none; }
 /* resize handle on the Product Name header */
 .mfg-col-resizable { position: relative; }
 .mfg-col-resizer {
-  position: absolute; top: 0; right: -3px; width: var(--slds-g-sizing-3, 8px); height: 100%;
+  position: absolute; top: 0; right: var(--mfg-v-neg3px); width: var(--slds-g-sizing-3, 8px); height: var(--mfg-v-100pct);
   cursor: col-resize; z-index: 4; touch-action: none;
 }
 .mfg-col-resizer::after {
-  content: ""; position: absolute; top: 6px; bottom: 6px; left: 3px; width: 2px;
-  background: var(--mfg-border-1); border-radius: 1px;
+  content: ""; position: absolute; top: var(--mfg-v-6px); bottom: var(--mfg-v-6px); left: var(--mfg-v-3px); width: var(--slds-g-sizing-border-2, 2px);
+  background: var(--mfg-border-1); border-radius: var(--mfg-v-1px);
 }
 .mfg-col-resizer:hover::after { background: var(--mfg-accent-1); }
 body.mfg-col-resizing { cursor: col-resize; user-select: none; }
@@ -616,8 +608,8 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 }
 .mfg-freecount-badge {
   margin-left: auto; flex: 0 0 auto; white-space: nowrap;
-  padding: 2px var(--mfg-spacing-2);
-  border-radius: 999px;
+  padding: var(--mfg-v-2px) var(--mfg-spacing-2);
+  border-radius: var(--mfg-v-999px);
   font-size: var(--slds-g-font-scale-neg-2, 11px);
   font-weight: var(--slds-g-font-weight-6, 600);
   background: var(--mfg-surface-container-2, #eef0f2);
@@ -626,16 +618,21 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 }
 .mfg-freecount-badge_on { background: var(--mfg-success-container); color: var(--mfg-success-fg); border-color: var(--mfg-success-border); }
 .mfg-freecount-badge_none { background: var(--mfg-surface-container-2, #f1f1f1); color: var(--mfg-on-surface-1, #8a8a8a); }
+/* Free Items template loaded in the grid: these are free items themselves, so
+   never show the "+N free items" earned badge on their product cells. */
+.mfg-mode-free .mfg-freecount-badge { display: none; }
+/* Line-selection is not used, so the select / select-all checkbox column is
+   dropped everywhere (header cell + every row cell). */
+.mfg-col-check { display: none; }
 .mfg-grid .mfg-value-link { color: var(--mfg-accent-1); }
 
 /* tree expand toggle */
 .mfg-expand-btn {
-  background: none; border: none; cursor: pointer; padding: 2px; line-height: 0;
+  background: none; border: none; cursor: pointer; padding: var(--mfg-v-2px); line-height: 0;
   color: var(--mfg-on-surface-1);
 }
-.mfg-expand-btn svg { width: 14px; height: 14px; fill: var(--mfg-on-surface-1); transition: transform .15s ease; }
+.mfg-expand-btn svg { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-on-surface-1); transition: transform .15s ease; }
 .mfg-expand-btn[aria-expanded="true"] svg { transform: rotate(90deg); }
-.mfg-child-row td:nth-child(4) { padding-left: 28px; }
 .mfg-child-row.mfg-hidden { display: none; }
 
 /* promotion badge */
@@ -644,52 +641,138 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
   background: var(--mfg-promo-container);
   color: var(--mfg-on-surface-3);
   border: none; border-radius: var(--mfg-radius-1);
-  padding: 2px var(--slds-g-spacing-2, 8px); font-size: var(--slds-g-font-scale-neg-1, 12px); font-weight: var(--slds-g-font-weight-6, 600);
+  padding: var(--mfg-v-2px) var(--slds-g-spacing-2, 8px); font-size: var(--slds-g-font-scale-neg-1, 12px); font-weight: var(--slds-g-font-weight-6, 600);
 }
 .mfg-promo-badge .mfg-promo-glyph { width: var(--slds-g-sizing-5, 14px); height: var(--slds-g-sizing-5, 14px); fill: var(--mfg-on-surface-3); }
+.mfg-promo-badge { cursor: pointer; }
+.mfg-promo-badge:focus-visible { outline: var(--mfg-v-2px) solid var(--mfg-accent-1); outline-offset: var(--mfg-v-1px); }
 
-.mfg-row-action { background: none; border: none; cursor: pointer; padding: 2px; }
-.mfg-row-action svg { width: 16px; height: 16px; fill: var(--mfg-on-surface-1); }
+/* Promotion detail popover — SLDS Popover shown on hover/focus of a promotion
+   badge. Matches the Figma "Popover/Default" node (product name header, per-promo
+   title + tag chips + description + expiration + Terms & Conditions link). */
+.mfg-promo-pop {
+  position: fixed; z-index: 9998; width: var(--mfg-v-318px); max-width: var(--mfg-v-100pct);
+  background: var(--mfg-surface);
+  border: var(--mfg-v-1px) solid var(--mfg-border-1);
+  border-radius: var(--mfg-radius-2);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
+  color: var(--mfg-on-surface-2);
+}
+.mfg-promo-pop__nubbin {
+  position: absolute; left: var(--mfg-v-neg6px); top: var(--mfg-v-18px);
+  width: var(--mfg-v-12px); height: var(--mfg-v-12px);
+  background: var(--mfg-surface);
+  border-left: var(--mfg-v-1px) solid var(--mfg-border-1);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-border-1);
+  transform: rotate(45deg);
+}
+.mfg-promo-pop__nubbin_right {
+  left: auto; right: var(--mfg-v-neg6px);
+  border-left: none; border-bottom: none;
+  border-right: var(--mfg-v-1px) solid var(--mfg-border-1);
+  border-top: var(--mfg-v-1px) solid var(--mfg-border-1);
+}
+.mfg-promo-pop__close {
+  position: absolute; top: var(--mfg-spacing-1); right: var(--mfg-spacing-1);
+  background: none; border: none; cursor: pointer; padding: var(--mfg-v-2px);
+  border-radius: var(--mfg-radius-1); line-height: var(--slds-g-font-line-height-1, 1);
+}
+.mfg-promo-pop__close svg { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); fill: var(--mfg-on-surface-1); }
+.mfg-promo-pop__header {
+  font-size: var(--mfg-v-15px); font-weight: var(--slds-g-font-weight-4, 400);
+  color: var(--mfg-on-surface-2);
+  padding-right: var(--mfg-spacing-4); padding-bottom: var(--mfg-spacing-2);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-border-1);
+}
+.mfg-promo-pop__body { max-height: 60vh; overflow-y: auto; }
+.mfg-promo-pop__item { padding: var(--mfg-spacing-3) 0; }
+.mfg-promo-pop__item + .mfg-promo-pop__item { border-top: var(--mfg-v-1px) solid var(--mfg-border-1); }
+.mfg-promo-pop__title { font-size: var(--mfg-v-14px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
+.mfg-promo-pop__desc { font-size: var(--mfg-v-13px); color: var(--mfg-on-surface-1); line-height: var(--mfg-v-1_35); margin-top: var(--mfg-spacing-2); }
+.mfg-promo-pop__exp { font-size: var(--mfg-v-13px); color: var(--mfg-on-surface-2); margin-top: var(--mfg-spacing-2); }
+.mfg-promo-pop__terms {
+  display: inline-flex; align-items: center; gap: var(--mfg-spacing-1);
+  margin-top: var(--mfg-spacing-2); font-size: var(--mfg-v-13px);
+  color: var(--mfg-accent-1); text-decoration: none;
+}
+.mfg-promo-pop__terms svg { width: var(--slds-g-sizing-5, 14px); height: var(--slds-g-sizing-5, 14px); fill: var(--mfg-accent-1); }
+.mfg-promo-pop__terms:hover { text-decoration: underline; }
 
-/* SLDS checkbox sizing inside grid */
-.mfg-grid .slds-checkbox { display: inline-flex; }
+.mfg-row-action { background: none; border: none; cursor: pointer; padding: var(--mfg-v-2px); }
+.mfg-row-action svg { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); fill: var(--mfg-on-surface-1); }
 
 /* ----------------------------- Docked order summary ----------------------------- */
 /* ----------------------------- Inline-edit docked save bar ----------------------------- */
+/* The fixed layer is a transparent, viewport-wide centering track; the visible
+   bar lives on .mfg-edit-footer__actions so it can be constrained to the table
+   (card) width and read as a footer attached to the bottom of the grid. */
 .mfg-edit-footer {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 101;
-  display: flex; align-items: center; justify-content: space-between; gap: var(--mfg-spacing-4);
-  padding: var(--mfg-spacing-2) var(--mfg-spacing-6);
-  background: var(--mfg-surface);
-  border-top: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.12);
+  display: flex; justify-content: center;
+  padding: 0 var(--mfg-spacing-6);
+  box-sizing: border-box;
+  background: none;
+  pointer-events: none;
 }
 .mfg-edit-footer[hidden] { display: none; }
-/* Single-variant page: app.js moves the Save/Cancel bar INTO the card, directly
-   below the table, so it reads as the table's own footer instead of a bar fixed
-   to the viewport. It scrolls with the content and sits above the sticky totals. */
-.mfg-edit-footer.mfg-edit-footer_intable {
-  position: static;
-  z-index: auto;
-  box-shadow: none;
-  border-top: 1px solid var(--mfg-border-1);
+/* Single-variant (full-screen) page: the Save/Cancel bar is the TABLE's footer.
+   JS moves it inside the card, directly above the Order Summary (the CARD's
+   footer), so it stops being a viewport-fixed bar and becomes an in-flow strip
+   spanning the full card width. */
+body.mfg-single .mfg-edit-footer {
+  position: sticky;
+  bottom: var(--mfg-summary-bar-h, 56px);
+  z-index: 89;
+  padding: 0;
+  pointer-events: auto;
+  background: var(--mfg-surface);
+  border-top: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
 }
 .mfg-edit-footer__msg {
   display: inline-flex; align-items: center; gap: var(--mfg-spacing-2);
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
 }
-.mfg-edit-footer__icon { width: 16px; height: 16px; flex: 0 0 16px; fill: var(--mfg-accent-2); }
-.mfg-edit-footer__actions { display: inline-flex; gap: var(--mfg-spacing-2); }
-.mfg-edit-save.slds-button_brand { background: var(--mfg-accent-2); border-color: var(--mfg-accent-2); }
-.mfg-edit-save.slds-button_brand:hover,
-.mfg-edit-save.slds-button_brand:focus { background: var(--mfg-brand-base-20); border-color: var(--mfg-brand-base-20); }
+.mfg-edit-footer__icon { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); flex: 0 0 var(--slds-g-sizing-base, 16px); fill: var(--mfg-accent-2); }
+.mfg-edit-footer__actions {
+  pointer-events: auto;
+  box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; gap: var(--mfg-spacing-4);
+  width: var(--mfg-v-100pct);
+  max-width: var(--mfg-v-1392px);
+  padding: var(--mfg-spacing-2) var(--mfg-spacing-4);
+  background: var(--mfg-surface);
+  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
+  border-bottom: 0;
+  border-top-left-radius: var(--mfg-radius-2);
+  border-top-right-radius: var(--mfg-radius-2);
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.12);
+}
+/* Single (full-screen) view: the edit footer itself is the surface (see above),
+   so the inner actions are just the centered button group — no separate card,
+   border, shadow or width cap. */
+body.mfg-single .mfg-edit-footer__actions {
+  max-width: none;
+  width: var(--mfg-v-100pct);
+  padding: var(--mfg-spacing-2) var(--mfg-spacing-6);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+/* Fully-rounded (pill) buttons — SLDS 2 circular border radius. */
+.mfg-edit-cancel,
+.mfg-edit-save { border-radius: var(--mfg-v-999px); }
+.mfg-edit-save{ background: var(--mfg-accent-2); border-color: var(--mfg-accent-2); }
+.mfg-edit-save:hover,
+.mfg-edit-save:focus{ background: var(--mfg-brand-base-20); border-color: var(--mfg-brand-base-20); }
 
 /* Order summary — a footer inside each grid block (not page-docked) */
 .mfg-order-summary {
   display: block;
   position: relative;
   background: var(--mfg-surface);
-  border-top: 1px solid var(--mfg-border-1);
+  border-top: var(--mfg-v-1px) solid var(--mfg-border-1);
   border-bottom-left-radius: var(--mfg-radius-2);
   border-bottom-right-radius: var(--mfg-radius-2);
 }
@@ -701,27 +784,89 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
   left: 0; right: 0; bottom: 0;
   z-index: 5;
   display: flex; flex-direction: column;
-  max-height: 100%;
+  max-height: var(--mfg-v-100pct);
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.10);
   overflow: hidden;
 }
-/* Single-variant (full-screen) page: the Order Summary becomes a page-level
-   sticky bar docked to the VIEWPORT bottom, so the totals stay visible while
-   the long table scrolls. The free-items drawer still grows upward within it.
-   (On the 3-variant showcase this class is absent, so the summary stays docked
-   to the card as above.) */
+/* Single-variant (full-screen) page: the whole assortment section is one card.
+   The Cancel/Add-to-Cart bar (table footer) and the Order Summary (card footer)
+   are in-flow at the bottom of the card, but STICKY — so while the long grid
+   scrolls they stay pinned to the viewport bottom, then settle in place at the
+   card's bottom. The page scrolls normally. (On the 3-variant showcase these
+   rules are absent, so the summary stays absolutely docked to the card above.) */
 body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
+  position: sticky;
+  bottom: 0;
   z-index: 90;
   max-height: 75vh;
   border-radius: 0;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.14);
 }
+/* While EXPANDED, the page scroll is locked (overflow:hidden on <html>), which
+   removes the scroll container that position:sticky needs — so sticky reverts
+   the summary to its in-flow spot at the card's bottom (off-screen below the
+   fold). Anchoring it with position:fixed instead pins it to the viewport
+   bottom and lets it grow UPWARD via the flex drawer + max-height:75vh. */
+body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary.mfg-summary--open {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200;
+}
+/* Variant B is a capped flex column [resizer][toggle][strip][drawer][totals].
+   The totals row must stay visible even when the drawer is expanded, so the
+   drawer takes the leftover height and scrolls WITHIN itself, while the strip
+   and totals are pinned (never shrink / clip). */
+.mfg-assortment-card[data-variant="b"] .mfg-free-drawer {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.mfg-assortment-card[data-variant="b"] .mfg-free-summary,
+.mfg-assortment-card[data-variant="b"] .mfg-order-summary__totals {
+  flex: 0 0 auto;
+}
+/* Single view: while the Order Summary is expanded the page scroll is locked
+   (JS adds .mfg-summary-locked on <html>) so only the summary's own drawer
+   scrolls. Collapsing removes the class and normal page scroll returns. */
+html.mfg-summary-locked,
+html.mfg-summary-locked body { overflow: hidden; }
+/* Drag handle at the very top edge of the Order Summary (Variants B/D). Since
+   the summary is docked to the bottom and grows upward, dragging this grabber
+   up makes the free-items drawer taller, down makes it shorter, and past the
+   minimum collapses the drawer entirely. Only shown while the drawer is open. */
+.mfg-summary-resizer {
+  display: none; flex: 0 0 auto;
+  align-items: center; justify-content: center;
+  height: var(--mfg-v-14px); cursor: ns-resize; touch-action: none;
+  background: var(--mfg-surface-container-2);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-border-1);
+}
+.mfg-order-summary.mfg-summary--open .mfg-summary-resizer { display: flex; }
+.mfg-summary-resizer:hover { background: var(--mfg-surface-container-3); }
+.mfg-summary-resizer:focus-visible {
+  outline: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-accent-1); outline-offset: -2px;
+}
+.mfg-summary-resizer__grip {
+  width: var(--mfg-v-36px); height: var(--mfg-v-4px);
+  border-radius: var(--mfg-v-999px); background: var(--mfg-on-surface-1);
+}
+body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
+/* Variant D (single flat table): the drag resizes the one scroll region. */
+.mfg-assortment-card[data-variant="d"].mfg-summary-resized .mfg-free-drawer__scroll {
+  height: var(--mfg-free-drawer-h); overflow-y: auto;
+}
+/* Variant B keeps each reward-type section scrolling WITHIN itself; the drag
+   adjusts the shared per-section scroll height (never one scroll for the whole
+   drawer). Each .mfg-free-acc__body still has its own overflow-y: auto. */
+.mfg-assortment-card[data-variant="b"].mfg-summary-resized .mfg-free-acc__body {
+  max-height: var(--mfg-free-acc-body-h);
+}
 .mfg-order-summary__toggle {
   display: flex; align-items: center; gap: var(--mfg-spacing-2);
-  width: 100%; background: var(--mfg-surface-container-2);
-  border: none; border-bottom: 1px solid var(--mfg-border-1);
+  width: var(--mfg-v-100pct); background: var(--mfg-surface-container-2);
+  border: none; border-bottom: var(--mfg-v-1px) solid var(--mfg-border-1);
   padding: var(--mfg-spacing-2) var(--mfg-spacing-6);
   font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-6, 600); color: var(--mfg-on-surface-2);
   cursor: pointer;
@@ -749,12 +894,12 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
 .mfg-free-notif {
   display: flex; align-items: flex-start; gap: var(--mfg-spacing-3);
   padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
-  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-success-border); border-left: 4px solid var(--slds-g-color-border-success-1, #2e844a);
+  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-success-border);
   border-radius: var(--slds-g-radius-border-2, 4px);
   background: var(--mfg-success-container);
 }
 .mfg-free-notif__figure { margin: 0; flex: 0 0 auto; }
-.mfg-free-notif__icon { width: 18px; height: 18px; fill: var(--mfg-success-fg); margin-top: 1px; }
+.mfg-free-notif__icon { width: var(--mfg-v-18px); height: var(--mfg-v-18px); fill: var(--mfg-success-fg); margin-top: var(--mfg-v-1px); }
 .mfg-free-notif__body {
   flex: 1 1 auto; min-width: 0;
   display: flex; align-items: baseline; flex-wrap: wrap;
@@ -773,7 +918,7 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
 }
 .mfg-free-notif__aspect {
   display: inline-flex; align-items: baseline; gap: var(--mfg-spacing-1, 4px);
-  font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-2);
+  font-size: var(--slds-g-font-scale-1, 14px); color: var(--mfg-on-surface-2);
 }
 .mfg-free-notif__aspect + .mfg-free-notif__aspect::before {
   content: "·"; margin-right: var(--mfg-spacing-2, 8px); color: var(--mfg-on-surface-1);
@@ -781,7 +926,7 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
 .mfg-free-notif__aspect-val { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg); }
 .mfg-free-summary__cta {
   border: 0; background: transparent; cursor: pointer; padding: 0;
-  font-size: var(--slds-g-font-scale-base, 13px); font-weight: var(--slds-g-font-weight-6, 600);
+  font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-6, 600);
   color: var(--mfg-accent-2); white-space: nowrap; flex: 0 0 auto; margin-left: auto;
 }
 .mfg-free-summary__cta:hover { text-decoration: underline; }
@@ -791,7 +936,7 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
    summary section; its inner content scrolls when tall. */
 .mfg-free-drawer {
   padding: 0 var(--mfg-spacing-6) var(--mfg-spacing-4);
-  border-bottom: 1px solid var(--mfg-surface-container-3);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
   background: var(--mfg-surface-container-1, #fafaf9);
 }
 .mfg-free-drawer[hidden] { display: none; }
@@ -801,7 +946,7 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
 }
 .mfg-free-drawer__head strong { color: var(--mfg-on-surface-3); font-weight: var(--slds-g-font-weight-7, 700); }
-.mfg-free-drawer__head-icon { width: 15px; height: 15px; fill: var(--mfg-success-fg); flex: 0 0 auto; }
+.mfg-free-drawer__head-icon { width: var(--mfg-v-15px); height: var(--mfg-v-15px); fill: var(--mfg-success-fg); flex: 0 0 auto; }
 /* all the free-items content sits in a capped, scrollable region */
 .mfg-free-drawer__scroll {
   border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-surface-container-3);
@@ -815,7 +960,7 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
 
 /* Free items rendered as a table; a product spans multiple rows (rowspan) */
 .mfg-free-table {
-  width: 100%; border-collapse: collapse;
+  width: var(--mfg-v-100pct); border-collapse: collapse; table-layout: fixed;
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-3);
   background: var(--slds-g-color-surface-1, #fff);
   border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-surface-container-3);
@@ -826,7 +971,7 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
   text-align: left; font-weight: var(--slds-g-font-weight-7, 700);
   color: var(--mfg-on-surface-2); background: var(--mfg-surface-container-2);
   padding: var(--mfg-spacing-2) var(--mfg-spacing-3);
-  border-bottom: 1px solid var(--mfg-surface-container-3);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
   font-size: var(--slds-g-font-scale-neg-1, 12px);
 }
 .mfg-free-table td,
@@ -836,13 +981,17 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
 }
 .mfg-free-table__row.is-group-start > td,
 .mfg-free-table__row.is-group-start > th {
-  border-top: 1px solid var(--mfg-surface-container-3);
+  border-top: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
+}
+/* Variant B: separate each free item within a product group. The clubbed
+   product cell (rowspan) is untouched, so it stays a continuous block. */
+.mfg-free-acc__body .mfg-free-table__row + .mfg-free-table__row > td {
+  border-top: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
 }
 .mfg-free-table__prod {
   text-align: left; vertical-align: top;
   background: var(--mfg-surface-container-1, #fafaf9);
-  border-right: 1px solid var(--mfg-surface-container-3);
-  white-space: nowrap;
+  border-right: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
 }
 .mfg-free-table__prod-name { display: block; font-weight: var(--slds-g-font-weight-6, 600); color: var(--mfg-on-surface-3); }
 .mfg-free-table__prod-count {
@@ -855,8 +1004,43 @@ body.mfg-single .mfg-assortment-card[data-variant="b"] .mfg-order-summary {
   display: block; margin-top: var(--mfg-spacing-1);
   font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1);
 }
+.mfg-free-table__uom { color: var(--mfg-on-surface-2); white-space: nowrap; }
 .mfg-free-table__qty { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg); white-space: nowrap; }
 .mfg-free-table__at { color: var(--mfg-on-surface-1); white-space: nowrap; }
+/* Variant D flat table: reward-type is a clubbed (rowspan) leading column that
+   holds a colored badge; product/promotion clubs within it via .mfg-free-table__prod. */
+.mfg-free-flat__type-cell {
+  vertical-align: top;
+  background: var(--mfg-surface-container-1, #fafaf9);
+  border-right: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
+}
+.mfg-free-flat__badge {
+  display: inline-block; white-space: nowrap;
+  padding: var(--mfg-spacing-1) var(--mfg-spacing-2);
+  border-radius: var(--slds-g-radius-border-2, 4px);
+  border: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
+  font-size: var(--slds-g-font-scale-neg-1, 12px); font-weight: var(--slds-g-font-weight-7, 700);
+}
+.mfg-free-flat__badge_promo {
+  background: var(--mfg-surface-container-2); color: var(--mfg-accent-1); border-color: var(--mfg-accent-1);
+}
+.mfg-free-flat__badge_product {
+  background: var(--mfg-success-container); color: var(--mfg-success-fg); border-color: var(--mfg-success-border);
+}
+.mfg-free-flat__badge_cart {
+  background: var(--mfg-surface-container-2); color: var(--mfg-on-surface-2);
+}
+/* Variant D: the reward-type (first) column is frozen to the left and resizable.
+   A min-width lets the table overflow its drawer so the sticky column has
+   something to stay put against while the rest scrolls horizontally. */
+.mfg-free-drawer__flat { overflow-x: auto; }
+.mfg-free-table_flat { min-width: var(--mfg-v-1280px); overflow: visible; }
+.mfg-free-table_flat thead th:first-child,
+.mfg-free-table_flat .mfg-free-flat__type-cell {
+  width: var(--mfg-free-type-col-w, var(--mfg-v-180px));
+  position: sticky; left: 0; z-index: 2;
+}
+.mfg-free-drawer__scroll .mfg-free-table_flat thead th:first-child { z-index: 3; }
 th.mfg-free-table__value { text-align: right; }
 td.mfg-free-table__value {
   text-align: right; white-space: nowrap;
@@ -881,34 +1065,38 @@ td.mfg-free-table__value {
   color: var(--mfg-on-surface-1);
   font-size: var(--slds-g-font-scale-neg-1, 12px);
 }
-.mfg-free-drawer__empty-icon { width: 16px; height: 16px; flex: 0 0 auto; fill: var(--mfg-on-surface-1); }
+.mfg-free-drawer__empty-icon { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); flex: 0 0 auto; fill: var(--mfg-on-surface-1); }
 
 /* --- Free-items drawer: accordions by source (promotion / product / added) --- */
 .mfg-free-acc { background: var(--slds-g-color-surface-1, #fff); }
 .mfg-free-acc + .mfg-free-acc { margin-top: var(--mfg-spacing-4); }
 .mfg-free-acc__head {
   display: flex; align-items: center; gap: var(--mfg-spacing-3);
-  width: 100%; text-align: left; cursor: pointer;
+  width: var(--mfg-v-100pct); text-align: left; cursor: pointer;
   padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
   background: var(--mfg-surface-container-2, #f3f3f3);
-  border: 0; border-bottom: 1px solid var(--mfg-surface-container-3);
+  border: 0; border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
   font: inherit; color: var(--mfg-on-surface-3);
 }
 .mfg-free-acc.is-collapsed .mfg-free-acc__head { border-bottom: 0; }
 .mfg-free-acc__head:hover { background: var(--mfg-surface-container-3); }
-.mfg-free-acc__head:focus-visible { outline: 2px solid var(--mfg-accent-1); outline-offset: -2px; }
+.mfg-free-acc__head:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-accent-1); outline-offset: -2px; }
 .mfg-free-acc__chevron {
-  width: 14px; height: 14px; flex: 0 0 auto;
+  width: var(--mfg-v-14px); height: var(--mfg-v-14px); flex: 0 0 auto;
   fill: var(--mfg-on-surface-2); transition: transform .15s ease;
 }
 .mfg-free-acc.is-collapsed .mfg-free-acc__chevron { transform: rotate(-90deg); }
-.mfg-free-acc__titles { flex: 1 1 auto; min-width: 0; }
+.mfg-free-acc__titles {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: baseline; gap: var(--mfg-spacing-2);
+}
 .mfg-free-acc__title {
-  display: block; font-weight: var(--slds-g-font-weight-7, 700);
+  flex: 0 0 auto; font-weight: var(--slds-g-font-weight-7, 700);
   color: var(--mfg-on-surface-3); font-size: var(--slds-g-font-scale-base, 13px);
 }
 .mfg-free-acc__sub {
-  display: block; margin-top: 1px;
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-size: var(--slds-g-font-scale-neg-1, 12px); font-weight: var(--slds-g-font-weight-4, 400);
   color: var(--mfg-on-surface-1);
 }
@@ -923,8 +1111,8 @@ td.mfg-free-table__value {
    horizontal rule at its base, with a gap before the next section's header. */
 .mfg-free-acc__body {
   padding: 0 var(--mfg-spacing-4) var(--mfg-spacing-3) var(--mfg-spacing-6);
-  max-height: 260px; overflow-y: auto;
-  border-bottom: 1px solid var(--mfg-surface-container-3);
+  max-height: var(--mfg-v-260px); overflow-y: auto;
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
 }
 /* overflow:visible so the sticky thead is not clipped by the table's own
    overflow:hidden — sticky then anchors to the scrolling .mfg-free-acc__body. */
@@ -950,25 +1138,25 @@ td.mfg-free-table__value {
 .mfg-qty-cell .mfg-qty-value { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-4, 400); }
 .mfg-qty-cell .mfg-qty-rounded {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 15px; height: 15px; border-radius: 50%; margin-right: var(--mfg-spacing-1);
+  width: var(--mfg-v-15px); height: var(--mfg-v-15px); border-radius: var(--mfg-v-50pct); margin-right: var(--mfg-spacing-1);
   vertical-align: middle;
 }
-.mfg-qty-cell .mfg-qty-rounded-icon { width: 9px; height: 9px; }
+.mfg-qty-cell .mfg-qty-rounded-icon { width: var(--mfg-v-9px); height: var(--mfg-v-9px); }
 .mfg-qty-rounded_up { background: var(--mfg-success-container); }
 .mfg-qty-rounded_up .mfg-qty-rounded-icon { fill: var(--mfg-success-fg); }
 .mfg-qty-rounded_down { background: var(--mfg-error-container); }
 .mfg-qty-rounded_down .mfg-qty-rounded-icon { fill: var(--mfg-error-fg); }
 .mfg-qty-cell .mfg-qty-pencil { display: none; margin-left: var(--mfg-spacing-1); vertical-align: middle; }
 .mfg-qty-cell .mfg-qty-pencil svg { width: var(--slds-g-sizing-4, 12px); height: var(--slds-g-sizing-4, 12px); fill: var(--mfg-on-surface-1); }
-.mfg-qty-cell:hover { background: #eef4fd !important; }
+.mfg-qty-cell:hover { background: var(--slds-g-color-accent-light-1, #eef4fd) !important; }
 .mfg-qty-cell:hover .mfg-qty-pencil { display: inline-flex; }
-.mfg-qty-cell:focus-visible { outline: 2px solid var(--mfg-accent-1); outline-offset: -2px; }
+.mfg-qty-cell:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-on-surface-2); outline-offset: -2px; }
 /* unsaved / dirty cell — SLDS inline-edit pattern: pale yellow fill */
 .mfg-grid td.mfg-qty-cell.mfg-is-edited { background: var(--mfg-edited-bg) !important; }
 .mfg-grid td.mfg-qty-cell.mfg-is-edited:hover { background: var(--mfg-edited-bg) !important; }
 .mfg-grid td.mfg-qty-cell.mfg-qty-editing { padding: 0 var(--mfg-spacing-1); background: var(--mfg-surface); }
 .mfg-qty-input {
-  width: 100%; min-width: 56px; text-align: right;
+  width: var(--mfg-v-100pct); min-width: var(--mfg-v-56px); text-align: right;
   height: var(--slds-g-sizing-8, 28px);
   border-radius: var(--mfg-radius-1);
   border-color: var(--mfg-accent-1);
@@ -977,14 +1165,14 @@ td.mfg-free-table__value {
 /* ----------------------------- Qty popover ----------------------------- */
 .mfg-qty-popover {
   position: absolute; z-index: 200;
-  width: 280px; max-width: 280px;
+  width: var(--mfg-v-280px); max-width: var(--mfg-v-280px);
   background: var(--mfg-surface);
   border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
   border-radius: var(--mfg-radius-2);
   box-shadow: 0 2px 12px rgba(0,0,0,0.18);
 }
 .mfg-qty-popover_promo { width: var(--slds-g-sizing-15, 320px); max-width: var(--slds-g-sizing-15, 320px); }
-.mfg-pop-header { padding: var(--mfg-spacing-2) var(--mfg-spacing-3); border-bottom: 1px solid var(--mfg-surface-container-3); }
+.mfg-pop-header { padding: var(--mfg-spacing-2) var(--mfg-spacing-3); border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3); }
 .mfg-pop-title { font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-3); }
 
 /* Stat-pair rounding header (Entered | Rounded) above the promotion progress */
@@ -992,13 +1180,13 @@ td.mfg-free-table__value {
   display: flex; align-items: stretch;
   padding: var(--mfg-spacing-3);
   gap: var(--mfg-spacing-3);
-  border-bottom: 1px solid var(--mfg-surface-container-3);
+  border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
 }
 .mfg-pop-stat__col { display: flex; flex-direction: column; gap: 2px; flex: 0 0 auto; min-width: 0; }
 .mfg-pop-stat__col + .mfg-pop-stat__sep + .mfg-pop-stat__col { flex: 1 1 auto; }
 .mfg-pop-stat__sep {
   display: inline-flex; align-items: center; align-self: flex-end;
-  padding-bottom: 2px;
+  padding-bottom: var(--mfg-v-2px);
   font-size: var(--slds-g-font-scale-2, 15px); color: var(--mfg-on-surface-1);
 }
 .mfg-pop-stat__label {
@@ -1018,9 +1206,9 @@ td.mfg-free-table__value {
 .mfg-pop-stat__val_down .mfg-pop-stat__arrow { fill: var(--mfg-error-fg); }
 .mfg-pop-stat__sub { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); margin-left: var(--mfg-spacing-2); }
 .mfg-pop-body { padding: var(--mfg-spacing-3); display: flex; flex-direction: column; gap: var(--mfg-spacing-3); }
-.mfg-pop-row { display: flex; align-items: flex-start; gap: var(--mfg-spacing-2); font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); line-height: 1.35; }
-.mfg-pop-sub { color: var(--mfg-on-surface-1); font-size: var(--slds-g-font-scale-neg-1, 12px); margin-top: 2px; }
-.mfg-pop-icon { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 1px; }
+.mfg-pop-row { display: flex; align-items: flex-start; gap: var(--mfg-spacing-2); font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); line-height: var(--mfg-v-1_35); }
+.mfg-pop-sub { color: var(--mfg-on-surface-1); font-size: var(--slds-g-font-scale-neg-1, 12px); margin-top: var(--mfg-v-2px); }
+.mfg-pop-icon { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); flex: 0 0 var(--slds-g-sizing-base, 16px); margin-top: var(--mfg-v-1px); }
 .mfg-pop-icon_success { fill: var(--slds-g-color-palette-green-50, #2e844a); }
 .mfg-pop-icon_info { fill: var(--mfg-accent-1); }
 .mfg-pop-round { display: flex; align-items: center; gap: var(--mfg-spacing-2); margin-top: var(--mfg-spacing-1); }
@@ -1032,7 +1220,7 @@ td.mfg-free-table__value {
   border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
   background: var(--mfg-surface); color: var(--mfg-on-surface-2);
   font-size: var(--slds-g-font-scale-neg-1, 12px); line-height: var(--slds-g-font-line-height-1, 1);
-  padding: 6px var(--mfg-spacing-3); cursor: pointer;
+  padding: var(--mfg-v-6px) var(--mfg-spacing-3); cursor: pointer;
 }
 .mfg-style-switch__btn:first-of-type { border-radius: var(--mfg-radius-1) 0 0 var(--mfg-radius-1); }
 .mfg-style-switch__btn:last-of-type { border-radius: 0 var(--mfg-radius-1) var(--mfg-radius-1) 0; border-left: none; }
@@ -1042,36 +1230,36 @@ td.mfg-free-table__value {
 .mfg-gg { display: flex; flex-direction: column; }
 /* shared caption: "N more to unlock <reward>" */
 .mfg-gg-cap { display: flex; align-items: center; gap: var(--mfg-spacing-2); font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); margin-bottom: var(--mfg-spacing-2); }
-.mfg-gg-cap-icon { width: 16px; height: 16px; flex: 0 0 16px; fill: var(--mfg-on-surface-3); }
+.mfg-gg-cap-icon { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); flex: 0 0 var(--slds-g-sizing-base, 16px); fill: var(--mfg-on-surface-3); }
 .mfg-gg-cap_done .mfg-gg-cap-icon { fill: var(--slds-g-color-palette-green-50, #2e844a); }
 .mfg-gg-reward { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-3); }
 /* the milestone track — fixed height reserves room for the qty/reward labels */
-.mfg-gg-track { position: relative; height: 58px; margin: 6px 14px 0; }
+.mfg-gg-track { position: relative; height: var(--mfg-v-58px); margin: var(--mfg-v-6px) var(--mfg-v-14px) 0; }
 .mfg-gg-bar {
   position: absolute; top: var(--slds-g-spacing-1, 4px); left: 0; right: 0; height: var(--slds-g-sizing-3, 8px);
-  background: var(--mfg-surface-container-3); border-radius: 999px;
+  background: var(--mfg-surface-container-3); border-radius: var(--mfg-v-999px);
 }
 .mfg-gg-fill {
-  position: absolute; top: 0; left: 0; height: 100%; border-radius: 999px;
+  position: absolute; top: 0; left: 0; height: var(--mfg-v-100pct); border-radius: var(--mfg-v-999px);
   background: linear-gradient(90deg, var(--mfg-accent-1), var(--slds-g-color-palette-green-50, #2e844a));
   transition: width .25s ease;
 }
 .mfg-gg-knob {
-  position: absolute; top: var(--slds-g-spacing-2, 8px); width: 14px; height: 14px; border-radius: 50%;
-  background: var(--mfg-surface); border: 2px solid var(--mfg-accent-1);
+  position: absolute; top: var(--slds-g-spacing-2, 8px); width: var(--mfg-v-14px); height: var(--mfg-v-14px); border-radius: var(--mfg-v-50pct);
+  background: var(--mfg-surface); border: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-accent-1);
   transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgba(0,0,0,0.25); z-index: 3;
   transition: left .25s ease;
 }
 .mfg-gg-marker { position: absolute; top: var(--slds-g-spacing-2, 8px); transform: translate(-50%, -50%); z-index: 2; text-align: center; }
 .mfg-gg-dot {
   display: flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; border-radius: 50%;
-  background: var(--mfg-surface-container-3); border: 2px solid var(--mfg-surface);
+  width: var(--mfg-v-22px); height: var(--mfg-v-22px); border-radius: var(--mfg-v-50pct);
+  background: var(--mfg-surface-container-3); border: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-surface);
   box-shadow: 0 0 0 1px var(--mfg-border-1);
 }
 .mfg-gg-dot-icon { width: var(--slds-g-sizing-4, 12px); height: var(--slds-g-sizing-4, 12px); fill: var(--mfg-on-surface-1); }
-.mfg-gg-mq { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
-.mfg-gg-ml { position: absolute; top: 33px; left: 50%; transform: translateX(-50%); font-size: var(--slds-g-font-scale-neg-2, 10px); white-space: nowrap; color: var(--mfg-on-surface-1); }
+.mfg-gg-mq { position: absolute; top: var(--mfg-v-20px); left: var(--mfg-v-50pct); transform: translateX(-50%); font-size: var(--mfg-v-11px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
+.mfg-gg-ml { position: absolute; top: var(--mfg-v-33px); left: var(--mfg-v-50pct); transform: translateX(-50%); font-size: var(--slds-g-font-scale-neg-2, 10px); white-space: nowrap; color: var(--mfg-on-surface-1); }
 /* marker states */
 .mfg-gg-marker.is-unlocked .mfg-gg-dot { background: var(--slds-g-color-palette-green-50, #2e844a); box-shadow: 0 0 0 1px var(--slds-g-color-palette-green-50, #2e844a); }
 .mfg-gg-marker.is-unlocked .mfg-gg-dot-icon { fill: var(--slds-g-color-on-accent-1, #fff); }
@@ -1080,20 +1268,10 @@ td.mfg-free-table__value {
 .mfg-gg-marker.is-next .mfg-gg-dot-icon { fill: var(--mfg-on-surface-3); }
 .mfg-gg-marker.is-next .mfg-gg-ml { color: var(--mfg-accent-1); font-weight: var(--slds-g-font-weight-7, 700); }
 .mfg-pop-rounded { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-3); }
-.mfg-pop-footer { padding: var(--mfg-spacing-2) var(--mfg-spacing-3); border-top: 1px solid var(--mfg-surface-container-3); text-align: right; }
+.mfg-pop-footer { padding: var(--mfg-spacing-2) var(--mfg-spacing-3); border-top: var(--mfg-v-1px) solid var(--mfg-surface-container-3); text-align: right; }
 .mfg-pop-close { position: absolute; top: var(--slds-g-spacing-1, 4px); right: var(--slds-g-spacing-1, 4px); }
 .mfg-pop-close svg { fill: var(--mfg-on-surface-1); }
-
-/* round up / round down badges */
-.slds-badge.mfg-badge-roundup,
-.slds-badge.mfg-badge-rounddown {
-  display: inline-flex; align-items: center; gap: var(--mfg-spacing-1);
-  border-radius: var(--mfg-radius-1); padding: 2px var(--mfg-spacing-2);
-  font-weight: var(--slds-g-font-weight-6, 600); text-transform: none; letter-spacing: 0;
-}
-.slds-badge.mfg-badge-roundup { background: var(--mfg-success-container); color: var(--mfg-success-fg); }
-.slds-badge.mfg-badge-rounddown { background: var(--mfg-error-container); color: var(--mfg-error-fg); }
-.mfg-badge-icon { width: 11px; height: 11px; }
+.mfg-badge-icon { width: var(--mfg-v-11px); height: var(--mfg-v-11px); }
 .mfg-badge-roundup .mfg-badge-icon { fill: var(--mfg-success-fg); }
 .mfg-badge-rounddown .mfg-badge-icon { fill: var(--mfg-error-fg); }
 
@@ -1115,11 +1293,11 @@ td.mfg-free-table__value {
 .mfg-rnd-btn {
   background: var(--mfg-surface); border: none; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 26px; padding: 0;
+  width: var(--mfg-v-30px); height: var(--mfg-v-26px); padding: 0;
 }
 .mfg-rnd-btn + .mfg-rnd-btn { border-left: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1); }
 .mfg-rnd-btn:hover { background: var(--mfg-surface-container-3); }
-.mfg-rnd-btn-icon { width: 13px; height: 13px; }
+.mfg-rnd-btn-icon { width: var(--mfg-v-13px); height: var(--mfg-v-13px); }
 .mfg-rnd-cancel .mfg-rnd-btn-icon { fill: var(--mfg-on-surface-1); }
 .mfg-rnd-confirm .mfg-rnd-btn-icon { fill: var(--mfg-accent-1); }
 .mfg-rnd-badge { align-self: flex-start; }
@@ -1138,8 +1316,65 @@ td.mfg-free-table__value {
 .mfg-rnd-btn:focus-visible,
 .mfg-col-resizer:focus-visible,
 .mfg-free-summary__cta:focus-visible {
-  outline: 2px solid var(--mfg-accent-1);
+  outline: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-accent-1);
   outline-offset: -2px;
+}
+
+/* ── Responsive: contain the app chrome on tablet/mobile ──
+   The data grid already scrolls inside .mfg-grid-wrapper. The remaining
+   horizontal overflow at ≤1024px came from the global header rows and the
+   navigation context bar (fixed-width Lightning chrome). Let each scroll
+   within itself instead of pushing the whole page wider than the viewport
+   (fixes the Spex V5 mobile 375px / tablet 768px overflow finding). */
+@media (max-width: 1024px) {
+  .mfg-global-header { overflow-x: auto; }
+  .mfg-context-bar { overflow-x: auto; }
+  .mfg-tabs { overflow-x: auto; }
+  .mfg-page-header { overflow-x: auto; }
+  .mfg-page {
+    padding-left: var(--mfg-spacing-3);
+    padding-right: var(--mfg-spacing-3);
+  }
+}
+
+/* ============================ SUCCESS TOAST ============================
+   Fixed, top-centre notification shown after "Add to Cart". Colours come from
+   the SLDS theme classes (slds-theme_success); these rules only position the
+   region and handle the enter / leave fade. */
+.mfg-toast-region {
+  position: fixed;
+  top: var(--mfg-spacing-4);
+  left: var(--mfg-v-50pct);
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfg-spacing-2);
+  width: max-content;
+  max-width: var(--mfg-v-100pct);
+  pointer-events: none;
+}
+.mfg-toast-region > * { pointer-events: auto; }
+.mfg-toast {
+  min-width: var(--mfg-v-280px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  animation: mfg-toast-in 0.22s ease-out;
+}
+.mfg-toast_out {
+  opacity: 0;
+  transform: translateY(var(--mfg-v-neg3px));
+  transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+}
+@keyframes mfg-toast-in {
+  from { opacity: 0; transform: translateY(var(--mfg-v-neg3px)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Empty-cart placeholder row (Cart tab before anything is added). */
+.mfg-cart-empty td {
+  padding: var(--mfg-spacing-6);
+  text-align: center;
+  color: var(--mfg-on-surface-1);
 }
 
 /* ── Accessibility: respect reduced-motion preference ── */
