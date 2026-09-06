@@ -1,0 +1,428 @@
+{
+  "meta": {
+    "url": "http://localhost:8080",
+    "tokens_path": "/Users/lakshmi.tv/.claude/skills/auditing-prototypes/scripts/config/design-tokens.json",
+    "started_at": "2026-09-04T13:50:11.493Z",
+    "model": "claude-sonnet-4-6",
+    "finished_at": "2026-09-04T14:22:24.111Z"
+  },
+  "destinations": {
+    "892e1e10c67d22fbd63a3866f2935a4c3095249e": {
+      "fingerprint": "892e1e10c67d22fbd63a3866f2935a4c3095249e",
+      "label": "Orders\n                    ON-00000101 — /",
+      "url": "http://localhost:8080/#",
+      "reached_via": "blocked-at",
+      "source_persona": 0,
+      "source_jtbd": 2,
+      "scored_at": "2026-09-04T14:22:24.090Z",
+      "heuristics": {
+        "V1": {
+          "id": "V1",
+          "name": "Contrast Ratios",
+          "description": "WCAG AA/AAA color contrast of rendered text",
+          "score": 19,
+          "maxScore": 20,
+          "percentage": 95,
+          "findings": {
+            "positive": [
+              {
+                "message": "106 elements meet WCAG AAA contrast",
+                "data": {}
+              },
+              {
+                "message": "86 elements meet WCAG AA contrast",
+                "data": {}
+              }
+            ],
+            "negative": [
+              {
+                "message": "Low contrast (3.15:1, need 4.5:1): \"Home\"",
+                "data": {
+                  "ratio": 3.15,
+                  "required": 4.5,
+                  "element": "SPAN",
+                  "color": "rgb(145, 145, 145)",
+                  "backgroundColor": "rgb(255, 255, 255)",
+                  "selector": "div.slds-global-header__item > ul.slds-global-actions > li.slds-global-actions__item > button.slds-button.slds-button_icon > span.slds-assistive-text",
+                  "fix": {
+                    "action": "darken",
+                    "token": "text-default",
+                    "suggestion": "Use $text-default (#181818)"
+                  }
+                },
+                "severity": "normal"
+              },
+              {
+                "message": "Low contrast (3.15:1, need 4.5:1): \"Favorites\"",
+                "data": {
+                  "ratio": 3.15,
+                  "required": 4.5,
+                  "element": "SPAN",
+                  "color": "rgb(145, 145, 145)",
+                  "backgroundColor": "rgb(255, 255, 255)",
+                  "selector": "div.slds-global-header__item > ul.slds-global-actions > li.slds-global-actions__item.mfg-favorites > button.slds-button.slds-button_icon > span.slds-assistive-text",
+                  "fix": {
+                    "action": "darken",
+                    "token": "text-default",
+                    "suggestion": "Use $text-default (#181818)"
+                  }
+                },
+                "severity": "normal"
+              },
+              {
+                "message": "Low contrast (3.15:1, need 4.5:1): \"Open favorites\"",
+                "data": {
+                  "ratio": 3.15,
+                  "required": 4.5,
+                  "element": "SPAN",
+                  "color": "rgb(145, 145, 145)",
+                  "backgroundColor": "rgb(255, 255, 255)",
+                  "selector": "div.slds-global-header__item > ul.slds-global-actions > li.slds-global-actions__item.mfg-favorites > button.slds-button.slds-button_icon > span.slds-assistive-text",
+                  "fix": {
+                    "action": "darken",
+                    "token": "text-default",
+                    "suggestion": "Use $text-default (#181818)"
+                  }
+                },
+                "severity": "normal"
+              },
+              {
+                "message": "Low contrast (3.15:1, need 4.5:1): \"Create\"",
+                "data": {
+                  "ratio": 3.15,
+                  "required": 4.5,
+                  "element": "SPAN",
+                  "color": "rgb(145, 145, 145)",
+                  "backgroundColor": "rgb(255, 255, 255)",
+                  "selector": "div.slds-global-header__item > ul.slds-global-actions > li.slds-global-actions__item > button.slds-button.slds-button_icon > span.slds-assistive-text",
+                  "fix": {
+                    "action": "darken",
+                    "token": "text-default",
+                    "suggestion": "Use $text-default (#181818)"
+                  }
+                },
+                "severity": "normal"
+              },
+              {
+                "message": "Low contrast (3.15:1, need 4.5:1): \"Guidance\"",
+                "data": {
+                  "ratio": 3.15,
+                  "required": 4.5,
+                  "element": "SPAN",
+                  "color": "rgb(145, 145, 145)",
+                  "backgroundColor": "rgb(255, 255, 255)",
+                  "selector": "div.slds-global-header__item > ul.slds-global-actions > li.slds-global-actions__item > button.slds-button.slds-button_icon > span.slds-assistive-text",
+                  "fix": {
+                    "action": "darken",
+                    "token": "text-default",
+                    "suggestion": "Use $text-default (#181818)"
+                  }
+                },
+                "severity": "normal"
+              },
+              {
+                "message": "Low contrast (3.15:1, need 4.5:1): \"Help\"",
+                "data": {
+                  "ratio": 3.15,
+                  "required": 4.5,
+                  "element": "SPAN",
+                  "color": "rgb(145, 145, 145)",
+                  "backgroundColor": "rgb(255, 255, 255)",
+                  "selector": "div.slds-global-header__item > ul.slds-global-actions > li.slds-global-actions__item > button.slds-button.slds-button_icon > span.slds-assistive-text",
+                  "fix": {
+                    "action": "darken",
+                    "token": "text-default",
+                    "suggestion": "Use $text-default (#181818)"
+                  }
+                },
+                "severity": "normal"
+              },
+              {
+                "message": "Low contrast (3.15:1, need 4.5:1): \"Setup\"",
+                "data": {
+                  "ratio": 3.15,
+                  "required": 4.5,
+                  "element": "SPAN",
+                  "color": "rgb(145, 145, 145)",
+                  "backgroundColor": "rgb(255, 255, 255)",
+                  "selector": "div.slds-global-header__item > ul.slds-global-actions > li.slds-global-actions__item > button.slds-button.slds-button_icon > span.slds-assistive-text",
+                  "fix": {
+                    "action": "darken",
+                    "token": "text-default",
+                    "suggestion": "Use $text-default (#181818)"
+                  }
+                },
+                "severity": "normal"
+              },
+              {
+                "message": "Low contrast (3.15:1, need 4.5:1): \"Notifications\"",
+                "data": {
+                  "ratio": 3.15,
+                  "required": 4.5,
+                  "element": "SPAN",
+                  "color": "rgb(145, 145, 145)",
+                  "backgroundColor": "rgb(255, 255, 255)",
+                  "selector": "div.slds-global-header__item > ul.slds-global-actions > li.slds-global-actions__item > button.slds-button.slds-button_icon > span.slds-assistive-text",
+                  "fix": {
+                    "action": "darken",
+                    "token": "text-default",
+                    "suggestion": "Use $text-default (#181818)"
+                  }
+                },
+                "severity": "normal"
+              }
+            ],
+            "critical": [],
+            "stats": {
+              "totalElements": 200,
+              "passAAA": 106,
+              "passAA": 86,
+              "fail": 8,
+              "passRate": 96
+            }
+          }
+        },
+        "V2": {
+          "id": "V2",
+          "name": "Visual Hierarchy",
+          "description": "Heading scale ordering and palette restraint (rendered)",
+          "score": 9,
+          "maxScore": 12,
+          "percentage": 75,
+          "findings": {
+            "positive": [
+              {
+                "message": "Page has exactly one h1",
+                "data": {}
+              },
+              {
+                "message": "Restrained type scale (7 sizes)",
+                "data": {}
+              },
+              {
+                "message": "No text smaller than 12px",
+                "data": {}
+              }
+            ],
+            "negative": [
+              {
+                "message": "Heading sizes are not strictly descending",
+                "data": {
+                  "headingSizes": {
+                    "h1": 13,
+                    "h2": 16
+                  }
+                },
+                "severity": "normal"
+              }
+            ],
+            "critical": [],
+            "stats": {
+              "headingSizes": {
+                "h1": 13,
+                "h2": 16
+              },
+              "h1Count": 1,
+              "distinctFontSizes": 7,
+              "distinctColors": 10,
+              "tiny": 0
+            }
+          }
+        },
+        "V3": {
+          "id": "V3",
+          "name": "Layout Quality",
+          "description": "Spacing scale, alignment and overflow (rendered)",
+          "score": 12,
+          "maxScore": 12,
+          "percentage": 100,
+          "findings": {
+            "positive": [
+              {
+                "message": "83% of spacing values match the spacing scale",
+                "data": {}
+              },
+              {
+                "message": "No horizontal overflow",
+                "data": {}
+              },
+              {
+                "message": "Regular alignment (191 distinct left edges)",
+                "data": {}
+              }
+            ],
+            "negative": [],
+            "critical": [],
+            "stats": {
+              "spacingOnScalePct": 83,
+              "distinctLeftEdges": 191,
+              "scrollWidth": 1440,
+              "clientWidth": 1440
+            }
+          }
+        },
+        "V4": {
+          "id": "V4",
+          "name": "Visual Consistency",
+          "description": "Rendered values vs design tokens",
+          "score": 4,
+          "maxScore": 12,
+          "percentage": 33.3,
+          "findings": {
+            "positive": [
+              {
+                "message": "Font sizes align with the type scale",
+                "data": {}
+              }
+            ],
+            "negative": [
+              {
+                "message": "8 text colors are not in the token palette",
+                "data": {
+                  "offColors": [
+                    "rgb(6, 106, 254)",
+                    "rgb(145, 145, 145)",
+                    "rgb(1, 118, 211)",
+                    "rgb(46, 46, 46)",
+                    "rgb(116, 116, 116)",
+                    "rgb(0, 30, 91)"
+                  ]
+                },
+                "severity": "normal"
+              },
+              {
+                "message": "3 border radii are off the scale",
+                "data": {
+                  "offRadii": [
+                    50,
+                    32,
+                    240
+                  ]
+                },
+                "severity": "normal"
+              }
+            ],
+            "critical": [],
+            "stats": {
+              "distinctTextColors": 10,
+              "distinctFontSizes": 6,
+              "distinctRadii": 6
+            }
+          }
+        },
+        "V5": {
+          "id": "V5",
+          "name": "Responsive Behavior",
+          "description": "Layout integrity across viewports",
+          "score": 4,
+          "maxScore": 12,
+          "percentage": 33.3,
+          "findings": {
+            "positive": [
+              {
+                "message": "desktop (1440px): no horizontal overflow",
+                "data": {}
+              }
+            ],
+            "negative": [
+              {
+                "message": "mobile (375px): horizontal overflow (932px)",
+                "data": {
+                  "viewport": "mobile",
+                  "scrollWidth": 932,
+                  "clientWidth": 375,
+                  "bodyHeight": 5829
+                },
+                "severity": "critical"
+              },
+              {
+                "message": "tablet (768px): horizontal overflow (932px)",
+                "data": {
+                  "viewport": "tablet",
+                  "scrollWidth": 932,
+                  "clientWidth": 768,
+                  "bodyHeight": 4639
+                },
+                "severity": "normal"
+              }
+            ],
+            "critical": [
+              {
+                "message": "mobile (375px): horizontal overflow (932px)",
+                "data": {
+                  "viewport": "mobile",
+                  "scrollWidth": 932,
+                  "clientWidth": 375,
+                  "bodyHeight": 5829
+                },
+                "severity": "critical"
+              }
+            ],
+            "stats": {
+              "mobile": {
+                "scrollWidth": 932,
+                "clientWidth": 375,
+                "bodyHeight": 5829,
+                "overflow": true,
+                "hasContent": true
+              },
+              "tablet": {
+                "scrollWidth": 932,
+                "clientWidth": 768,
+                "bodyHeight": 4639,
+                "overflow": true,
+                "hasContent": true
+              },
+              "desktop": {
+                "scrollWidth": 1440,
+                "clientWidth": 1440,
+                "bodyHeight": 4152,
+                "overflow": false,
+                "hasContent": true
+              }
+            }
+          }
+        },
+        "V6": {
+          "id": "V6",
+          "name": "Interaction States",
+          "description": "Visible hover and focus affordances",
+          "score": 11,
+          "maxScore": 12,
+          "percentage": 91.7,
+          "findings": {
+            "positive": [
+              {
+                "message": "13/14 interactive elements show a focus indicator",
+                "data": {}
+              },
+              {
+                "message": "4/14 interactive elements show a hover state",
+                "data": {}
+              }
+            ],
+            "negative": [],
+            "critical": [],
+            "stats": {
+              "total": 14,
+              "focusVisible": 13,
+              "hoverVisible": 4,
+              "anyState": 14
+            }
+          }
+        }
+      },
+      "summary": {
+        "totalScore": 59,
+        "maxScore": 80,
+        "percentage": 73.8,
+        "rating": "Good",
+        "critical": [
+          "V4",
+          "V5"
+        ]
+      },
+      "error": null
+    }
+  }
+}

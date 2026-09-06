@@ -1,0 +1,228 @@
+{
+  "meta": {
+    "url": "http://localhost:8080",
+    "started_at": "2026-09-04T13:50:11.493Z",
+    "model": "claude-sonnet-4-6",
+    "finished_at": "2026-09-04T14:22:24.111Z"
+  },
+  "runs": [
+    {
+      "persona_index": 0,
+      "persona_name": "Priya",
+      "persona_archetype": "primary",
+      "nd_profile": null,
+      "jtbd_index": 0,
+      "jtbd": {
+        "id": "adjust-and-save-quantities",
+        "goal": "As the buyer dictates quantities, adjust the order quantities across the assortment line items and commit the changes before the call ends.",
+        "trigger": "The buyer is on the line reading off the products and case counts they want for this order.",
+        "success_criterion": "The quantities the customer asked for are captured against the correct products and the changes are saved to the order.",
+        "stake": "If the quantities aren't captured and saved before the call ends, the rep has to call back or the order ships wrong."
+      },
+      "steps": [],
+      "axe_findings": [],
+      "perf": {},
+      "verdict": "error",
+      "verdict_evidence": null,
+      "error": "claude CLI exited with code null. stderr: ",
+      "visual_quality": null
+    },
+    {
+      "persona_index": 0,
+      "persona_name": "Priya",
+      "persona_archetype": "primary",
+      "nd_profile": null,
+      "jtbd_index": 1,
+      "jtbd": {
+        "id": "quote-free-item-promotions",
+        "goal": "Tell the customer which products carry free-item promotions and how many free units they will receive.",
+        "trigger": "The buyer asks 'what am I getting free on this order?' while deciding how much to buy.",
+        "success_criterion": "The rep can accurately state, per qualifying product, that a free-item promotion applies and how many free units it yields.",
+        "stake": "A wrong free-item quote on the call erodes buyer trust and can require an order correction later."
+      },
+      "steps": [],
+      "axe_findings": [],
+      "perf": {},
+      "verdict": "error",
+      "verdict_evidence": null,
+      "error": "claude CLI exited with code null. stderr: ",
+      "visual_quality": null
+    },
+    {
+      "persona_index": 0,
+      "persona_name": "Priya",
+      "persona_archetype": "primary",
+      "nd_profile": null,
+      "jtbd_index": 2,
+      "jtbd": {
+        "id": "mark-order-complete",
+        "goal": "Mark the order complete once the buyer confirms the final assortment and quantities.",
+        "trigger": "The buyer says 'that's everything, place it' at the end of the call.",
+        "success_criterion": "The order (or its line items) advances to a complete/confirmed state that reflects the agreed quantities.",
+        "stake": "If completion doesn't register, the order sits unsubmitted and the buyer's request is lost."
+      },
+      "steps": [
+        {
+          "step": 0,
+          "screenshot": "screenshots/persona-1-jtbd-3-step-00.png",
+          "action": "click",
+          "target": "the button labeled 'Mark as Complete'",
+          "text": null,
+          "reasoning": "The buyer has confirmed the order. The primary CTA to advance the order to a complete/confirmed state is the 'Mark as Complete' button, which is prominently visible on the order page. This is the direct path to satisfy the success criterion.",
+          "url": "http://localhost:8080/"
+        },
+        {
+          "step": 1,
+          "screenshot": "screenshots/persona-1-jtbd-3-step-01.png",
+          "action": "wait",
+          "target": null,
+          "text": null,
+          "reasoning": "I just clicked 'Mark as Complete' — waiting briefly for the UI to respond with a confirmation state, modal, or status change before assessing whether the JTBD is complete.",
+          "url": "http://localhost:8080/"
+        },
+        {
+          "step": 2,
+          "screenshot": "screenshots/persona-1-jtbd-3-step-02.png",
+          "action": "click",
+          "target": "the listbox option 'Activated'",
+          "text": null,
+          "reasoning": "The 'Mark as Complete' button didn't produce a visible state change after clicking and waiting. The status listbox is the alternative path to advance the order — 'Activated' is the next logical state in this workflow (Draft → Activated) and represents the order being confirmed/placed. I'll try this route to satisfy the success criterion.",
+          "url": "http://localhost:8080/"
+        },
+        {
+          "step": 3,
+          "screenshot": "screenshots/persona-1-jtbd-3-step-03.png",
+          "action": "click",
+          "target": "the button labeled 'Mark as Complete'",
+          "text": null,
+          "reasoning": "The status listbox still shows 'Draft' selected, suggesting the Activated selection didn't take or needs a separate confirm step. 'Mark as Complete' is the explicit primary CTA for this JTBD — I'll try it again now that I may have interacted with the status control, in case the prototype requires that sequence.",
+          "url": "http://localhost:8080/#"
+        },
+        {
+          "step": 4,
+          "screenshot": "screenshots/persona-1-jtbd-3-step-04.png",
+          "action": "click",
+          "target": "the tab labeled 'Cart (5)'",
+          "text": null,
+          "reasoning": "Both the 'Mark as Complete' button and the status listbox have not produced a visible state change after multiple attempts. The Cart tab with 5 items is the remaining untried path — in CPG order entry systems, final submission often happens from a cart/summary view with a 'Place Order' or 'Submit' button. I'll check there for a completion affordance.",
+          "url": "http://localhost:8080/#"
+        },
+        {
+          "step": 5,
+          "screenshot": "screenshots/persona-1-jtbd-3-step-05.png",
+          "action": "stuck",
+          "target": null,
+          "text": null,
+          "reasoning": "LLM returned non-JSON: ```json\n{\"action\": \"click\", \"target\": \"the tab labeled 'Cart (5)'\", \"reasoning\": \"I'm already on the Cart tab but the accessibility tree is truncated — need to scroll down within the cart/order view t",
+          "url": "http://localhost:8080/#"
+        }
+      ],
+      "axe_findings": [
+        {
+          "step": 0,
+          "violations": [
+            {
+              "id": "aria-input-field-name",
+              "impact": "serious",
+              "description": "Ensure every ARIA input field has an accessible name",
+              "help": "ARIA input fields must have an accessible name",
+              "nodes": 1,
+              "sample_target": [
+                ".slds-path__nav"
+              ]
+            },
+            {
+              "id": "aria-required-attr",
+              "impact": "critical",
+              "description": "Ensure elements with ARIA roles have all required ARIA attributes",
+              "help": "Required ARIA attributes must be provided",
+              "nodes": 1,
+              "sample_target": [
+                ".mfg-col-resizer"
+              ]
+            },
+            {
+              "id": "button-name",
+              "impact": "critical",
+              "description": "Ensure buttons have discernible text",
+              "help": "Buttons must have discernible text",
+              "nodes": 7,
+              "sample_target": [
+                ".slds-context-bar__item:nth-child(1) > .slds-context-bar__icon-action > .slds-button_icon.slds-button"
+              ]
+            },
+            {
+              "id": "region",
+              "impact": "moderate",
+              "description": "Ensure all page content is contained by landmarks",
+              "help": "All page content should be contained by landmarks",
+              "nodes": 1,
+              "sample_target": [
+                ".slds-context-bar__app-name"
+              ]
+            }
+          ]
+        },
+        {
+          "step": 5,
+          "violations": [
+            {
+              "id": "aria-input-field-name",
+              "impact": "serious",
+              "description": "Ensure every ARIA input field has an accessible name",
+              "help": "ARIA input fields must have an accessible name",
+              "nodes": 1,
+              "sample_target": [
+                ".slds-path__nav"
+              ]
+            },
+            {
+              "id": "aria-required-attr",
+              "impact": "critical",
+              "description": "Ensure elements with ARIA roles have all required ARIA attributes",
+              "help": "Required ARIA attributes must be provided",
+              "nodes": 1,
+              "sample_target": [
+                ".mfg-col-resizer"
+              ]
+            },
+            {
+              "id": "button-name",
+              "impact": "critical",
+              "description": "Ensure buttons have discernible text",
+              "help": "Buttons must have discernible text",
+              "nodes": 7,
+              "sample_target": [
+                ".slds-context-bar__item:nth-child(1) > .slds-context-bar__icon-action > .slds-button_icon.slds-button"
+              ]
+            },
+            {
+              "id": "region",
+              "impact": "moderate",
+              "description": "Ensure all page content is contained by landmarks",
+              "help": "All page content should be contained by landmarks",
+              "nodes": 1,
+              "sample_target": [
+                ".slds-context-bar__app-name"
+              ]
+            }
+          ]
+        }
+      ],
+      "perf": {
+        "initial_navigation_ms": 228
+      },
+      "verdict": "blocked",
+      "verdict_evidence": "looked for: a parseable response. tried: asking the model",
+      "error": null,
+      "visual_quality": {
+        "fingerprint": "892e1e10c67d22fbd63a3866f2935a4c3095249e",
+        "reused": false,
+        "reached_via": "blocked-at",
+        "percentage": 73.8,
+        "label": "Orders\n                    ON-00000101 — /"
+      },
+      "gap_observations": []
+    }
+  ]
+}

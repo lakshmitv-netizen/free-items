@@ -1,0 +1,32 @@
+[
+  {
+    "id": "priya-telesales-primary",
+    "name": "Priya",
+    "archetype": "primary",
+    "role": "Telesales / inside-sales rep (CPG & Manufacturing order desk), 4 years experience",
+    "context": "On a live phone call with a store buyer, capturing and adjusting the order's assortment line items in real time while the customer dictates quantities and asks about promotions.",
+    "jtbds": [
+      {
+        "id": "adjust-and-save-quantities",
+        "goal": "As the buyer dictates quantities, adjust the order quantities across the assortment line items and commit the changes before the call ends.",
+        "trigger": "The buyer is on the line reading off the products and case counts they want for this order.",
+        "success_criterion": "The quantities the customer asked for are captured against the correct products and the changes are saved to the order.",
+        "stake": "If the quantities aren't captured and saved before the call ends, the rep has to call back or the order ships wrong."
+      },
+      {
+        "id": "quote-free-item-promotions",
+        "goal": "Tell the customer which products carry free-item promotions and how many free units they will receive.",
+        "trigger": "The buyer asks 'what am I getting free on this order?' while deciding how much to buy.",
+        "success_criterion": "The rep can accurately state, per qualifying product, that a free-item promotion applies and how many free units it yields.",
+        "stake": "A wrong free-item quote on the call erodes buyer trust and can require an order correction later."
+      },
+      {
+        "id": "mark-order-complete",
+        "goal": "Mark the order complete once the buyer confirms the final assortment and quantities.",
+        "trigger": "The buyer says 'that's everything, place it' at the end of the call.",
+        "success_criterion": "The order (or its line items) advances to a complete/confirmed state that reflects the agreed quantities.",
+        "stake": "If completion doesn't register, the order sits unsubmitted and the buyer's request is lost."
+      }
+    ]
+  }
+]

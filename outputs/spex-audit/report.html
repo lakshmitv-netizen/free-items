@@ -1,0 +1,1502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Prototype audit — http://localhost:8080</title>
+<style>
+  :root {
+    /* Warm-tinted OKLCH neutrals: light, editorial, quiet */
+    --bg:         oklch(99%   0.003 70);
+    --bg-elev:    oklch(97.5% 0.004 70);
+    --bg-sunken:  oklch(95.5% 0.005 70);
+    --fg:         oklch(22%   0.012 70);
+    --fg-strong:  oklch(15%   0.015 70);
+    --fg-muted:   oklch(50%   0.010 70);
+    --fg-faint:   oklch(65%   0.008 70);
+    --line:       oklch(89%   0.006 70);
+    --line-soft:  oklch(94%   0.005 70);
+
+    --accent:     oklch(48%   0.17  260);
+    --accent-bg:  oklch(96%   0.03  260);
+    --success:    oklch(48%   0.13  152);
+    --success-bg: oklch(95%   0.04  152);
+    --friction:   oklch(58%   0.14  60);
+    --friction-bg:oklch(96%   0.05  75);
+    --blocked:    oklch(52%   0.20  25);
+    --blocked-bg: oklch(96%   0.04  25);
+    --nd:         oklch(50%   0.19  330);
+    --visual:     oklch(46%   0.17  300);
+    --ux:         oklch(46%   0.16  240);
+    --a11y:       oklch(50%   0.14  180);
+
+    --radius-sm: 6px;
+    --radius:    10px;
+    --radius-lg: 14px;
+
+    --shadow-xs: 0 1px 0 oklch(0% 0 0 / 0.03);
+    --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.04), 0 0 0 1px oklch(0% 0 0 / 0.02);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:         oklch(15%   0.006 70);
+      --bg-elev:    oklch(19%   0.008 70);
+      --bg-sunken:  oklch(12%   0.005 70);
+      --fg:         oklch(93%   0.010 70);
+      --fg-strong:  oklch(98%   0.006 70);
+      --fg-muted:   oklch(65%   0.010 70);
+      --fg-faint:   oklch(48%   0.008 70);
+      --line:       oklch(28%   0.010 70);
+      --line-soft:  oklch(23%   0.008 70);
+      --accent:     oklch(75%   0.16  260);
+      --accent-bg:  oklch(28%   0.05  260);
+      --success:    oklch(72%   0.16  152);
+      --success-bg: oklch(28%   0.05  152);
+      --friction:   oklch(76%   0.15  75);
+      --friction-bg:oklch(30%   0.06  75);
+      --blocked:    oklch(72%   0.18  25);
+      --blocked-bg: oklch(30%   0.07  25);
+      --shadow-sm:  0 0 0 1px oklch(100% 0 0 / 0.04);
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font: 15px/1.55 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Inter",
+          "Segoe UI", system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    color: var(--fg);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 56px) clamp(20px, 4vw, 40px) 120px;
+  }
+
+  /* ─── Top-right always-visible legend card ───────────────── */
+  .legend-card {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 220px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--fg-muted);
+    z-index: 20;
+    box-shadow: var(--shadow-sm);
+    max-height: calc(100vh - 40px);
+    overflow: auto;
+  }
+  .legend-card h4 {
+    margin: 0 0 6px;
+    font-size: 10px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+  .legend-card strong { color: var(--fg-strong); font-weight: 600; }
+  .legend-card em     { color: var(--fg); font-style: normal; font-weight: 500; }
+  .legend-card p { margin: 0 0 8px; }
+  .legend-card p:last-child { margin-bottom: 0; }
+  @media (max-width: 1560px) {
+    .legend-card {
+      position: static;
+      width: auto;
+      max-height: none;
+      margin: 0 0 20px;
+    }
+  }
+
+  /* ─── Header ─────────────────────────────────────────────── */
+  header {
+    margin-bottom: 20px;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin-bottom: 14px;
+  }
+  .eyebrow::before {
+    content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 650;
+    color: var(--fg-strong);
+    margin: 0 0 8px;
+    max-width: 22ch;
+  }
+  .subtitle {
+    color: var(--fg-muted);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .subtitle code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--fg);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.95em;
+  }
+
+  /* ─── Section headings ───────────────────────────────────── */
+  h2 {
+    font-size: 20px; font-weight: 600; letter-spacing: -0.01em;
+    color: var(--fg-strong);
+    margin: 44px 0 14px;
+  }
+  h3 {
+    font-size: 15px; font-weight: 600; letter-spacing: -0.005em;
+    color: var(--fg-strong);
+    margin: 28px 0 10px;
+  }
+  h4 {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin: 20px 0 8px;
+  }
+  p { margin: 0 0 12px; max-width: 72ch; }
+
+  /* ─── Disclaimer (no side stripe) ────────────────────────── */
+  .disclaimer {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--friction-bg);
+    border: 1px solid oklch(from var(--friction) l c h / 0.20);
+    color: var(--fg);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0 0 24px;
+  }
+  .disclaimer-icon {
+    flex-shrink: 0; width: 16px; height: 16px;
+    color: var(--friction);
+    margin-top: 1px;
+  }
+  .disclaimer strong { color: var(--fg-strong); font-weight: 600; }
+
+  /* ─── Tabs ───────────────────────────────────────────────── */
+  .tabs {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    backdrop-filter: saturate(1.2) blur(6px);
+    -webkit-backdrop-filter: saturate(1.2) blur(6px);
+    display: flex; gap: 2px;
+    padding: 6px 0 0;
+    margin: 12px 0 32px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab-btn {
+    position: relative;
+    background: transparent; border: 0; padding: 10px 14px 12px;
+    color: var(--fg-muted);
+    font: inherit; font-size: 14px; font-weight: 500;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    transition: color 140ms ease-out;
+  }
+  .tab-btn:hover { color: var(--fg); }
+  .tab-btn[aria-selected="true"] {
+    color: var(--fg-strong);
+    font-weight: 600;
+  }
+  .tab-btn[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    left: 10px; right: 10px; bottom: -1px;
+    height: 2px; background: var(--accent);
+    border-radius: 2px 2px 0 0;
+  }
+  .tab-panel[hidden] { display: none; }
+
+  /* ─── About-report preamble ──────────────────────────────── */
+  .about-report {
+    background: var(--bg-sunken);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin: 0 0 20px;
+    color: var(--fg-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: none;
+  }
+  .about-report strong { color: var(--fg); font-weight: 600; }
+  .about-report em     { color: var(--fg); font-style: normal; font-weight: 500; }
+
+  /* ─── Executive summary (the missing styles) ─────────────── */
+  .exec-summary {
+    display: grid; gap: 0;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 4px 22px;
+    margin: 0 0 32px;
+  }
+  .exec-row {
+    display: grid;
+    grid-template-columns: 172px 1fr;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line-soft);
+    align-items: baseline;
+  }
+  .exec-row:last-child { border-bottom: 0; }
+  @media (max-width: 640px) {
+    .exec-row { grid-template-columns: 1fr; gap: 6px; padding: 14px 0; }
+  }
+  .exec-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+  .exec-value {
+    font-size: 15px; line-height: 1.55;
+    color: var(--fg);
+  }
+  .exec-value ol,
+  .exec-value ul { margin: 0; padding-left: 20px; }
+  .exec-value ol li,
+  .exec-value ul li { margin: 6px 0; }
+  .exec-note {
+    color: var(--fg-muted);
+    font-size: 13px;
+    margin-left: 8px;
+  }
+  .persona-rollup { margin: 0; padding: 0; list-style: none; }
+  .persona-rollup li {
+    padding: 3px 0;
+    display: flex; flex-wrap: wrap; align-items: baseline;
+    gap: 4px 12px;
+  }
+  .rollup-name { font-weight: 500; }
+  .rollup-arch {
+    color: var(--fg-muted); font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+  .rollup-count {
+    display: inline-flex; align-items: center;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.6;
+  }
+  .rollup-count.count-success  { background: var(--success-bg);  color: var(--success); }
+  .rollup-count.count-friction { background: var(--friction-bg); color: var(--friction); }
+  .rollup-count.count-blocked  { background: var(--blocked-bg);  color: var(--blocked); }
+  .rollup-count.count-error    { background: var(--blocked-bg);  color: var(--blocked); }
+  .rollup-counts {
+    display: inline-flex; flex-wrap: wrap; gap: 6px;
+    margin-left: 4px;
+  }
+
+  /* ─── Visual quality scale/gauge in exec summary ─────────── */
+  .vq-scale {
+    display: block;
+    margin-top: 2px;
+    max-width: 620px;
+  }
+  .vq-scale-track {
+    position: relative;
+    height: 14px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--bg-sunken);
+    display: flex;
+    border: 1px solid var(--line);
+  }
+  .vq-scale-band {
+    flex: 1;
+    height: 100%;
+  }
+  .vq-scale-band.b-critical  { background: oklch(from var(--blocked)  l c h / 0.35); }
+  .vq-scale-band.b-poor      { background: oklch(from var(--blocked)  l c h / 0.20); }
+  .vq-scale-band.b-fair      { background: oklch(from var(--friction) l c h / 0.28); }
+  .vq-scale-band.b-good      { background: oklch(from var(--success)  l c h / 0.22); }
+  .vq-scale-band.b-excellent { background: oklch(from var(--success)  l c h / 0.38); }
+  .vq-scale-target {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: 60%;
+    right: 0;
+    border-left: 2px dashed oklch(from var(--success) l c h / 0.55);
+    pointer-events: none;
+  }
+  .vq-scale-marker {
+    position: absolute;
+    top: -4px;
+    width: 3px;
+    height: 22px;
+    background: var(--fg-strong);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 2px var(--bg-elev);
+  }
+  .vq-scale-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+  .vq-scale-labels span { flex: 1; text-align: center; }
+  .vq-scale-labels span:first-child { text-align: left; }
+  .vq-scale-labels span:last-child  { text-align: right; }
+  .vq-scale-current {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .vq-scale-target-note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .vq-scale-target-note::before {
+    content: "";
+    display: inline-block;
+    width: 10px; height: 0;
+    border-top: 2px dashed oklch(from var(--success) l c h / 0.55);
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  /* ─── Verdict pills ──────────────────────────────────────── */
+  .verdict-pill {
+    display: inline-flex; align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.6;
+    white-space: nowrap;
+  }
+  .verdict-success  { background: var(--success-bg);  color: var(--success); }
+  .verdict-friction { background: var(--friction-bg); color: var(--friction); }
+  .verdict-blocked  { background: var(--blocked-bg);  color: var(--blocked); }
+  .verdict-error    { background: var(--blocked-bg);  color: var(--blocked); }
+  .verdict-unknown, .verdict- {
+    background: var(--bg-sunken); color: var(--fg-muted);
+  }
+
+  .vq-inline {
+    display: inline-flex; align-items: baseline;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
+  }
+  .vq-inline[data-band="high"] { background: var(--success-bg);  color: var(--success); }
+  .vq-inline[data-band="mid"]  { background: var(--friction-bg); color: var(--friction); }
+  .vq-inline[data-band="low"]  { background: var(--blocked-bg);  color: var(--blocked); }
+
+  /* ─── Visual quality: overall card ───────────────────────── */
+  .vq-overall {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin: 0 0 24px;
+  }
+  @media (max-width: 640px) {
+    .vq-overall { grid-template-columns: 1fr; gap: 12px; }
+  }
+  .vq-score {
+    width: 108px; height: 108px;
+    border-radius: var(--radius-lg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--bg-sunken);
+  }
+  .vq-score[data-band="high"] {
+    background: var(--success-bg);
+    color: var(--success);
+    box-shadow: inset 0 0 0 1px oklch(from var(--success) l c h / 0.25);
+  }
+  .vq-score[data-band="mid"] {
+    background: var(--friction-bg);
+    color: var(--friction);
+    box-shadow: inset 0 0 0 1px oklch(from var(--friction) l c h / 0.25);
+  }
+  .vq-score[data-band="low"] {
+    background: var(--blocked-bg);
+    color: var(--blocked);
+    box-shadow: inset 0 0 0 1px oklch(from var(--blocked) l c h / 0.25);
+  }
+  .vq-num {
+    font-size: 28px; font-weight: 650;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .vq-band {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-top: 6px;
+  }
+  .vq-detail { font-size: 14px; color: var(--fg); }
+  .vq-detail > * + * { margin-top: 4px; }
+  .vq-detail-note { color: var(--fg-muted); font-size: 13px; }
+
+  /* ─── Visual quality: per-destination ────────────────────── */
+  .vq-destinations { display: grid; gap: 10px; margin: 0; }
+  .vq-destination {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    background: var(--bg-elev);
+  }
+  .vq-destination-head {
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .vq-destination-label {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--fg-strong);
+  }
+  .vq-destination-score {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .vq-destination-score[data-band="high"] { background: var(--success-bg);  color: var(--success); }
+  .vq-destination-score[data-band="mid"]  { background: var(--friction-bg); color: var(--friction); }
+  .vq-destination-score[data-band="low"]  { background: var(--blocked-bg);  color: var(--blocked); }
+
+  .reached-tag {
+    display: inline-flex; align-items: center;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+  .reached-tag.reached-success  { background: var(--success-bg);  color: var(--success); }
+  .reached-tag.reached-friction { background: var(--friction-bg); color: var(--friction); }
+  .reached-tag.reached-blocked-at {
+    background: var(--blocked-bg);
+    color: var(--blocked);
+  }
+  .vq-destination[data-reached="blocked-at"] {
+    border-color: oklch(from var(--blocked) l c h / 0.30);
+  }
+
+  .vq-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .vq-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: -0.01em;
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+  }
+  .vq-chip[data-band="high"] { background: var(--success-bg);  color: var(--success); }
+  .vq-chip[data-band="mid"]  { background: var(--friction-bg); color: var(--friction); }
+  .vq-chip[data-band="low"]  { background: var(--blocked-bg);  color: var(--blocked); }
+
+  /* ─── Visual quality: heuristic list ─────────────────────── */
+  .vq-list { display: grid; gap: 8px; margin: 0; }
+  .vq-heuristic {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    background: var(--bg-elev);
+  }
+  .vq-heuristic-head { display: flex; align-items: center; gap: 10px; }
+  .vq-hid {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px; font-weight: 700;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .vq-hid[data-band="high"] { background: var(--success-bg);  color: var(--success); }
+  .vq-hid[data-band="mid"]  { background: var(--friction-bg); color: var(--friction); }
+  .vq-hid[data-band="low"]  { background: var(--blocked-bg);  color: var(--blocked); }
+  .vq-hpct {
+    margin-left: auto;
+    color: var(--fg-muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+  .vq-findings { margin: 10px 0 0; padding-left: 18px; font-size: 13px; }
+  .vq-findings li { margin: 5px 0; color: var(--fg); }
+  .vq-sev {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    margin-right: 6px;
+  }
+  .vq-sev.critical {
+    background: var(--blocked-bg);
+    color: var(--blocked);
+  }
+  .vq-from {
+    color: var(--fg-muted);
+    font-size: 11px;
+    margin-left: 6px;
+    font-style: italic;
+  }
+  .vq-clean {
+    color: var(--fg-muted);
+    font-size: 13px;
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* ─── Persona sections ───────────────────────────────────── */
+  .persona {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 0 0 20px;
+    background: var(--bg-elev);
+  }
+  .persona-head {
+    display: flex; align-items: baseline;
+    gap: 12px; flex-wrap: wrap;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .persona-head h3 {
+    margin: 0;
+    font-size: 18px; font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .persona-head .role {
+    color: var(--fg-muted);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .jtbd {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line-soft);
+  }
+  .jtbd:first-of-type { border-top: 0; padding-top: 8px; }
+  .jtbd-head {
+    display: flex; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    align-items: baseline;
+  }
+  .jtbd-goal {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--fg-strong);
+    flex: 1;
+    min-width: 60%;
+  }
+  .evidence {
+    color: var(--fg-muted);
+    font-size: 13px;
+    line-height: 1.55;
+    margin-top: 6px;
+    max-width: 72ch;
+  }
+  .evidence + .evidence { margin-top: 2px; }
+
+  details {
+    margin-top: 12px;
+    border-top: 1px solid var(--line-soft);
+    padding-top: 10px;
+  }
+  details summary {
+    cursor: pointer;
+    color: var(--fg-muted);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    list-style: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 0;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before {
+    content: "▸";
+    display: inline-block;
+    font-size: 10px;
+    color: var(--fg-faint);
+    transition: transform 160ms ease-out;
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+  details summary:hover { color: var(--fg); }
+  details > *:not(summary) { margin-top: 12px; }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .step {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+  }
+  .step img {
+    width: 100%;
+    display: block;
+    aspect-ratio: 16/10;
+    object-fit: cover;
+    object-position: top;
+    background: var(--bg-sunken);
+  }
+  .step .meta { padding: 10px 12px; font-size: 12px; }
+  .step .meta .action {
+    color: var(--fg-strong);
+    font-weight: 500;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .step .meta .reason {
+    color: var(--fg-muted);
+    margin-top: 4px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+  .step .meta .reason .reason-full:not([hidden]) { display: block; margin-top: 2px; }
+  .step .meta .reason .reason-short:not([hidden]) { display: inline; }
+  .step .meta .reason-toggle {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--accent);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .step .meta .reason-toggle:hover { text-decoration: underline; }
+
+  /* ─── JTBD destination preview (surfaced above <details>) ─── */
+  .jtbd-preview {
+    margin: 10px 0 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--bg);
+    max-width: 560px;
+  }
+  .jtbd-preview img {
+    width: 100%;
+    display: block;
+    aspect-ratio: 16/10;
+    object-fit: cover;
+    object-position: top;
+    background: var(--bg-sunken);
+  }
+  .jtbd-preview figcaption {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--fg-muted);
+    border-top: 1px solid var(--line);
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  /* ─── Feature-gap witness thumbnails ─────────────────────── */
+  .gap-thumbs {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .gap-thumbs img {
+    width: 128px;
+    height: 80px;
+    object-fit: cover;
+    object-position: top;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--bg-sunken);
+    display: block;
+  }
+
+  /* ─── Zoomable thumbnails + lightbox ─────────────────────── */
+  .zoomable { cursor: zoom-in; transition: filter .15s ease; }
+  .zoomable:hover { filter: brightness(1.03); }
+  .lightbox {
+    position: fixed; inset: 0;
+    background: rgba(10, 12, 18, 0.88);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 40px;
+    z-index: 1000;
+    cursor: zoom-out;
+  }
+  .lightbox[data-open="true"] { display: flex; }
+  .lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 16px; right: 20px;
+    background: none;
+    border: 0;
+    color: #fff;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 8px 12px;
+  }
+  .lightbox-close:focus { outline: 2px solid #fff; outline-offset: 2px; }
+
+  /* ─── UX findings ────────────────────────────────────────── */
+  .findings { display: grid; gap: 10px; margin: 0; }
+  .finding {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    background: var(--bg-elev);
+  }
+  .finding-head {
+    display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .finding-head strong {
+    color: var(--fg-strong);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    line-height: 1.5;
+  }
+  .badge.cat-ux,
+  .badge.cat-missing-affordance,
+  .badge.cat-wrong-mental-model,
+  .badge.cat-dead-end,
+  .badge.cat-information-gap,
+  .badge.cat-unexpected-modality,
+  .badge.cat-decision-overload { color: var(--ux); background: oklch(from var(--ux) l c h / 0.10); }
+  .badge.cat-visual { color: var(--visual); background: oklch(from var(--visual) l c h / 0.10); }
+  .badge.cat-a11y   { color: var(--a11y);   background: oklch(from var(--a11y)   l c h / 0.10); }
+  .badge.cat-perf   { color: var(--friction); background: var(--friction-bg); }
+  .badge.sev-blocker { background: var(--blocked-bg);  color: var(--blocked); }
+  .badge.sev-major   { background: var(--friction-bg); color: var(--friction); }
+  .badge.sev-minor   { background: var(--bg-sunken);   color: var(--fg-muted); }
+  .badge.sev-polish  { background: var(--bg-sunken);   color: var(--fg-faint); }
+  .finding-body {
+    margin-top: 4px;
+    color: var(--fg);
+    line-height: 1.55;
+    max-width: 72ch;
+  }
+  .finding-cite {
+    color: var(--fg-muted);
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  /* ─── Fix list ───────────────────────────────────────────── */
+  ol.fix-list {
+    padding-left: 24px;
+    margin: 0;
+    counter-reset: fix-counter;
+    list-style: none;
+  }
+  ol.fix-list li {
+    position: relative;
+    margin: 10px 0;
+    padding-left: 4px;
+    counter-increment: fix-counter;
+    line-height: 1.55;
+  }
+  ol.fix-list li::before {
+    content: counter(fix-counter);
+    position: absolute;
+    left: -24px; top: 0;
+    width: 20px;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-faint);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .fix-tag {
+    display: inline-block;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-sunken);
+    margin-right: 8px;
+    letter-spacing: 0.02em;
+    color: var(--fg-muted);
+  }
+  .fix-tag-v1, .fix-tag-v2, .fix-tag-v3,
+  .fix-tag-v4, .fix-tag-v5, .fix-tag-v6 {
+    background: oklch(from var(--visual) l c h / 0.10);
+    color: var(--visual);
+  }
+  .fix-tag-ux { background: oklch(from var(--ux) l c h / 0.10); color: var(--ux); }
+  .fix-tag-nd { background: oklch(from var(--nd) l c h / 0.10); color: var(--nd); }
+
+  /* ─── Miscellany ─────────────────────────────────────────── */
+  code {
+    background: var(--bg-sunken);
+    border: 1px solid var(--line-soft);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.88em;
+  }
+  strong { font-weight: 600; color: var(--fg-strong); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line-soft);
+    color: var(--fg-muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  footer code {
+    font-size: 11px;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: var(--fg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<aside class="legend-card" aria-label="Report legend">
+  <h4>How to read this report</h4>
+  <p>A <strong>JTBD</strong> (Job-To-Be-Done) is one concrete task a persona is trying to complete on the prototype. Each persona ran three JTBDs.</p>
+  <p><strong>Verdicts:</strong> <em>Success</em> = reached the outcome, <em>Friction</em> = reached it with hiccups, <em>Blocked</em> = couldn't.</p>
+  <p><strong>V1-V6</strong> = visual-quality heuristics: V1 contrast, V2 hierarchy, V3 layout, V4 consistency, V5 responsive, V6 interaction states.</p>
+</aside>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Prototype audit</div>
+  <h1>Prototype audit — http://localhost:8080</h1>
+  <div class="subtitle"><code>http://localhost:8080</code> · audited 4/9/2026, 7:20:11 pm</div>
+</header>
+
+<div class="disclaimer" role="note">
+  <svg class="disclaimer-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3.5a.9.9 0 01.9.9v4a.9.9 0 11-1.8 0v-4A.9.9 0 018 4.5zm0 6.8a1 1 0 110 2 1 1 0 010-2z"/>
+  </svg>
+  <div>
+    <strong>Synthetic audit.</strong> Walkthroughs were driven by an LLM playing the persona,
+    not observed real users. Read as a fast first pass. Pair with real research before high-stakes decisions.
+  </div>
+</div>
+
+<nav class="tabs" role="tablist" aria-label="Report sections">
+  <button id="tabbtn-summary" class="tab-btn" role="tab" data-tab="summary" aria-controls="tab-summary" aria-selected="true">Report summary</button>
+  <button id="tabbtn-spex" class="tab-btn" role="tab" data-tab="spex" aria-controls="tab-spex" aria-selected="false">Spex</button>
+  <button id="tabbtn-personas" class="tab-btn" role="tab" data-tab="personas" aria-controls="tab-personas" aria-selected="false">Persona breakdown</button>
+</nav>
+
+<section id="tab-summary" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-summary">
+<h2>Executive summary</h2>
+<div class="exec-summary">
+      <div class="exec-row">
+        <div class="exec-label">Golden path outcome</div>
+        <div class="exec-value">
+          <span class="verdict-pill verdict-error">error</span>
+          <span class="exec-note">As the buyer dictates quantities, adjust the order quantities across the assortment line items and commit the changes before the call ends.</span>
+        </div>
+      </div>
+      <div class="exec-row">
+        <div class="exec-label">Persona outcomes</div>
+        <div class="exec-value">
+          <ul class="persona-rollup">
+            <li>
+                <span class="rollup-name">Priya</span>
+                <span class="rollup-arch">primary</span>
+                <span>— <strong>0/3 completed</strong></span>
+                <span class="rollup-counts"><span class="rollup-count count-blocked">1 Blocked</span><span class="rollup-count count-error">2 Error</span></span>
+              </li>
+          </ul>
+        </div>
+      </div>
+      <div class="exec-row">
+        <div class="exec-label">Visual quality (V1-V6)</div>
+        <div class="exec-value">
+          <div class="vq-scale-current">
+            <span class="vq-inline" data-band="high">73.8% — Good</span>
+            <span class="exec-note">avg across 1 unique destination (from 1 persona, 3 JTBDs)</span>
+          </div>
+          <div class="vq-scale" role="img" aria-label="Visual quality score 73.8% on a Critical-to-Excellent scale">
+            <div class="vq-scale-track">
+              <div class="vq-scale-band b-critical" title="Critical (0-20%)"></div>
+              <div class="vq-scale-band b-poor" title="Poor (20-40%)"></div>
+              <div class="vq-scale-band b-fair" title="Fair (40-60%)"></div>
+              <div class="vq-scale-band b-good" title="Good (60-80%)"></div>
+              <div class="vq-scale-band b-excellent" title="Excellent (80-100%)"></div>
+              <div class="vq-scale-target" aria-hidden="true"></div>
+              <div class="vq-scale-marker" style="left:73.8%" aria-hidden="true"></div>
+            </div>
+            <div class="vq-scale-labels">
+              <span>Critical</span><span>Poor</span><span>Fair</span><span>Good</span><span>Excellent</span>
+            </div>
+            <div class="vq-scale-target-note">Most experiences should land in <strong>Good or Excellent</strong> (60%+).</div>
+          </div>
+        </div>
+      </div>
+        <div class="exec-row">
+          <div class="exec-label">Weakest heuristic</div>
+          <div class="exec-value">
+            <strong>V4 Visual Consistency</strong> — 33.3%
+            <span class="exec-note">across 1 destination</span>
+          </div>
+        </div>
+      <div class="exec-row">
+        <div class="exec-label">Top blockers</div>
+        <div class="exec-value">
+          <ol class="fix-list"><li>Priya's golden-path JTBD (adjust line-item quantities while the buyer dictates on the phone) returned an error with zero steps — the prototype could not be driven into this flow at all, leaving the core use case completely untested (Priya, JTBD 1).</li><li>The 'Mark as Complete' button on order ON-00000101 produced no visible state change across two separate click attempts, blocking Priya from advancing the order to a confirmed state (Priya, JTBD 3, steps 0 and 3).</li><li>The status path selector (Draft → Activated) did not persist the Activated selection and silently reverted to Draft, closing off Priya's only fallback route to complete the order (Priya, JTBD 3, steps 2–3).</li></ol>
+        </div>
+      </div></div>
+<h2>Feature gaps observed</h2>
+<p style="color:var(--fg-muted)">No feature gaps were logged during the run. Personas completed each JTBD's outcome via paths the prototype exposes.</p>
+<h2>Prioritized fixes</h2>
+<ol class="fix-list"><li><span class="fix-tag fix-tag-ux">[UX]</span> <span class="badge sev-blocker">blocker</span> Wire 'Mark as Complete' to produce a visible outcome: advance the order status label inline, show a confirmation toast ('Order ON-00000101 confirmed'), or open a lightweight confirmation modal. Any of these gives Priya the signal she needs before ending the call. Without it, the button is a silent dead-end.</li><li><span class="fix-tag fix-tag-ux">[UX]</span> <span class="badge sev-blocker">blocker</span> Add a reachable quantity-editing affordance on the order detail page — either inline editable quantity cells directly in the line-item grid (Cart tab), or a clearly labeled 'Edit Quantities' button in the Cart tab header that opens an edit mode. The golden-path JTBD must be completable from the prototype's starting screen without navigating away.</li><li><span class="fix-tag fix-tag-ux">[UX]</span> <span class="badge sev-blocker">blocker</span> Fix the SLDS path component (order stage track) so that selecting 'Activated' commits and reflects the new stage. If the path requires a separate confirm step (e.g. a 'Mark as Current Stage' button that appears after selection), surface that button inline next to the path. Also add an accessible name to the .slds-path__nav element so screen readers and automation can identify it.</li><li><span class="fix-tag fix-tag-ux">[UX]</span> <span class="badge sev-blocker">blocker</span> Surface free-item promotion details on qualifying order line items: a badge or inline callout (e.g. 'Buy 10, Get 2 Free → +2 units') on each row that triggers a promotion. Priya needs to answer the buyer's question within two seconds of being asked — a separate 'Promotions' tab or off-screen panel is too slow for a live call.</li><li><span class="fix-tag fix-tag-ux">[UX]</span> <span class="badge sev-major">major</span> Anchor a single 'Confirm Order' or 'Place Order' CTA at the top of the Cart tab panel header, above the line-item list. A rep on a call should not need to scroll to find the submission action. Reduce secondary actions to a dropdown or overflow menu so the CTA hierarchy is unambiguous.</li><li><span class="fix-tag fix-tag-v4">[V4]</span> <span class="badge sev-major">major</span> Resolve visual consistency failures (V4 at 33.3%): add visible text labels to all 7 icon-only context-bar buttons, or replace with labeled split-buttons. Icon-only actions require a hover state to communicate intent — in a time-pressured call scenario that is one interaction too many.</li><li><span class="fix-tag fix-tag-v5">[V5]</span> <span class="badge sev-major">major</span> Investigate responsive / overflow failures (V5 at 33.3%): the accessibility tree truncation at Cart tab step 5 suggests the panel renders too many nodes or overflows its container. Paginate or virtualize line items beyond ~10 rows; ensure the Cart tab is usable on a 1280px laptop screen without horizontal scroll.</li></ol>
+</section>
+
+<section id="tab-spex" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-spex" hidden>
+<h2>Visual quality — V1-V6</h2>
+
+    <h3>Aggregate score</h3>
+    <div class="vq-overall">
+      <div class="vq-score" data-band="high">
+        <div class="vq-num">73.8%</div>
+        <div class="vq-band">Good</div>
+      </div>
+      <div class="vq-detail">
+        <div><strong>Aggregate score</strong> across 1 unique destination.</div>
+        <div style="margin-top:4px; color:var(--fg-muted); font-size:13px;">
+          Each destination is scored once — reused destinations across personas count once toward the average.
+        </div>
+        <div style="margin-top:6px">Weakest heuristic: <strong>V4 Visual Consistency</strong> (33.3%)</div>
+      </div>
+    </div>
+    <h3>Per-destination scores</h3>
+    <div class="vq-destinations">
+      
+          <div class="vq-destination" data-reached="blocked-at">
+            <div class="vq-destination-head">
+              <div class="vq-destination-label">Orders
+                    ON-00000101 — /</div>
+              <span class="reached-tag reached-blocked-at">block-point</span>
+              <div class="vq-destination-score" data-band="high">73.8%</div>
+            </div>
+            <div class="vq-chips"><span class="vq-chip" data-band="high">V1: 95%</span><span class="vq-chip" data-band="high">V2: 75%</span><span class="vq-chip" data-band="high">V3: 100%</span><span class="vq-chip" data-band="low">V4: 33.3%</span><span class="vq-chip" data-band="low">V5: 33.3%</span><span class="vq-chip" data-band="high">V6: 91.7%</span></div>
+          </div>
+    </div>
+    <h3>Findings by heuristic</h3>
+    <div class="vq-list">
+      
+          <div class="vq-heuristic">
+            <div class="vq-heuristic-head">
+              <span class="vq-hid" data-band="high">V1</span>
+              <strong>Contrast Ratios</strong>
+              <span class="vq-hpct">95% avg · 1 destination</span>
+            </div>
+            <details><summary>8 findings across destinations</summary>
+                  <ul class="vq-findings">
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Low contrast (3.15:1, need 4.5:1): &quot;Home&quot;
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Low contrast (3.15:1, need 4.5:1): &quot;Favorites&quot;
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Low contrast (3.15:1, need 4.5:1): &quot;Open favorites&quot;
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Low contrast (3.15:1, need 4.5:1): &quot;Create&quot;
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Low contrast (3.15:1, need 4.5:1): &quot;Guidance&quot;
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Low contrast (3.15:1, need 4.5:1): &quot;Help&quot;
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Low contrast (3.15:1, need 4.5:1): &quot;Setup&quot;
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Low contrast (3.15:1, need 4.5:1): &quot;Notifications&quot;
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    
+                  </ul>
+                </details>
+          </div>
+          <div class="vq-heuristic">
+            <div class="vq-heuristic-head">
+              <span class="vq-hid" data-band="high">V2</span>
+              <strong>Visual Hierarchy</strong>
+              <span class="vq-hpct">75% avg · 1 destination</span>
+            </div>
+            <details><summary>1 finding across destinations</summary>
+                  <ul class="vq-findings">
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      Heading sizes are not strictly descending
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    
+                  </ul>
+                </details>
+          </div>
+          <div class="vq-heuristic">
+            <div class="vq-heuristic-head">
+              <span class="vq-hid" data-band="high">V3</span>
+              <strong>Layout Quality</strong>
+              <span class="vq-hpct">100% avg · 1 destination</span>
+            </div>
+            <div class="vq-clean">No findings.</div>
+          </div>
+          <div class="vq-heuristic">
+            <div class="vq-heuristic-head">
+              <span class="vq-hid" data-band="low">V4</span>
+              <strong>Visual Consistency</strong>
+              <span class="vq-hpct">33.3% avg · 1 destination</span>
+            </div>
+            <details><summary>2 findings across destinations</summary>
+                  <ul class="vq-findings">
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      8 text colors are not in the token palette
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      3 border radii are off the scale
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    
+                  </ul>
+                </details>
+          </div>
+          <div class="vq-heuristic">
+            <div class="vq-heuristic-head">
+              <span class="vq-hid" data-band="low">V5</span>
+              <strong>Responsive Behavior</strong>
+              <span class="vq-hpct">33.3% avg · 1 destination</span>
+            </div>
+            <details><summary>2 findings across destinations</summary>
+                  <ul class="vq-findings">
+                    <li>
+                      <span class="vq-sev critical">critical</span>
+                      mobile (375px): horizontal overflow (932px)
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    <li>
+                      <span class="vq-sev ">normal</span>
+                      tablet (768px): horizontal overflow (932px)
+                      <span class="vq-from">Orders
+                    ON-00000101 — /</span>
+                    </li>
+                    
+                  </ul>
+                </details>
+          </div>
+          <div class="vq-heuristic">
+            <div class="vq-heuristic-head">
+              <span class="vq-hid" data-band="high">V6</span>
+              <strong>Interaction States</strong>
+              <span class="vq-hpct">91.7% avg · 1 destination</span>
+            </div>
+            <div class="vq-clean">No findings.</div>
+          </div>
+    </div>
+<h2>UX-flow findings</h2>
+<div class="findings">
+    <div class="finding">
+      <div class="finding-head">
+        <span class="badge sev-blocker">blocker</span>
+        <span class="badge cat-dead-end">dead-end</span>
+        <strong>'Mark as Complete' button produces no observable response</strong>
+      </div>
+      <div class="finding-body">On the order detail page (ON-00000101), Priya clicked 'Mark as Complete' at step 0, waited for a response, then tried it again at step 3 after attempting the status path as a fallback. Neither attempt produced any visible change — no toast, no modal, no status label update. The button is present and visually prominent, but the flow dead-ends there with zero feedback. Without any confirmation that the action succeeded or failed, Priya has no signal before ending the buyer call. This is the primary CTA for the JTBD and it silently does nothing.</div>
+      <div class="finding-cite">Priya, JTBD 3, steps 0 and 3</div>
+    </div>
+  
+    <div class="finding">
+      <div class="finding-head">
+        <span class="badge sev-blocker">blocker</span>
+        <span class="badge cat-wrong-mental-model">wrong-mental-model</span>
+        <strong>Status path 'Activated' selection does not persist — order stays in Draft after selection</strong>
+      </div>
+      <div class="finding-body">After 'Mark as Complete' failed to respond, Priya tried the SLDS path component as a fallback (step 2: selected 'Activated'). At step 3 the order still showed 'Draft', meaning the selection either didn't register or requires a separate, invisible confirm step. The path component also fires a serious axe violation for a missing accessible name (.slds-path__nav), which may explain why the interaction silently fails. Priya's mental model — that choosing a stage on the path track advances the order — is correct for SLDS path usage, but the prototype doesn't honor it.</div>
+      <div class="finding-cite">Priya, JTBD 3, steps 2–3; axe violation aria-input-field-name on .slds-path__nav (steps 0 and 5)</div>
+    </div>
+  
+    <div class="finding">
+      <div class="finding-head">
+        <span class="badge sev-blocker">blocker</span>
+        <span class="badge cat-missing-affordance">missing-affordance</span>
+        <strong>Quantity-editing affordance (golden path) is not reachable from the prototype's starting state</strong>
+      </div>
+      <div class="finding-body">Priya's primary JTBD — adjusting line-item quantities as the buyer reads off case counts — produced an error verdict with zero steps recorded. The persona could not locate a quantity-editing entry point from the prototype's opening screen. The order detail page does expose a Cart (5) tab with line items, but no path into editable quantity fields was discoverable in the walkthrough. This is the prototype's golden path: a field rep on a live call needs to find, change, and commit quantities in under a minute. If the affordance isn't visible from the order record, the prototype does not demonstrate its core job.</div>
+      <div class="finding-cite">Priya, JTBD 1, error verdict (zero steps recorded); golden path outcome: error</div>
+    </div>
+  
+    <div class="finding">
+      <div class="finding-head">
+        <span class="badge sev-blocker">blocker</span>
+        <span class="badge cat-information-gap">information-gap</span>
+        <strong>Free-item promotion details are not surfaced on the order — JTBD 2 could not be driven at all</strong>
+      </div>
+      <div class="finding-body">Priya's JTBD 2 — telling the buyer which products carry free-item promotions and how many free units they will receive — also produced an error verdict with no steps. There is no visible promotion summary, line-item badge, or promo callout anywhere in the order view that the persona could locate. When a buyer on the phone asks 'what am I getting free on this order?', Priya has no screen to look at in the current prototype. The information gap is total: not a matter of label clarity, but complete absence of the data at the decision point.</div>
+      <div class="finding-cite">Priya, JTBD 2, error verdict (zero steps recorded)</div>
+    </div>
+  
+    <div class="finding">
+      <div class="finding-head">
+        <span class="badge sev-major">major</span>
+        <span class="badge cat-decision-overload">decision-overload</span>
+        <strong>Cart tab is too dense to navigate during a live call — accessibility tree truncated before a submission action could be found</strong>
+      </div>
+      <div class="finding-body">When Priya pivoted to the Cart (5) tab at step 4 looking for a 'Place Order' or 'Submit' affordance, the accessibility tree was truncated before any completion CTA could be identified, leaving the persona stuck (step 5). A page dense enough to overflow the accessibility tree will equally overwhelm a rep who is managing a buyer on the phone and needs to confirm an action in seconds. The Cart view needs a clear focal hierarchy: a single prominent 'Confirm Order' or 'Place Order' CTA anchored at the top of the panel, above the line-item list — not buried at the end of a long scroll.</div>
+      <div class="finding-cite">Priya, JTBD 3, steps 4–5 (stuck; step 5 reasoning: accessibility tree truncated)</div>
+    </div>
+  
+    <div class="finding">
+      <div class="finding-head">
+        <span class="badge sev-major">major</span>
+        <span class="badge cat-missing-affordance">missing-affordance</span>
+        <strong>Seven context-bar icon buttons have no discernible label — navigation actions are unidentifiable</strong>
+      </div>
+      <div class="finding-body">The context bar (.slds-context-bar__item) contains 7 icon-only buttons with no accessible name, flagged as critical axe violations. A rep scanning the bar for navigation options — 'how do I get back to the order list', 'how do I open related records' — cannot identify these actions by sight or assistive technology. During a time-pressured call, unlabeled icons force the rep to stop and hover-test each one. Add text labels or persistent visible tooltips to all icon-only context bar actions. Note: the visual execution (icon contrast, sizing) falls under V4/V6 — this finding is about the missing navigational affordance.</div>
+      <div class="finding-cite">Priya, JTBD 3, step 0; axe violation button-name on .slds-context-bar__item (7 nodes, steps 0 and 5)</div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-personas" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-personas" hidden>
+<h2>Persona walkthroughs</h2>
+
+        <div class="persona">
+          <div class="persona-head">
+            <h3>Priya</h3>
+            <span class="role">primary</span>
+          </div>
+          
+        <div class="jtbd">
+          <div class="jtbd-head">
+            <div class="jtbd-goal">As the buyer dictates quantities, adjust the order quantities across the assortment line items and commit the changes before the call ends.</div>
+            <span class="verdict-pill verdict-error">error</span>
+          </div>
+          
+          
+          
+          <details>
+            <summary>0 steps · 0 axe scans</summary>
+            <div class="steps">
+              
+            </div>
+          </details>
+        </div>
+      
+        <div class="jtbd">
+          <div class="jtbd-head">
+            <div class="jtbd-goal">Tell the customer which products carry free-item promotions and how many free units they will receive.</div>
+            <span class="verdict-pill verdict-error">error</span>
+          </div>
+          
+          
+          
+          <details>
+            <summary>0 steps · 0 axe scans</summary>
+            <div class="steps">
+              
+            </div>
+          </details>
+        </div>
+      
+        <div class="jtbd">
+          <div class="jtbd-head">
+            <div class="jtbd-goal">Mark the order complete once the buyer confirms the final assortment and quantities.</div>
+            <span class="verdict-pill verdict-blocked">blocked</span>
+          </div>
+          <div class="evidence">looked for: a parseable response. tried: asking the model</div>
+          
+          
+            <figure class="jtbd-preview">
+              <img class="zoomable" src="screenshots/persona-1-jtbd-3-step-05.png" alt="block-point for Mark the order complete once the buyer confirms the final assortment and quantities." loading="lazy">
+              <figcaption>block-point — stuck</figcaption>
+            </figure>
+          
+          <details>
+            <summary>6 steps · 2 axe scans</summary>
+            <div class="steps">
+              
+                <div class="step">
+                  <img class="zoomable" src="screenshots/persona-1-jtbd-3-step-00.png" alt="step 0" loading="lazy">
+                  <div class="meta">
+                    <div class="action">click → the button labeled 'Mark as Complete'</div>
+                    <div class="reason reason-collapsible">
+                      <span class="reason-short">The buyer has confirmed the order. The primary CTA to advance the order to a complete/confirmed state is the 'Mark as Complete' button, whic…</span>
+                      <span class="reason-full" hidden>The buyer has confirmed the order. The primary CTA to advance the order to a complete/confirmed state is the 'Mark as Complete' button, which is prominently visible on the order page. This is the direct path to satisfy the success criterion.</span>
+                      <button type="button" class="reason-toggle" aria-expanded="false">Read more</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="step">
+                  <img class="zoomable" src="screenshots/persona-1-jtbd-3-step-01.png" alt="step 1" loading="lazy">
+                  <div class="meta">
+                    <div class="action">wait</div>
+                    <div class="reason reason-collapsible">
+                      <span class="reason-short">I just clicked 'Mark as Complete' — waiting briefly for the UI to respond with a confirmation state, modal, or status change before assessin…</span>
+                      <span class="reason-full" hidden>I just clicked 'Mark as Complete' — waiting briefly for the UI to respond with a confirmation state, modal, or status change before assessing whether the JTBD is complete.</span>
+                      <button type="button" class="reason-toggle" aria-expanded="false">Read more</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="step">
+                  <img class="zoomable" src="screenshots/persona-1-jtbd-3-step-02.png" alt="step 2" loading="lazy">
+                  <div class="meta">
+                    <div class="action">click → the listbox option 'Activated'</div>
+                    <div class="reason reason-collapsible">
+                      <span class="reason-short">The 'Mark as Complete' button didn't produce a visible state change after clicking and waiting. The status listbox is the alternative path t…</span>
+                      <span class="reason-full" hidden>The 'Mark as Complete' button didn't produce a visible state change after clicking and waiting. The status listbox is the alternative path to advance the order — 'Activated' is the next logical state in this workflow (Draft → Activated) and represents the order being confirmed/placed. I'll try this route to satisfy the success criterion.</span>
+                      <button type="button" class="reason-toggle" aria-expanded="false">Read more</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="step">
+                  <img class="zoomable" src="screenshots/persona-1-jtbd-3-step-03.png" alt="step 3" loading="lazy">
+                  <div class="meta">
+                    <div class="action">click → the button labeled 'Mark as Complete'</div>
+                    <div class="reason reason-collapsible">
+                      <span class="reason-short">The status listbox still shows 'Draft' selected, suggesting the Activated selection didn't take or needs a separate confirm step. 'Mark as C…</span>
+                      <span class="reason-full" hidden>The status listbox still shows 'Draft' selected, suggesting the Activated selection didn't take or needs a separate confirm step. 'Mark as Complete' is the explicit primary CTA for this JTBD — I'll try it again now that I may have interacted with the status control, in case the prototype requires that sequence.</span>
+                      <button type="button" class="reason-toggle" aria-expanded="false">Read more</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="step">
+                  <img class="zoomable" src="screenshots/persona-1-jtbd-3-step-04.png" alt="step 4" loading="lazy">
+                  <div class="meta">
+                    <div class="action">click → the tab labeled 'Cart (5)'</div>
+                    <div class="reason reason-collapsible">
+                      <span class="reason-short">Both the 'Mark as Complete' button and the status listbox have not produced a visible state change after multiple attempts. The Cart tab wit…</span>
+                      <span class="reason-full" hidden>Both the 'Mark as Complete' button and the status listbox have not produced a visible state change after multiple attempts. The Cart tab with 5 items is the remaining untried path — in CPG order entry systems, final submission often happens from a cart/summary view with a 'Place Order' or 'Submit' button. I'll check there for a completion affordance.</span>
+                      <button type="button" class="reason-toggle" aria-expanded="false">Read more</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="step">
+                  <img class="zoomable" src="screenshots/persona-1-jtbd-3-step-05.png" alt="step 5" loading="lazy">
+                  <div class="meta">
+                    <div class="action">stuck</div>
+                    <div class="reason reason-collapsible">
+                      <span class="reason-short">LLM returned non-JSON: ```json
+{&quot;action&quot;: &quot;click&quot;, &quot;target&quot;: &quot;the tab labeled 'Cart (5)'&quot;, &quot;reasoning&quot;: &quot;I'm already on the Cart tab but the…</span>
+                      <span class="reason-full" hidden>LLM returned non-JSON: ```json
+{&quot;action&quot;: &quot;click&quot;, &quot;target&quot;: &quot;the tab labeled 'Cart (5)'&quot;, &quot;reasoning&quot;: &quot;I'm already on the Cart tab but the accessibility tree is truncated — need to scroll down within the cart/order view t</span>
+                      <button type="button" class="reason-toggle" aria-expanded="false">Read more</button>
+                    </div>
+                  </div>
+                </div>
+            </div>
+          </details>
+        </div>
+      
+        </div>
+      
+</section>
+
+<footer>
+  Generated by <code>auditing-prototypes</code>. Raw data in
+  <code>results.json</code> and <code>visual-quality.json</code> alongside this file.
+</footer>
+
+</div>
+
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <button type="button" class="lightbox-close" aria-label="Close preview">×</button>
+  <img alt="" />
+</div>
+
+<script>
+(function () {
+  var buttons = document.querySelectorAll('.tab-btn');
+  var panels = { summary: document.getElementById('tab-summary'),
+                 spex: document.getElementById('tab-spex'),
+                 personas: document.getElementById('tab-personas') };
+
+  function activate(name, updateHash) {
+    if (!panels[name]) name = 'summary';
+    buttons.forEach(function (b) {
+      var on = b.dataset.tab === name;
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    Object.keys(panels).forEach(function (k) {
+      panels[k].hidden = k !== name;
+    });
+    if (updateHash) {
+      history.replaceState(null, '', '#' + name);
+    }
+  }
+
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () { activate(b.dataset.tab, true); });
+  });
+  window.addEventListener('hashchange', function () {
+    var h = (location.hash || '').replace('#', '');
+    activate(h || 'summary', false);
+  });
+
+  var initial = (location.hash || '').replace('#', '');
+  activate(initial || 'summary', false);
+})();
+
+// Read more / Read less toggles on long step-reasoning blocks.
+document.addEventListener('click', function (ev) {
+  var t = ev.target;
+  if (!t || !t.classList || !t.classList.contains('reason-toggle')) return;
+  var reason = t.closest('.reason');
+  if (!reason) return;
+  var shortEl = reason.querySelector('.reason-short');
+  var fullEl = reason.querySelector('.reason-full');
+  if (!shortEl || !fullEl) return;
+  var expanded = t.getAttribute('aria-expanded') === 'true';
+  if (expanded) {
+    shortEl.hidden = false;
+    fullEl.hidden = true;
+    t.textContent = 'Read more';
+    t.setAttribute('aria-expanded', 'false');
+  } else {
+    shortEl.hidden = true;
+    fullEl.hidden = false;
+    t.textContent = 'Read less';
+    t.setAttribute('aria-expanded', 'true');
+  }
+});
+
+// Screenshot lightbox — click any .zoomable image, esc or click backdrop to close.
+(function () {
+  var box = document.getElementById('lightbox');
+  if (!box) return;
+  var img = box.querySelector('img');
+  var closeBtn = box.querySelector('.lightbox-close');
+
+  function open(src, alt) {
+    img.src = src;
+    img.alt = alt || '';
+    box.dataset.open = 'true';
+    document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    box.dataset.open = 'false';
+    img.src = '';
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (t && t.classList && t.classList.contains('zoomable')) {
+      open(t.currentSrc || t.src, t.alt);
+      return;
+    }
+    if (t === box || t === closeBtn) close();
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && box.dataset.open === 'true') close();
+  });
+})();
+</script>
+
+</body>
+</html>

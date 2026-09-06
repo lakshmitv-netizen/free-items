@@ -20,6 +20,26 @@
   function parseMoney(s) { return parseFloat(String(s).replace(/[^0-9.\-]/g, "")) || 0; }
   function fmtMoney(n) { return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function fmtNum(n) { return n.toLocaleString("en-US"); }
+
+  // Sales-tax rate applied to the order's net value for the summary totals.
+  var TAX_RATE = 0.08;
+  // Recompute the Order Summary footer totals from the grid's live Net Total
+  // column — Total Price (sum of every line), Total Tax Amount, and Total Price
+  // With Tax — so they track order-qty edits in real time.
+  function updateOrderTotals(card) {
+    if (!card) return;
+    var totalsBox = card.querySelector(".mfg-order-summary__totals");
+    if (!totalsBox) return;
+    var net = 0;
+    card.querySelectorAll(".mfg-grid-body .mfg-nettotal-cell").forEach(function (td) {
+      net += parseMoney(td.textContent);
+    });
+    var tax = net * TAX_RATE;
+    var vals = totalsBox.querySelectorAll(".mfg-total__value");
+    if (vals[0]) vals[0].textContent = fmtMoney(net);          // Total Price
+    if (vals[1]) vals[1].textContent = fmtMoney(tax);          // Total Tax Amount
+    if (vals[2]) vals[2].textContent = fmtMoney(net + tax);    // Total Price With Tax
+  }
   function uomSize(uom) { var m = String(uom || "").match(/(\d+)/); return m ? parseInt(m[1], 10) : 1; }
 
   function computeRounding(qty, size) {
@@ -31,10 +51,154 @@
     return { aligned: false, dir: "down", value: lower, delta: down };
   }
 
-  function promoCell(promo) {
-    if (!promo) return "";
-    return '<span class="mfg-promo-badge">' + icon(UTIL, "promotions", "mfg-promo-glyph") + promo + "</span>";
+  // Promotion templates that populate the hover popover. A row's badge number is
+  // the count of active promotions; promoDetailsFor() slices this pool to that
+  // count, so the popover always lists exactly `promo` promotions. The first two
+  // mirror the Figma "Popover/Default" node (node-id 49:285417) verbatim.
+  var PROMO_TEMPLATES = [
+    {
+      name: "Monsoon Mania 10% OFF",
+      tags: [{ label: "Auto Applied", kind: "info" }, { label: "Expiring Soon", kind: "warn" }],
+      desc: "Skip the humidity and scoop up exclusive essentials at breezy prices. Shop now to stay cool and save big all season long.",
+      exp: "7/31/2026"
+    },
+    {
+      name: "$50 Off on Order above $1000",
+      tags: [{ label: "Auto Applied", kind: "info" }, { label: "Conditional", kind: "warn" }, { label: "Expiring Soon", kind: "warn" }],
+      desc: "$50 Off on Order Value of $1000 on this product",
+      exp: "7/31/2026"
+    },
+    {
+      name: "Volume Rebate 5%",
+      tags: [{ label: "Auto Applied", kind: "info" }],
+      desc: "Earn a 5% rebate at invoice when you order this product in full cases.",
+      exp: "9/30/2026"
+    },
+    {
+      name: "Free Freight over 20 cases",
+      tags: [{ label: "Conditional", kind: "warn" }],
+      desc: "Waived freight charges on orders of 20 cases or more of this product.",
+      exp: "8/31/2026"
+    },
+    {
+      name: "New Buyer Welcome 8% OFF",
+      tags: [{ label: "Auto Applied", kind: "info" }, { label: "Expiring Soon", kind: "warn" }],
+      desc: "First-time buyers save 8% on this product for a limited introductory window.",
+      exp: "7/15/2026"
+    }
+  ];
+
+  function promoDetailsFor(r) {
+    var n = (r && typeof r === "object") ? (r.promo || 0) : (r || 0);
+    var out = [];
+    for (var i = 0; i < n; i++) out.push(PROMO_TEMPLATES[i % PROMO_TEMPLATES.length]);
+    return out;
   }
+
+  function promoCell(r) {
+    var promo = (r && typeof r === "object") ? r.promo : r;
+    if (!promo) return "";
+    var product = (r && typeof r === "object" && r.product) ? r.product : "";
+    var promos = promoDetailsFor(r);
+    return '<span class="mfg-promo-badge" tabindex="0" role="button" aria-label="' +
+      esc(promo + " promotion" + (promo !== 1 ? "s" : "") + ", hover for details") + '"' +
+      ' data-product="' + esc(product) + '"' +
+      ' data-promos="' + encodeURIComponent(JSON.stringify(promos)) + '">' +
+      icon(UTIL, "promotions", "mfg-promo-glyph") + promo + "</span>";
+  }
+  // --- promotion hover popover ----------------------------------------------
+  var promoPop = null, promoPopBadge = null, promoPopHideTimer = null;
+
+  function promoItemHTML(p) {
+    return '<div class="mfg-promo-pop__item">' +
+      '<div class="mfg-promo-pop__title">' + esc(p.name) + "</div>" +
+      '<div class="mfg-promo-pop__desc">' + esc(p.desc) + "</div>" +
+      '<div class="mfg-promo-pop__exp">Expiration: <strong>' + esc(p.exp) + "</strong></div>" +
+      '<a class="mfg-promo-pop__terms" href="#" tabindex="-1">' + icon(UTIL, "chevronright") + "Terms &amp; Conditions</a>" +
+      "</div>";
+  }
+  function ensurePromoPop() {
+    if (promoPop) return promoPop;
+    promoPop = document.createElement("div");
+    promoPop.className = "mfg-promo-pop";
+    promoPop.setAttribute("role", "dialog");
+    promoPop.setAttribute("aria-label", "Promotions");
+    promoPop.style.display = "none";
+    document.body.appendChild(promoPop);
+    promoPop.addEventListener("mouseenter", function () { clearTimeout(promoPopHideTimer); });
+    promoPop.addEventListener("mouseleave", hidePromoPop);
+    promoPop.addEventListener("click", function (e) {
+      if (e.target.closest(".mfg-promo-pop__close")) { hidePromoPopNow(); return; }
+      if (e.target.closest(".mfg-promo-pop__terms")) e.preventDefault();
+    });
+    return promoPop;
+  }
+  function positionPromoPop(pop, badge) {
+    var r = badge.getBoundingClientRect();
+    var pw = pop.offsetWidth, ph = pop.offsetHeight, gap = 10, edge = 8;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var left = r.right + gap, flipped = false;
+    if (left + pw > vw - edge) { left = r.left - gap - pw; flipped = true; }
+    if (left < edge) left = edge;
+    var top = r.top - edge;
+    if (top + ph > vh - edge) top = vh - edge - ph;
+    if (top < edge) top = edge;
+    pop.style.left = left + "px";
+    pop.style.top = top + "px";
+    var nub = pop.querySelector(".mfg-promo-pop__nubbin");
+    if (nub) {
+      nub.classList.toggle("mfg-promo-pop__nubbin_right", flipped);
+      var ny = Math.max(6, Math.min(ph - 18, (r.top + r.height / 2) - top - 6));
+      nub.style.top = ny + "px";
+    }
+  }
+  function showPromoPop(badge) {
+    var promos = [];
+    try { promos = JSON.parse(decodeURIComponent(badge.getAttribute("data-promos") || "[]")); } catch (e) { promos = []; }
+    if (!promos.length) return;
+    clearTimeout(promoPopHideTimer);
+    var pop = ensurePromoPop();
+    if (promoPopBadge === badge && pop.style.display === "block") return;
+    promoPopBadge = badge;
+    pop.innerHTML =
+      '<div class="mfg-promo-pop__nubbin"></div>' +
+      '<button type="button" class="mfg-promo-pop__close" aria-label="Close">' + icon(UTIL, "close") + "</button>" +
+      '<div class="mfg-promo-pop__header">' + esc(badge.getAttribute("data-product") || "") + "</div>" +
+      '<div class="mfg-promo-pop__body">' + promos.map(promoItemHTML).join("") + "</div>";
+    pop.style.display = "block";
+    positionPromoPop(pop, badge);
+  }
+  function hidePromoPopNow() {
+    if (promoPop) promoPop.style.display = "none";
+    promoPopBadge = null;
+  }
+  function hidePromoPop() {
+    clearTimeout(promoPopHideTimer);
+    promoPopHideTimer = setTimeout(hidePromoPopNow, 140);
+  }
+  document.addEventListener("mouseover", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-promo-badge");
+    if (badge) showPromoPop(badge);
+  });
+  document.addEventListener("mouseout", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-promo-badge");
+    if (!badge) return;
+    var to = e.relatedTarget;
+    if (to && (to.closest(".mfg-promo-badge") === badge || to.closest(".mfg-promo-pop"))) return;
+    hidePromoPop();
+  });
+  document.addEventListener("focusin", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-promo-badge");
+    if (badge) showPromoPop(badge);
+  });
+  document.addEventListener("focusout", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-promo-badge");
+    if (badge) hidePromoPop();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && promoPop && promoPop.style.display === "block") hidePromoPopNow();
+  });
+
   function valueCell(v) { return '<span class="mfg-value-link">' + v + "</span>"; }
 
   function rowCells(r) {
@@ -42,7 +206,7 @@
       '<td class="mfg-col-product"><a href="#" class="mfg-product-link">' + r.product + "</a></td>" +
       "<td>" + r.category + "</td>" +
       "<td>" + r.brand + "</td>" +
-      "<td>" + promoCell(r.promo) + "</td>" +
+      "<td>" + promoCell(r) + "</td>" +
       "<td>" + r.uom + "</td>" +
       // Money columns render as plain default-black text (they are NOT links);
       // only Net Unit Price keeps the blue value-link treatment below.
@@ -51,6 +215,7 @@
       // ---- editable Order Qty cell ----
       '<td class="mfg-num-col mfg-qty-cell" tabindex="0" role="button" aria-label="Edit order quantity"' +
         ' data-uom="' + esc(r.uom) + '"' +
+        ' data-category="' + esc(r.category || "") + '"' +
         ' data-net="' + parseMoney(r.netUnit) + '"' +
         " data-promofree=\"" + encodeURIComponent(JSON.stringify(r.promoFree || null)) + "\"" +
         " data-tiers=\"" + encodeURIComponent(JSON.stringify(r.promoTiers || [])) + "\">" +
@@ -75,9 +240,9 @@
     );
   }
 
-  function renderInto(body, prefix) {
+  function renderInto(body, prefix, rows) {
     var html = "";
-    window.MFG_ROWS.forEach(function (r, i) {
+    (rows || window.MFG_ROWS).forEach(function (r, i) {
       var hasChildren = r.children && r.children.length;
       var expanded = !!r.expanded;
       html += '<tr class="mfg-parent-row" data-row="' + i + '"><td class="mfg-col-expand">';
@@ -106,6 +271,86 @@
   function updateCountFor(body, countEl) {
     var checked = body.querySelectorAll(".mfg-row-check:checked").length;
     if (countEl) countEl.textContent = checked + " line" + (checked !== 1 ? "s" : "") + " selected";
+  }
+
+  // --- Cart ------------------------------------------------------------------
+  // The Cart tab shows the SAME assortment UI (grid + template dropdown + order
+  // summary) populated with just the subset of line items the buyer gave an
+  // Order Qty (> 0). It is a second .mfg-assortment-card, built by cloning the
+  // main one and fed from window.MFG_CART instead of the full catalogs.
+  window.MFG_CART = { standard: [], free: [] };
+  // Shared references so the Add-to-Cart handler (wired early) and the cart
+  // build (wired late) can find each other regardless of source order.
+  var CART_STATE = { assortCard: null, cartCard: null };
+
+  // A card's grid-id prefix: the cart card keeps data-variant="b" (for CSS +
+  // behaviour) but uses a distinct id prefix so its checkbox ids never collide
+  // with the main grid's.
+  function gridPrefixOf(card) {
+    return card.getAttribute("data-id-prefix") || card.getAttribute("data-variant") || "x";
+  }
+  // Row data a card should render for a given mode. The cart card draws from the
+  // captured subset; every other card from the full catalogs.
+  function rowsFor(card, freeMode) {
+    if (card && card._isCart) return window.MFG_CART[freeMode ? "free" : "standard"] || [];
+    return freeMode ? window.MFG_FREE_ITEM_ROWS : window.MFG_ROWS;
+  }
+  // Both catalog bodies for a card: the mounted grid for the current mode, and a
+  // detached copy of the other mode's last snapshot (so all free-item sources
+  // resolve even though only one catalog is mounted at a time).
+  function catalogSources(card) {
+    var cache = card._catalogCache || {};
+    var body = card.querySelector(".mfg-grid-body");
+    function detached(html) { var tb = document.createElement("tbody"); tb.innerHTML = html || ""; return tb; }
+    if (card.classList.contains("mfg-mode-free")) return { std: detached(cache.standard), free: body };
+    return { std: body, free: detached(cache.free) };
+  }
+
+  function qtyOfRow(tr) {
+    var el = tr.querySelector(".mfg-qty-value");
+    return el ? (parseInt(el.textContent, 10) || 0) : 0;
+  }
+  // Shallow-copy a data row, stamping the ordered qty and recomputing Net Total.
+  function cloneRowData(src, qty) {
+    var o = {};
+    for (var k in src) { if (src.hasOwnProperty(k)) o[k] = src[k]; }
+    o.qty = String(qty);
+    o.netTotal = fmtMoney(qty * parseMoney(src.netUnit));
+    return o;
+  }
+  // Read a rendered catalog body and return the data rows (parents / children)
+  // that carry an Order Qty > 0 — the cart subset for that catalog.
+  function subsetFromBody(body, rows) {
+    if (!body || !rows) return [];
+    var out = [];
+    body.querySelectorAll("tr.mfg-parent-row").forEach(function (tr) {
+      var idx = parseInt(tr.getAttribute("data-row"), 10);
+      var src = rows[idx];
+      if (!src) return;
+      var pQty = qtyOfRow(tr);
+      var childRows = body.querySelectorAll('tr.mfg-child-row[data-parent="' + idx + '"]');
+      var kids = [];
+      (src.children || []).forEach(function (c, j) {
+        var cTr = childRows[j];
+        var cQty = cTr ? qtyOfRow(cTr) : 0;
+        if (cQty > 0) kids.push(cloneRowData(c, cQty));
+      });
+      if (pQty > 0 || kids.length) {
+        var pc = cloneRowData(src, pQty);
+        pc.children = kids;
+        pc.expanded = kids.length > 0;
+        out.push(pc);
+      }
+    });
+    return out;
+  }
+  // Snapshot both catalogs of a card into a fresh { standard, free } cart.
+  function subsetFromCard(card) {
+    var src = catalogSources(card);
+    return {
+      standard: subsetFromBody(src.std, rowsFor(card, false)),
+      free: subsetFromBody(src.free, rowsFor(card, true))
+    };
   }
 
   // --- Order Qty editing + popover ------------------------------------------
@@ -281,6 +526,30 @@
 
   // Free items are the "Free …" promotion tiers — units come from the reward
   // text ("… (N units)") when given, else the pack size (or 6 for singles).
+  // Actual free products granted per reward tier (the abstract tier label maps
+  // to a concrete SKU the buyer receives). A tier can override with its own
+  // `free` field in the data.
+  var FREE_PRODUCTS = {
+    "Free case":   "Lay's Classic 52g",
+    "Free cooler": "Branded Cooler",
+    "Free pallet": "Pepsi Cola 0.33L Can",
+    "Free pack":   "Doritos Nacho 45g",
+    "Free crate":  "7UP 0.33L Can",
+    "Free tray":   "Cheetos Crunchy 40g"
+  };
+  // Unit of measure for the free item, shown in its own column. Derived from the
+  // reward/label wording; appends the pack size when the reward names one.
+  function deriveUom(text, count) {
+    var r = (text || "").toLowerCase();
+    var kind = /pallet/.test(r) ? "Pallet"
+             : /crate/.test(r) ? "Crate"
+             : /case/.test(r) ? "Case"
+             : /pack/.test(r) ? "Pack"
+             : null;
+    if (kind) return count ? kind + " of " + count : kind;
+    return "Each";
+  }
+
   function freeItemsFor(tiers, uom) {
     return (tiers || []).filter(function (t) { return /free/i.test(t.label); }).map(function (t) {
       // Free-item qty = how many of the reward you get (the leading count in
@@ -291,7 +560,9 @@
       // (the parenthetical "(6 units)"), used to value the freebie.
       var inner = /(\d+)\s*units?/i.exec(t.reward || "");
       var freeUnits = inner ? parseInt(inner[1], 10) : units;
-      return { label: t.label, note: t.reward || "", units: units, freeUnits: freeUnits, unlockAt: t.q };
+      var product = t.free || FREE_PRODUCTS[t.label] || t.label;
+      var itemUom = t.uom || deriveUom(t.reward || t.label, inner ? parseInt(inner[1], 10) : null);
+      return { label: product, uom: itemUom, note: t.reward || "", units: units, freeUnits: freeUnits, unlockAt: t.q };
     });
   }
 
@@ -408,7 +679,7 @@
       var tiers = [];
       try { tiers = JSON.parse(decodeURIComponent(cell.getAttribute("data-tiers") || "[]")); } catch (e) { tiers = []; }
       var items = freeItemsFor(tiers, cell.getAttribute("data-uom")).map(function (it) {
-        return { label: it.label, note: it.note, units: it.units, unlockAt: it.unlockAt, value: it.freeUnits * net, unlocked: qty >= it.unlockAt };
+        return { label: it.label, uom: it.uom, note: it.note, units: it.units, unlockAt: it.unlockAt, value: it.freeUnits * net, unlocked: qty >= it.unlockAt };
       });
       if (items.length) products.push({ product: link.textContent, qty: qty, items: items });
     });
@@ -458,17 +729,11 @@
   //     (unlocks as soon as the line is ordered). Source: each row's promoFree.
   //   • Product-related    — order-quantity milestones on the product's promo tiers
   //     (unlock by reaching a qty threshold). Source: collectFreeItems().
-  //   • Added directly     — free items the buyer picked from the free-items list
-  //     via the Order Item Template dropdown. Source: DIRECT_FREE (below).
-  var DIRECT_FREE = []; // [{ product, label, note, units, value }] — populated by the dropdown
+  //   • Custom free items — free items the buyer orders from the free-items grid
+  //     (loaded when the Order Item Template dropdown is set to "Free Items").
+  //     Source: collectDirectFree(), which reads the grid rows in free mode.
   var FREE_SUMMARY_REFRESH = []; // refresh callbacks for every wired free-summary
   function refreshAllFreeSummaries() { FREE_SUMMARY_REFRESH.forEach(function (fn) { fn(); }); }
-
-  // Seed used when the buyer switches the Order Item Template to "Free Items".
-  var DIRECT_FREE_SEED = [
-    { product: "Pepsi Cola 0.33L Can", label: "Complimentary case", note: "1 case free (6 units)", units: 1, value: 48.0 },
-    { product: "7UP 1.0L PET Bottle", label: "Trade sampling pack", note: "Sampling stock (4 units)", units: 1, value: 38.0 }
-  ];
 
   // Promotion-related free items: rows whose promoFree is set, unlocked once the
   // line is ordered (live qty > 0).
@@ -484,20 +749,42 @@
       if (!pf) return;
       var qty = parseInt(qtyEl.textContent, 10) || 0;
       groups.push({ product: link.textContent, promo: pf.promo || "Promotion", items: [
-        { label: pf.label, note: pf.note, units: pf.units || 1, value: pf.value || 0, unlocked: qty > 0 }
+        { label: pf.label, note: pf.note, units: pf.units || 1, uom: pf.uom || "Each", value: pf.value || 0, unlocked: qty > 0 }
       ] });
     });
     return groups;
   }
 
-  // Directly-added free items, grouped by product for the table.
-  function collectDirectFree() {
+  // Custom free items: when the Order Item Template is "Free Items", the grid
+  // shows a free-items assortment (window.MFG_FREE_ITEM_ROWS). Whatever the buyer
+  // orders there (qty > 0) is collected here, grouped by category, for the
+  // "Custom Free items" section of the Order Summary. Outside free mode there are
+  // none. Each grouped entry carries `category` (LEAD_CATEGORY reads it).
+  // Collects every ordered (qty > 0) row from the FREE-items catalog body it is
+  // handed. Callers pass the free-catalog source explicitly (the live grid when
+  // in free mode, or the persisted free-catalog snapshot otherwise), so custom
+  // free items survive switching the template back to Standard Products.
+  function collectDirectFree(body) {
+    if (!body) return [];
     var order = [], map = {};
-    DIRECT_FREE.forEach(function (d) {
-      if (!map[d.product]) { map[d.product] = []; order.push(d.product); }
-      map[d.product].push({ label: d.label, note: d.note, units: d.units || 1, value: d.value || 0, unlocked: true });
+    body.querySelectorAll("tr").forEach(function (tr) {
+      var link = tr.querySelector(".mfg-product-link");
+      var cell = tr.querySelector(".mfg-qty-cell");
+      var qtyEl = tr.querySelector(".mfg-qty-value");
+      if (!link || !cell || !qtyEl) return;
+      var qty = parseInt(qtyEl.textContent, 10) || 0;
+      if (qty <= 0) return;
+      var cat = cell.getAttribute("data-category") || "Free items";
+      if (!map[cat]) { map[cat] = []; order.push(cat); }
+      map[cat].push({
+        label: link.textContent,
+        uom: cell.getAttribute("data-uom") || "Each",
+        units: qty,
+        value: parseFloat(cell.getAttribute("data-net")) || 0,
+        unlocked: true
+      });
     });
-    return order.map(function (p) { return { product: p, items: map[p] }; });
+    return order.map(function (c) { return { category: c, items: map[c] }; });
   }
 
   // Keep only the earned (unlocked) items in each group; drop emptied groups.
@@ -514,6 +801,39 @@
   // column — its header text and how to derive each group's main + sub line —
   // so a promotion-scoped table can lead with the promotion instead of a product.
   function freeTableHTML(groups, lead) {
+    // lead === null → a plain flat list (no rowgroup lead column). Custom Free
+    // items use this: they're not clubbed by category, so the table starts
+    // straight at the Free item column.
+    if (!lead) {
+      var flatRows = [];
+      groups.forEach(function (p) { p.items.forEach(function (it) { flatRows.push(it); }); });
+      var flatBody = flatRows.map(function (it) {
+        return (
+          '<tr class="mfg-free-table__row is-unlocked">' +
+            '<td class="mfg-free-table__item">' +
+              '<span class="mfg-free-item__name">' + esc(it.label) + "</span>" +
+            "</td>" +
+            '<td class="mfg-free-table__uom">' + esc(it.uom || "") + "</td>" +
+            '<td class="mfg-free-table__qty">' + fmtNum(it.units) + "</td>" +
+            '<td class="mfg-free-table__value">' +
+              '<span class="mfg-free-table__list-price">' + fmtMoney(it.value) + "</span> " +
+              '<span class="mfg-free-table__free-price">' + fmtMoney(0) + "</span>" +
+            "</td>" +
+          "</tr>"
+        );
+      }).join("");
+      return (
+        '<table class="mfg-free-table">' +
+          "<thead><tr>" +
+            '<th scope="col">Free item</th>' +
+            '<th scope="col" class="mfg-free-table__uom">UoM</th>' +
+            '<th scope="col" class="mfg-free-table__qty">Qty</th>' +
+            '<th scope="col" class="mfg-free-table__value">Price</th>' +
+          "</tr></thead>" +
+          "<tbody>" + flatBody + "</tbody>" +
+        "</table>"
+      );
+    }
     var body = groups.map(function (p) {
       var main = lead.main(p), sub = lead.sub(p);
       return p.items.map(function (it, i) {
@@ -528,8 +848,8 @@
             leadCell +
             '<td class="mfg-free-table__item">' +
               '<span class="mfg-free-item__name">' + esc(it.label) + "</span>" +
-              (it.note ? '<span class="mfg-free-item__note">' + esc(it.note) + "</span>" : "") +
             "</td>" +
+            '<td class="mfg-free-table__uom">' + esc(it.uom || "") + "</td>" +
             '<td class="mfg-free-table__qty">' + fmtNum(it.units) + "</td>" +
             '<td class="mfg-free-table__value">' +
               '<span class="mfg-free-table__list-price">' + fmtMoney(it.value) + "</span> " +
@@ -544,6 +864,7 @@
         "<thead><tr>" +
           '<th scope="col">' + esc(lead.header) + "</th>" +
           '<th scope="col">Free item</th>' +
+          '<th scope="col" class="mfg-free-table__uom">UoM</th>' +
           '<th scope="col" class="mfg-free-table__qty">Qty</th>' +
           '<th scope="col" class="mfg-free-table__value">Price</th>' +
         "</tr></thead>" +
@@ -554,9 +875,13 @@
 
   // Lead-column configs per accordion. Promotion offers lead with the promotion
   // (product shown as sub-line); product/direct tables lead with the product.
-  function itemCountSub(p) { return p.items.length + " item" + (p.items.length !== 1 ? "s" : ""); }
+  // Only worth showing a count when a group has more than one item — a lone "1 item"
+  // just wastes a line, so it's suppressed.
+  function itemCountSub(p) { return p.items.length > 1 ? p.items.length + " items" : ""; }
   var LEAD_PROMO = { header: "Promotion", main: function (p) { return p.promo || "Promotion"; }, sub: function () { return ""; } };
   var LEAD_PRODUCT = { header: "Product", main: function (p) { return p.product; }, sub: itemCountSub };
+  // Custom free items club by category (Snacks, Beverages, …) instead of product.
+  var LEAD_CATEGORY = { header: "Category", main: function (p) { return p.category; }, sub: itemCountSub };
 
   // One collapsible accordion section wrapping a free-items table (or empty state).
   function freeAccordion(title, subtitle, groups, emptyMsg, lead) {
@@ -583,17 +908,84 @@
     );
   }
 
-  function freeDrawerHTML(body) {
-    var promo = earnedGroups(collectPromoFree(body));
-    var product = earnedGroups(collectFreeItems(body));
-    var direct = earnedGroups(collectDirectFree());
+  // Variant D: merge all three sources into ONE table (no accordion sections),
+  // but keep the rowspan "clubbing" — the reward type clubs across its whole
+  // block, and the product/promotion lead cell clubs across its group's rows.
+  function freeFlatTableHTML(promo, product, direct) {
+    var blocks = [
+      { type: "Promotion offer", mod: "promo", lead: LEAD_PROMO, groups: promo },
+      { type: "Product reward", mod: "product", lead: LEAD_PRODUCT, groups: product },
+      { type: "Custom free item", mod: "cart", lead: LEAD_CATEGORY, groups: direct }
+    ].filter(function (b) { return b.groups.length; });
+
+    if (!blocks.length) {
+      return '<div class="mfg-free-drawer__empty">' + icon(UTIL, "info", "mfg-free-drawer__empty-icon") +
+        "<span>No free items unlocked yet — increase quantities or add a promoted product.</span></div>";
+    }
+
+    var body = blocks.map(function (blk) {
+      var typeCount = blk.groups.reduce(function (n, g) { return n + g.items.length; }, 0);
+      var typeEmitted = false;
+      return blk.groups.map(function (p) {
+        var main = blk.lead.main(p), sub = blk.lead.sub(p);
+        return p.items.map(function (it, i) {
+          var lead = "";
+          if (!typeEmitted) {
+            lead += '<th scope="rowgroup" class="mfg-free-flat__type-cell is-type-start" rowspan="' + typeCount + '">' +
+              '<span class="mfg-free-flat__badge mfg-free-flat__badge_' + blk.mod + '">' + esc(blk.type) + "</span></th>";
+            typeEmitted = true;
+          }
+          if (i === 0) {
+            lead += '<th scope="rowgroup" class="mfg-free-table__prod" rowspan="' + p.items.length + '">' +
+              '<span class="mfg-free-table__prod-name">' + esc(main) + "</span>" +
+              (sub ? '<span class="mfg-free-table__prod-count">' + esc(sub) + "</span>" : "") +
+            "</th>";
+          }
+          return (
+            '<tr class="mfg-free-table__row is-unlocked' + (i === 0 ? " is-group-start" : "") + '">' +
+              lead +
+              '<td class="mfg-free-table__item"><span class="mfg-free-item__name">' + esc(it.label) + "</span></td>" +
+              '<td class="mfg-free-table__uom">' + esc(it.uom || "") + "</td>" +
+              '<td class="mfg-free-table__qty">' + fmtNum(it.units) + "</td>" +
+              '<td class="mfg-free-table__value">' +
+                '<span class="mfg-free-table__list-price">' + fmtMoney(it.value) + "</span> " +
+                '<span class="mfg-free-table__free-price">' + fmtMoney(0) + "</span>" +
+              "</td>" +
+            "</tr>"
+          );
+        }).join("");
+      }).join("");
+    }).join("");
+
+    return (
+      '<table class="mfg-free-table mfg-free-table_flat">' +
+        "<thead><tr>" +
+          '<th scope="col">Reward type</th>' +
+          '<th scope="col">Product / Promotion</th>' +
+          '<th scope="col">Free item</th>' +
+          '<th scope="col" class="mfg-free-table__uom">UoM</th>' +
+          '<th scope="col" class="mfg-free-table__qty">Qty</th>' +
+          '<th scope="col" class="mfg-free-table__value">Price</th>' +
+        "</tr></thead>" +
+        "<tbody>" + body + "</tbody>" +
+      "</table>"
+    );
+  }
+
+  function freeDrawerHTML(stdBody, freeBody, flat) {
+    var promo = earnedGroups(collectPromoFree(stdBody));
+    var product = earnedGroups(collectFreeItems(stdBody));
+    var direct = earnedGroups(collectDirectFree(freeBody));
+    if (flat) {
+      return '<div class="mfg-free-drawer__scroll mfg-free-drawer__flat">' + freeFlatTableHTML(promo, product, direct) + "</div>";
+    }
     var sections =
       freeAccordion("Promotion offers", "Unlocked by adding products that carry a promotion",
         promo, "No promotion offers yet — add a product that has a promotion.", LEAD_PROMO) +
       freeAccordion("Product rewards", "Unlocked by reaching order-quantity milestones",
         product, "No product rewards yet — increase order quantities to unlock rewards.", LEAD_PRODUCT) +
-      freeAccordion("Cart rewards", "Unlocked by product combinations in the cart, or added directly",
-        direct, 'No cart rewards yet — add a qualifying product combination, or choose "Free Items" in Order Item Template.', LEAD_PRODUCT);
+      freeAccordion("Custom Free items", "Free items you ordered from the Free Items template",
+        direct, 'No custom free items yet — choose "Free Items" in Order Item Template, then order the items you want.', null);
     return '<div class="mfg-free-drawer__scroll mfg-free-drawer__acc">' + sections + "</div>";
   }
 
@@ -618,6 +1010,17 @@
       summary.appendChild(strip);
       summary.appendChild(drawer);
     }
+    // Drag handle at the summary's top edge — lets the user resize the drawer's
+    // height (and collapse it) by dragging, in addition to the chevron/CTA.
+    var resizer = document.createElement("div");
+    resizer.className = "mfg-summary-resizer";
+    resizer.setAttribute("role", "separator");
+    resizer.setAttribute("aria-orientation", "horizontal");
+    resizer.setAttribute("aria-label", "Resize order summary");
+    resizer.setAttribute("tabindex", "0");
+    resizer.innerHTML = '<span class="mfg-summary-resizer__grip"></span>';
+    summary.insertBefore(resizer, summary.firstChild);
+
     if (toggle) toggle.setAttribute("aria-expanded", "false"); // collapsed by default
 
     // The summary is docked to the card bottom (see CSS). Reserve space below
@@ -625,21 +1028,47 @@
     // expanded, the extra height grows upward over the grid instead.
     var layout = card.querySelector(".mfg-grid-layout");
     function reserveSpace() {
-      if (!layout || !drawer.hidden) return;
+      if (!layout) return;
+      // A card inside a hidden tab panel (display:none) has no client rects —
+      // skip it so it can't publish a bogus (0px) collapsed-bar height.
+      if (!card.getClientRects().length) return;
       if (document.body.classList.contains("mfg-single")) {
-        // Summary is a fixed page-bottom bar → reserve space on the PAGE so the
-        // last rows can scroll clear of it; the card's own bottom stays flush.
-        var page = document.querySelector(".mfg-page");
-        if (page) page.style.paddingBottom = (summary.offsetHeight + 24) + "px";
+        // Card footers are in-flow but sticky (see CSS): the table Cancel/Save
+        // bar sticks just above the Order Summary. Publish the COLLAPSED summary
+        // height so the edit footer's sticky offset lands right on top of it.
+        // The summary sits in-flow at the card bottom, so no grid padding needed.
+        if (drawer.hidden) {
+          document.body.style.setProperty("--mfg-summary-bar-h", summary.offsetHeight + "px");
+        }
         layout.style.paddingBottom = "0px";
-      } else {
+      } else if (drawer.hidden) {
         // Showcase: summary is docked to the card bottom → reserve inside the card.
         layout.style.paddingBottom = summary.offsetHeight + "px";
       }
     }
 
+    var flat = card.getAttribute("data-variant") === "d";
+    // Promotion offers + Product rewards come from the STANDARD-products catalog;
+    // Custom free items from the FREE-items catalog. Only one catalog is mounted
+    // in the live grid at a time, so the other is read from the snapshot captured
+    // on the last template switch (card._catalogCache) — this lets all three
+    // sections coexist instead of the hidden catalog reading as empty.
+    function detachedBody(html) {
+      var tb = document.createElement("tbody");
+      tb.innerHTML = html || "";
+      return tb;
+    }
+    function sources() {
+      var cache = card._catalogCache || {};
+      if (card.classList.contains("mfg-mode-free")) {
+        return { std: detachedBody(cache.standard), free: body };
+      }
+      return { std: body, free: detachedBody(cache.free) };
+    }
     function fillDrawer() {
-      drawer.innerHTML = freeDrawerHTML(body);
+      var src = sources();
+      drawer.innerHTML = freeDrawerHTML(src.std, src.free, flat);
+      if (flat) setupFlatTypeResizer(card, drawer);
     }
 
     function refresh() {
@@ -656,9 +1085,10 @@
         });
         return { n: n, val: val };
       }
-      var promo = summarize(collectPromoFree(body));
-      var product = summarize(collectFreeItems(body));
-      var direct = summarize(collectDirectFree());
+      var src = sources();
+      var promo = summarize(collectPromoFree(src.std));
+      var product = summarize(collectFreeItems(src.std));
+      var direct = summarize(collectDirectFree(src.free));
       var unlocked = promo.n + product.n + direct.n;
       var grand = promo.val + product.val + direct.val;
       // Hide the whole indicator (notification + "Learn more") until at least one
@@ -685,22 +1115,31 @@
             '<span class="mfg-free-notif__breakdown">' +
               aspect("Promotion offers", promo) +
               aspect("Product rewards", product) +
-              aspect("Cart rewards", direct) +
+              aspect("Custom free items", direct) +
             "</span>" +
             '<button type="button" class="mfg-free-summary__cta">' + (drawer.hidden ? "Learn more" : "Hide details") + "</button>" +
           "</div>" +
         "</div>";
       updateProductBadges(body);
       if (!drawer.hidden) fillDrawer();
+      // The notification strip changes the collapsed bar height, so re-measure
+      // (updates --mfg-summary-bar-h → the fixed footer re-docks above the bar).
+      reserveSpace();
     }
 
     // Single source of truth: header chevron and the CTA both drive this.
     function setOpen(open) {
       if (open) fillDrawer();
       drawer.hidden = !open;
+      summary.classList.toggle("mfg-summary--open", open);
       if (toggle) toggle.setAttribute("aria-expanded", String(open));
       var cta = strip.querySelector(".mfg-free-summary__cta");
       if (cta) cta.textContent = open ? "Hide details" : "Learn more";
+      // Single view: while expanded, lock page scroll so only the summary's own
+      // drawer scrolls; collapsing restores normal page scroll.
+      if (document.body.classList.contains("mfg-single")) {
+        document.documentElement.classList.toggle("mfg-summary-locked", open);
+      }
       if (!open) reserveSpace(); // re-measure the collapsed bar
     }
 
@@ -711,6 +1150,73 @@
     if (toggle) {
       toggle.addEventListener("click", function () { setOpen(drawer.hidden); });
     }
+
+    // Drag / keyboard resize of the drawer height (see .mfg-summary-resizer CSS).
+    // Dragging up grows the drawer, down shrinks it, past the minimum collapses.
+    (function setupSummaryResize() {
+      var MIN = 48; // below this the drawer collapses
+      function scrollEl() { return drawer.querySelector(".mfg-free-drawer__scroll"); }
+      function currentHeight() {
+        // Variant D resizes the single flat scroll region; Variant B resizes the
+        // shared per-section scroll height (read its current max-height).
+        if (flat) {
+          var el = scrollEl();
+          return el ? el.getBoundingClientRect().height : 0;
+        }
+        var acc = drawer.querySelector(".mfg-free-acc__body");
+        if (!acc) return 0;
+        var mh = parseFloat(getComputedStyle(acc).maxHeight);
+        return isNaN(mh) ? acc.getBoundingClientRect().height : mh;
+      }
+      function maxHeight() {
+        var totals = summary.querySelector(".mfg-order-summary__totals");
+        var cap = document.body.classList.contains("mfg-single")
+          ? window.innerHeight * 0.75
+          : (card.offsetHeight || window.innerHeight * 0.75);
+        var chrome = (toggle ? toggle.offsetHeight : 0) + strip.offsetHeight +
+          (totals ? totals.offsetHeight : 0) + resizer.offsetHeight + 24;
+        var avail = Math.max(MIN, cap - chrome);
+        if (flat) return avail;
+        // Variant B: cap each section's own scroll window generously (so the
+        // drag can grow it past the 260px default) while each section still
+        // scrolls within itself — never one scroll for the whole drawer.
+        return Math.min(avail, 480);
+      }
+      function applyHeight(h) {
+        card.classList.add("mfg-summary-resized");
+        card.style.setProperty(flat ? "--mfg-free-drawer-h" : "--mfg-free-acc-body-h", Math.round(h) + "px");
+      }
+      var startY = 0, startH = 0;
+      function onMove(e) {
+        var next = startH + (startY - e.clientY); // drag up = taller
+        if (next <= MIN) { end(); setOpen(false); return; }
+        applyHeight(Math.min(next, maxHeight()));
+      }
+      function end() {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", end);
+        document.body.classList.remove("mfg-row-resizing");
+      }
+      resizer.addEventListener("mousedown", function (e) {
+        if (drawer.hidden) return;
+        e.preventDefault();
+        startY = e.clientY; startH = currentHeight();
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", end);
+        document.body.classList.add("mfg-row-resizing");
+      });
+      resizer.addEventListener("keydown", function (e) {
+        if (drawer.hidden) return;
+        var step = e.shiftKey ? 60 : 24, delta = 0;
+        if (e.key === "ArrowUp") delta = step;
+        else if (e.key === "ArrowDown") delta = -step;
+        else return;
+        e.preventDefault();
+        var next = currentHeight() + delta;
+        if (next <= MIN) { setOpen(false); return; }
+        applyHeight(Math.min(next, maxHeight()));
+      });
+    })();
     // Collapse / expand an individual accordion section inside the drawer.
     drawer.addEventListener("click", function (e) {
       var head = e.target.closest(".mfg-free-acc__head");
@@ -723,6 +1229,7 @@
 
     FREE_SUMMARY_REFRESH.push(function () { refresh(); if (!drawer.hidden) fillDrawer(); });
     card._refreshFreeSummary = refresh;
+    card._reserveSpace = reserveSpace;
     refresh();
     reserveSpace();
     window.requestAnimationFrame(reserveSpace);
@@ -917,7 +1424,7 @@
     var variant = card ? card.getAttribute("data-variant") : null;
     // Variant B explores a popover-free flow: plain inline edit, no rounding
     // popover and no during-edit side rail — free items live in the summary.
-    var plain = variant === "b";
+    var plain = variant === "b" || variant === "d";
     // The qty-edit free-items side panel is retired: Variant A dropped it,
     // Variant B rolls free items into the summary, and Variant C shows them in
     // a click-to-open tabbed detail panel instead.
@@ -1015,12 +1522,12 @@
     if (edited) markEdited(cell, netEl, net, orig);
     // keep the free-items summary (variant B) in sync with the new qty
     if (card && card._refreshFreeSummary) card._refreshFreeSummary();
+    updateOrderTotals(card); // live Order Summary totals track the qty change
   }
 
   // --- inline-edit dirty tracking + docked save bar -------------------------
   var dirty = [];            // { cell, netEl, net, origQty } snapshots for revert
   var editFooter = document.getElementById("edit-footer");
-  var editCountEl = document.getElementById("edit-count");
 
   function isDirty(cell) {
     for (var i = 0; i < dirty.length; i++) { if (dirty[i].cell === cell) return true; }
@@ -1035,11 +1542,16 @@
 
   function updateEditFooter() {
     if (!editFooter) return;
-    if (dirty.length) {
-      editCountEl.textContent = dirty.length + " item" + (dirty.length > 1 ? "s" : "") + " edited";
-      editFooter.hidden = false;
-    } else {
-      editFooter.hidden = true;
+    editFooter.hidden = dirty.length === 0;
+    // The footer is fixed above the summary in single view; re-reserve page space
+    // below the grid so its last rows can still scroll clear of the footer. With a
+    // Cart tab there are two [data-variant="b"] cards — reserve on the visible one.
+    if (document.body.classList.contains("mfg-single")) {
+      var sc = Array.prototype.filter.call(
+        document.querySelectorAll('.mfg-assortment-card[data-variant="b"]'),
+        function (c) { return c.getClientRects().length; }
+      )[0];
+      if (sc && sc._reserveSpace) sc._reserveSpace();
     }
   }
 
@@ -1050,13 +1562,22 @@
   }
 
   function cancelEdits() {
+    var cards = [];
     dirty.forEach(function (d) {
       d.cell.classList.remove("mfg-is-edited");
       d.cell.innerHTML = qtyCellHTML(d.origQty, null);
       if (d.netEl) d.netEl.innerHTML = '<span class="mfg-value-link">' + fmtMoney(d.origQty * d.net) + "</span>";
+      var card = d.cell.closest(".mfg-assortment-card");
+      if (card && cards.indexOf(card) === -1) cards.push(card);
     });
     dirty = [];
     updateEditFooter();
+    // Reverting changes the Net Totals back, so recompute the summary totals
+    // (and free-items summary) for every card that had edits.
+    cards.forEach(function (card) {
+      if (card._refreshFreeSummary) card._refreshFreeSummary();
+      updateOrderTotals(card);
+    });
   }
 
   // --- per-block wiring ------------------------------------------------------
@@ -1067,10 +1588,13 @@
     if (!body) return;
     var countEl = card.querySelector(".mfg-selected-count");
     var selectAll = card.querySelector(".mfg-select-all");
-    var prefix = card.getAttribute("data-variant") || "x";
+    var variant = card.getAttribute("data-variant") || "x";
+    var prefix = gridPrefixOf(card);
 
-    renderInto(body, prefix);
+    renderInto(body, prefix, rowsFor(card, card.classList.contains("mfg-mode-free")));
+    if (card._isCart) applyCartEmptyState(card);
     updateCountFor(body, countEl);
+    updateOrderTotals(card); // seed the Order Summary totals from the initial grid
 
     body.addEventListener("click", function (e) {
       var toggle = e.target.closest("[data-toggle]");
@@ -1136,7 +1660,7 @@
     // free-items section — wired in setupFreeSummary)
     var summaryToggle = card.querySelector(".mfg-order-summary__toggle");
     var summaryTotals = card.querySelector(".mfg-order-summary__totals");
-    if (summaryToggle && prefix !== "b") {
+    if (summaryToggle && variant !== "b" && variant !== "d") {
       summaryToggle.addEventListener("click", function () {
         var open = summaryToggle.getAttribute("aria-expanded") === "true";
         summaryToggle.setAttribute("aria-expanded", String(!open));
@@ -1145,9 +1669,21 @@
     }
 
     // Variant B: free-items indicator + expandable drawer in the summary
-    if (prefix === "b") { setupFreeSummary(card, body); setupFrozenProductColumn(card); }
+    if (variant === "b" || variant === "d") { setupFreeSummary(card, body); setupFrozenProductColumn(card); }
     // Variant C: click a product name to open a tabbed detail side panel
-    if (prefix === "c") setupDetailPanel(card, body);
+    if (variant === "c") setupDetailPanel(card, body);
+  }
+
+  // Cart grid empty state: a single centred placeholder row when the cart has no
+  // items for the current mode. Removed automatically once real rows render.
+  function applyCartEmptyState(card) {
+    var body = card.querySelector(".mfg-grid-body");
+    if (!body || body.querySelector(".mfg-parent-row")) return;
+    var mode = card.classList.contains("mfg-mode-free") ? "free items" : "products";
+    body.innerHTML =
+      '<tr class="mfg-cart-empty"><td colspan="16">' +
+        "No " + mode + " in your cart yet — set an Order Qty on the Assortment Products tab, then choose Add to Cart." +
+      "</td></tr>";
   }
 
   // Variant B: the Product Name column (and the leading columns) are frozen to
@@ -1198,6 +1734,52 @@
     });
   }
 
+  // Variant D: make the flattened table's first column (Reward type) resizable.
+  // The width lives in --mfg-free-type-col-w on the card, shared by header +
+  // the clubbed rowgroup cells (see CSS). The flat table is re-rendered on every
+  // drawer open, so this re-attaches the handle after each fill.
+  function setupFlatTypeResizer(card, drawer) {
+    var th = drawer.querySelector(".mfg-free-table_flat thead th:first-child");
+    if (!th || th.querySelector(".mfg-col-resizer")) return;
+    th.classList.add("mfg-col-resizable");
+    var resizer = document.createElement("span");
+    resizer.className = "mfg-col-resizer";
+    resizer.title = "Drag to resize";
+    resizer.setAttribute("role", "separator");
+    resizer.setAttribute("aria-orientation", "vertical");
+    resizer.setAttribute("aria-label", "Resize Reward type column");
+    resizer.setAttribute("tabindex", "0");
+    th.appendChild(resizer);
+
+    function clampW(w) { return Math.max(120, Math.min(420, w)); }
+    var startX = 0, startW = 0;
+    function onMove(e) {
+      card.style.setProperty("--mfg-free-type-col-w", clampW(startW + (e.clientX - startX)) + "px");
+    }
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.classList.remove("mfg-col-resizing");
+    }
+    resizer.addEventListener("mousedown", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      startX = e.clientX;
+      startW = th.getBoundingClientRect().width;
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+      document.body.classList.add("mfg-col-resizing");
+    });
+    resizer.addEventListener("keydown", function (e) {
+      var step = e.shiftKey ? 40 : 10, delta = 0;
+      if (e.key === "ArrowRight") delta = step;
+      else if (e.key === "ArrowLeft") delta = -step;
+      else return;
+      e.preventDefault();
+      card.style.setProperty("--mfg-free-type-col-w", clampW(th.getBoundingClientRect().width + delta) + "px");
+    });
+  }
+
   // popover buttons (Apply / Close / Confirm / Cancel)
   document.addEventListener("click", function (e) {
     if (!edit) return;
@@ -1230,10 +1812,98 @@
     commitActive();
   });
 
+  // --- success toast ---------------------------------------------------------
+  var toastRegion = null;
+  function showToast(message) {
+    if (!toastRegion) {
+      toastRegion = document.createElement("div");
+      toastRegion.className = "mfg-toast-region";
+      document.body.appendChild(toastRegion);
+    }
+    var wrap = document.createElement("div");
+    wrap.className = "slds-notify_container slds-is-relative";
+    wrap.innerHTML =
+      '<div class="slds-notify slds-notify_toast slds-theme_success mfg-toast" role="status">' +
+        '<span class="slds-assistive-text">Success</span>' +
+        '<span class="slds-icon_container slds-icon-utility-success slds-m-right_small slds-no-flex slds-align-top">' +
+          icon(UTIL, "success", "slds-icon slds-icon_small") +
+        "</span>" +
+        '<div class="slds-notify__content"><h2 class="slds-text-heading_small">' + esc(message) + "</h2></div>" +
+        '<div class="slds-notify__close">' +
+          '<button class="slds-button slds-button_icon slds-button_icon-inverse mfg-toast__close" title="Close">' +
+            icon(UTIL, "close", "slds-button__icon") + '<span class="slds-assistive-text">Close</span>' +
+          "</button>" +
+        "</div>" +
+      "</div>";
+    toastRegion.appendChild(wrap);
+    var timer = setTimeout(dismiss, 3400);
+    function dismiss() {
+      clearTimeout(timer);
+      wrap.classList.add("mfg-toast_out");
+      setTimeout(function () { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 220);
+    }
+    var closeBtn = wrap.querySelector(".mfg-toast__close");
+    if (closeBtn) closeBtn.addEventListener("click", dismiss);
+  }
+
+  // --- cart population --------------------------------------------------------
+  // Whichever assortment card is currently on screen (main grid, or the cart
+  // grid itself when the buyer trims quantities there) is the source of truth.
+  function activeAssortmentCard() {
+    var cartStack = document.getElementById("cart-stack");
+    if (cartStack && !cartStack.hidden && CART_STATE.cartCard) return CART_STATE.cartCard;
+    return CART_STATE.assortCard;
+  }
+  function cartLineCount() {
+    function n(arr) {
+      return (arr || []).reduce(function (s, r) { return s + 1 + ((r.children && r.children.length) || 0); }, 0);
+    }
+    return n(window.MFG_CART.standard) + n(window.MFG_CART.free);
+  }
+  function updateCartTabCount() {
+    var link = document.querySelector('.mfg-tabs .slds-tabs_default__link[data-tab="cart"]');
+    if (link) link.textContent = "Cart (" + cartLineCount() + ")";
+  }
+  function renderRowsToHTML(prefix, rows) {
+    var tb = document.createElement("tbody");
+    renderInto(tb, prefix, rows || []);
+    return tb.innerHTML;
+  }
+  // Re-render the cart card from window.MFG_CART, priming BOTH catalog snapshots
+  // so promotion offers, product rewards and custom free items all resolve in the
+  // cart's own Order Summary regardless of which mode is mounted.
+  function renderCartCard() {
+    var cc = CART_STATE.cartCard;
+    if (!cc) return;
+    var body = cc.querySelector(".mfg-grid-body");
+    if (!body) return;
+    var prefix = gridPrefixOf(cc);
+    cc._catalogCache = {
+      standard: renderRowsToHTML(prefix, window.MFG_CART.standard),
+      free: renderRowsToHTML(prefix, window.MFG_CART.free)
+    };
+    var freeMode = cc.classList.contains("mfg-mode-free");
+    body.innerHTML = cc._catalogCache[freeMode ? "free" : "standard"];
+    applyCartEmptyState(cc);
+    updateCountFor(body, cc.querySelector(".mfg-selected-count"));
+    if (cc._refreshFreeSummary) cc._refreshFreeSummary();
+    updateOrderTotals(cc);
+  }
+  function addToCart() {
+    if (CART_STATE.cartCard) {
+      var snap = subsetFromCard(activeAssortmentCard());
+      window.MFG_CART.standard = snap.standard;
+      window.MFG_CART.free = snap.free;
+      renderCartCard();
+      updateCartTabCount();
+    }
+    showToast("Added to cart");
+  }
+
   // docked save-bar actions
   if (editFooter) {
     editFooter.addEventListener("click", function (e) {
-      if (e.target.closest(".mfg-edit-save")) { if (edit) commitActive(); saveEdits(); }
+      if (e.target.closest(".mfg-edit-save")) { if (edit) commitActive(); saveEdits(); addToCart(); }
       else if (e.target.closest(".mfg-edit-cancel")) { if (edit) commitEdit(edit.orig, null, false); cancelEdits(); }
     });
   }
@@ -1267,7 +1937,31 @@
       l.setAttribute("aria-selected", String(active));
       l.setAttribute("tabindex", active ? "0" : "-1");
     });
+    switchPanel(link.getAttribute("data-tab"));
     if (focus) link.focus();
+  }
+
+  // Single-view content routing: the Cart tab shows the cart card, every other
+  // tab shows the assortment card. The one edit/Add-to-Cart footer is re-docked
+  // into whichever card is on screen. (No-op until the cart card is built.)
+  function dockFooterInto(card) {
+    var ef = document.getElementById("edit-footer");
+    if (!ef || !card) return;
+    var cardFooter = card.querySelector(".mfg-order-summary");
+    if (cardFooter && cardFooter.parentNode === card) card.insertBefore(ef, cardFooter);
+  }
+  function switchPanel(tab) {
+    var cartStack = document.getElementById("cart-stack");
+    if (!cartStack || !CART_STATE.cartCard) return; // only when a cart exists (single view)
+    var assortStack = document.getElementById("variant-stack");
+    var showCart = tab === "cart";
+    if (edit) commitActive(); // close any open editor before moving the shared footer
+    if (assortStack) assortStack.hidden = showCart;
+    cartStack.hidden = !showCart;
+    var target = showCart ? CART_STATE.cartCard : CART_STATE.assortCard;
+    dockFooterInto(target);
+    if (target._refreshFreeSummary) target._refreshFreeSummary();
+    if (target._reserveSpace) { target._reserveSpace(); window.requestAnimationFrame(target._reserveSpace); }
   }
   TAB_LINKS.forEach(function (link, i) {
     link.addEventListener("click", function (e) { e.preventDefault(); activateTab(link); });
@@ -1287,7 +1981,8 @@
   var VARIANTS = [
     { id: "a", label: "Variant A", desc: "Gamified rounding popover + free-items side rail" },
     { id: "b", label: "Variant B", desc: "Free items rolled up into the Order Summary drawer" },
-    { id: "c", label: "Variant C", desc: "Open canvas for the next UI idea" }
+    { id: "c", label: "Variant C", desc: "Open canvas for the next UI idea" },
+    { id: "d", label: "Variant D", desc: "Free items in one flattened table — reward type as a column" }
   ];
 
   function uniquifyIds(root, suffix) {
@@ -1382,29 +2077,70 @@
       var section = sectionFor(v, single);
       if (stack) stack.appendChild(section); // moves template card too when appended
       section.appendChild(card);
-      if (!single && v.id === "b") addGotoPrototype(card, v);
+      if (!single && (v.id === "b" || v.id === "d")) addGotoPrototype(card, v);
     });
     return cards;
   }
 
-  buildVariants().forEach(initCard);
-
-  // Single-variant (full-screen) page: dock the Save/Cancel bar to the bottom of
-  // the table (inside the card) instead of the viewport. The Order Summary takes
-  // over the page-level sticky-bottom role (see CSS).
-  if (document.body.classList.contains("mfg-single") && editFooter) {
-    var singleCard = document.querySelector(".mfg-assortment-card");
-    var gridLayout = singleCard && singleCard.querySelector(".mfg-grid-layout");
-    if (gridLayout) {
-      // Insert right after the table layout, before the (now fixed) Order Summary.
-      gridLayout.parentNode.insertBefore(editFooter, gridLayout.nextSibling);
-      editFooter.classList.add("mfg-edit-footer_intable");
-    }
+  // Mount the Cart tab's grid in its own (initially hidden) stack inside the
+  // record tab panel, as a sibling of the assortment stack.
+  function mountCartCard(card) {
+    var content = document.querySelector(".slds-tabs_default__content");
+    if (!content) return;
+    var stack = document.createElement("div");
+    stack.id = "cart-stack";
+    stack.className = "mfg-variant-stack mfg-variant-stack_single mfg-cart-stack";
+    stack.hidden = true;
+    var section = document.createElement("section");
+    section.className = "mfg-variant-section mfg-variant-section_bare";
+    section.setAttribute("data-variant-section", "cart");
+    section.appendChild(card);
+    stack.appendChild(section);
+    content.appendChild(stack);
   }
 
-  // Order Item Template dropdown: switching to "Free Items" lets the buyer add
-  // free items directly to the order (populating the "Added from free-items list"
-  // accordion in the Order Summary); "Standard Products" clears them.
+  var builtCards = buildVariants();
+  CART_STATE.assortCard = builtCards[0] || null;
+  // Single view only: clone a clean copy of the assortment card (before initCard
+  // injects the free-summary drawer or docks the footer) to serve as the Cart
+  // grid. Re-id it so its checkboxes never collide with the main grid's.
+  var cartCard = null;
+  if (ONLY && document.body.classList.contains("mfg-single") && builtCards[0]) {
+    cartCard = builtCards[0].cloneNode(true);
+    uniquifyIds(cartCard, "cart");
+    cartCard.setAttribute("data-id-prefix", "cart");
+    cartCard._isCart = true;
+    mountCartCard(cartCard);
+    CART_STATE.cartCard = cartCard;
+  }
+  builtCards.forEach(initCard);
+  if (cartCard) initCard(cartCard);
+  updateCartTabCount();
+
+  // Single-variant (full-screen) page: the whole assortment section is one
+  // self-contained, viewport-tall card. Move the Save/Cancel bar INTO that card,
+  // directly above the Order Summary — so it reads as the TABLE's footer while
+  // the Order Summary is the CARD's footer. Both are in-flow flex children that
+  // stay in view while the table scrolls between them (see CSS).
+  (function dockFootersIntoSingleCard() {
+    if (!ONLY) return;
+    var card = document.querySelector('.mfg-assortment-card[data-variant="' + ONLY + '"]');
+    if (!card) return;
+    var ef = document.getElementById("edit-footer");
+    var cardFooter = card.querySelector(".mfg-order-summary");
+    if (ef && cardFooter && cardFooter.parentNode === card) {
+      card.insertBefore(ef, cardFooter);
+    }
+    if (card._reserveSpace) {
+      card._reserveSpace();
+      window.requestAnimationFrame(card._reserveSpace);
+    }
+  })();
+
+  // Order Item Template dropdown: switching to "Free Items" loads the free-items
+  // assortment into the grid (window.MFG_FREE_ITEM_ROWS) so the buyer can order
+  // free items, which flow into the "Custom Free items" section of the Order
+  // Summary; "Standard Products" restores the normal assortment.
   var COMBO_SEQ = 0;
   function setupTemplateDropdowns() {
     var OPTIONS = ["Standard Products", "Free Items"];
@@ -1462,7 +2198,36 @@
           o.classList.toggle("is-selected", on);
           o.setAttribute("aria-selected", String(on));
         });
-        DIRECT_FREE = value === "Free Items" ? DIRECT_FREE_SEED.slice() : [];
+        // Swap the grid's dataset: "Free Items" loads the free-items assortment
+        // (window.MFG_FREE_ITEM_ROWS) and marks the card free-mode so the ordered
+        // items flow into the "Custom Free items" summary section; "Standard
+        // Products" restores the normal assortment.
+        var card = combobox.closest(".mfg-assortment-card");
+        if (card) {
+          var gridBody = card.querySelector(".mfg-grid-body");
+          var freeMode = value === "Free Items";
+          var wasFree = card.classList.contains("mfg-mode-free");
+          if (gridBody) {
+            // Snapshot the catalog we're leaving so BOTH its quantities and the
+            // free-item summary it feeds survive the switch, then restore the
+            // catalog we're entering (fresh-render only the first time it loads).
+            card._catalogCache = card._catalogCache || {};
+            card._catalogCache[wasFree ? "free" : "standard"] = gridBody.innerHTML;
+            card.classList.toggle("mfg-mode-free", freeMode);
+            var cacheKey = freeMode ? "free" : "standard";
+            if (card._catalogCache[cacheKey] != null) {
+              gridBody.innerHTML = card._catalogCache[cacheKey];
+            } else {
+              renderInto(gridBody, gridPrefixOf(card), rowsFor(card, freeMode));
+            }
+            if (card._isCart) applyCartEmptyState(card);
+            updateCountFor(gridBody, card.querySelector(".mfg-selected-count"));
+          } else {
+            card.classList.toggle("mfg-mode-free", freeMode);
+          }
+          if (card._refreshFreeSummary) card._refreshFreeSummary();
+          updateOrderTotals(card);
+        }
         refreshAllFreeSummaries();
         close();
       }

@@ -12,10 +12,11 @@
     rel="stylesheet"
     href="https://unpkg.com/@salesforce-ux/design-system@2.264.0/assets/styles/salesforce-lightning-design-system.min.css"
   />
-  <link rel="stylesheet" href="assets/styles.css?v=79" />
+  <link rel="stylesheet" href="assets/styles.css?v=94" />
   <link rel="stylesheet" href="assets/slds2-kondo.css?v=79" />
 </head>
 <body>
+  <a href="#main-content" class="mfg-skip-link">Skip to main content</a>
   <!-- ============================ GLOBAL HEADER ============================ -->
   <header class="slds-global-header_container mfg-global-header">
     <div class="slds-global-header slds-grid slds-grid_align-spread">
@@ -95,7 +96,7 @@
   </div>
 
   <!-- ============================ PAGE BODY ============================ -->
-  <div class="mfg-page">
+  <main class="mfg-page" id="main-content" tabindex="-1">
     <!-- Single-variant back-nav breadcrumb is injected here, ABOVE the record card -->
     <div id="mfg-breadcrumb-slot" class="mfg-breadcrumb-slot"></div>
     <!-- ---------- Page header (record home) ---------- -->
@@ -364,21 +365,17 @@
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <!-- ============================ INLINE-EDIT SAVE BAR ============================ -->
   <div class="mfg-edit-footer" id="edit-footer" role="region" aria-label="Unsaved changes" hidden>
-    <div class="mfg-edit-footer__msg" aria-live="polite">
-      <svg class="mfg-edit-footer__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#info"></use></svg>
-      <span id="edit-count">1 item edited</span>
-    </div>
     <div class="mfg-edit-footer__actions">
       <button type="button" class="slds-button slds-button_neutral mfg-edit-cancel">Cancel</button>
-      <button type="button" class="slds-button slds-button_brand mfg-edit-save">Save</button>
+      <button type="button" class="slds-button slds-button_brand mfg-edit-save">Add to Cart</button>
     </div>
   </div>
 
-  <script src="assets/data.js?v=79"></script>
-  <script src="assets/app.js?v=79"></script>
+  <script src="assets/data.js?v=83"></script>
+  <script src="assets/app.js?v=87"></script>
 </body>
 </html>
