@@ -12,7 +12,7 @@
     rel="stylesheet"
     href="https://unpkg.com/@salesforce-ux/design-system@2.264.0/assets/styles/salesforce-lightning-design-system.min.css"
   />
-  <link rel="stylesheet" href="assets/styles.css?v=94" />
+  <link rel="stylesheet" href="assets/styles.css?v=124" />
   <link rel="stylesheet" href="assets/slds2-kondo.css?v=79" />
 </head>
 <body>
@@ -245,17 +245,17 @@
               </div>
 
               <div class="mfg-assortment-header__actions">
-                <label class="slds-checkbox_toggle slds-grid mfg-toggle">
-                  <input type="checkbox" name="prefill" />
-                  <span class="slds-checkbox_faux_container" aria-live="assertive">
+                <label class="slds-checkbox_toggle slds-grid mfg-toggle" for="mfg-toggle-prefill">
+                  <input type="checkbox" name="prefill" id="mfg-toggle-prefill" aria-label="Pre-fill suggested Quantity" />
+                  <span class="slds-checkbox_faux_container mfg-toggle__faux" aria-hidden="true">
                     <span class="slds-checkbox_faux"></span>
                   </span>
                   <span class="slds-form-element__label slds-m-bottom_none mfg-toggle__label">Pre-fill suggested Quantity</span>
                 </label>
 
-                <label class="slds-checkbox_toggle slds-grid mfg-toggle">
-                  <input type="checkbox" name="instant-pricing" checked />
-                  <span class="slds-checkbox_faux_container" aria-live="assertive">
+                <label class="slds-checkbox_toggle slds-grid mfg-toggle" for="mfg-toggle-instant-pricing">
+                  <input type="checkbox" name="instant-pricing" id="mfg-toggle-instant-pricing" aria-label="Instant Pricing" checked />
+                  <span class="slds-checkbox_faux_container mfg-toggle__faux" aria-hidden="true">
                     <span class="slds-checkbox_faux"></span>
                   </span>
                   <span class="slds-form-element__label slds-m-bottom_none mfg-toggle__label">Instant Pricing</span>
@@ -321,7 +321,6 @@
                     </th>
                     <th class="mfg-col-product" scope="col"><div class="slds-truncate" title="Product Name">Product Name</div></th>
                     <th scope="col"><div class="slds-truncate" title="Category">Category</div></th>
-                    <th scope="col"><div class="slds-truncate" title="Brand">Brand</div></th>
                     <th scope="col"><div class="slds-truncate" title="Promotion">Promotion</div></th>
                     <th scope="col"><div class="slds-truncate" title="UoM">UoM</div></th>
                     <th class="mfg-num-col" scope="col"><div class="slds-truncate" title="List Price">List Price</div></th>
@@ -376,6 +375,6 @@
   </div>
 
   <script src="assets/data.js?v=83"></script>
-  <script src="assets/app.js?v=87"></script>
+  <script src="assets/app.js?v=114"></script>
 </body>
 </html>

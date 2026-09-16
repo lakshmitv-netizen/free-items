@@ -26,13 +26,29 @@
   // Recompute the Order Summary footer totals from the grid's live Net Total
   // column — Total Price (sum of every line), Total Tax Amount, and Total Price
   // With Tax — so they track order-qty edits in real time.
+  // The Net Total figure lives in a .mfg-nettotal-value span so a sibling badge
+  // (variant E's "+N free items") can share the cell without being wiped by qty
+  // edits or counted into the order total. Writes go through here; reads below
+  // pull from the span, ignoring any badge text.
+  function setNetTotal(netEl, html) {
+    if (!netEl) return;
+    var v = netEl.querySelector(".mfg-nettotal-value");
+    if (!v) {
+      v = document.createElement("span");
+      v.className = "mfg-nettotal-value";
+      netEl.insertBefore(v, netEl.firstChild);
+    }
+    v.innerHTML = html;
+  }
+
   function updateOrderTotals(card) {
     if (!card) return;
     var totalsBox = card.querySelector(".mfg-order-summary__totals");
     if (!totalsBox) return;
     var net = 0;
     card.querySelectorAll(".mfg-grid-body .mfg-nettotal-cell").forEach(function (td) {
-      net += parseMoney(td.textContent);
+      var v = td.querySelector(".mfg-nettotal-value");
+      net += parseMoney(v ? v.textContent : td.textContent);
     });
     var tax = net * TAX_RATE;
     var vals = totalsBox.querySelectorAll(".mfg-total__value");
@@ -99,19 +115,24 @@
     var promo = (r && typeof r === "object") ? r.promo : r;
     if (!promo) return "";
     var product = (r && typeof r === "object" && r.product) ? r.product : "";
+    var uom = (r && typeof r === "object" && r.uom) ? r.uom : "";
+    var forWhat = product ? " for " + product + (uom ? " (" + uom + ")" : "") : "";
     var promos = promoDetailsFor(r);
-    return '<span class="mfg-promo-badge" tabindex="0" role="button" aria-label="' +
-      esc(promo + " promotion" + (promo !== 1 ? "s" : "") + ", hover for details") + '"' +
+    return '<span class="mfg-promo-badge" tabindex="0" role="button" aria-haspopup="dialog" aria-label="' +
+      esc(promo + " promotion" + (promo !== 1 ? "s" : "") + forWhat + ", view details") + '"' +
       ' data-product="' + esc(product) + '"' +
       ' data-promos="' + encodeURIComponent(JSON.stringify(promos)) + '">' +
       icon(UTIL, "promotions", "mfg-promo-glyph") + promo + "</span>";
   }
   // --- promotion hover popover ----------------------------------------------
-  var promoPop = null, promoPopBadge = null, promoPopHideTimer = null;
+  var promoPop = null, promoPopBadge = null, promoPopHideTimer = null, promoPopPinned = false;
 
   function promoItemHTML(p) {
-    return '<div class="mfg-promo-pop__item">' +
-      '<div class="mfg-promo-pop__title">' + esc(p.name) + "</div>" +
+    // role="listitem" + a real heading per promotion so AT/automation can
+    // enumerate and navigate the offers (they render as plain divs — the roles
+    // are invisible and add no styling). Title is the promotion's heading.
+    return '<div class="mfg-promo-pop__item" role="listitem">' +
+      '<div class="mfg-promo-pop__title" role="heading" aria-level="3">' + esc(p.name) + "</div>" +
       '<div class="mfg-promo-pop__desc">' + esc(p.desc) + "</div>" +
       '<div class="mfg-promo-pop__exp">Expiration: <strong>' + esc(p.exp) + "</strong></div>" +
       '<a class="mfg-promo-pop__terms" href="#" tabindex="-1">' + icon(UTIL, "chevronright") + "Terms &amp; Conditions</a>" +
@@ -123,6 +144,9 @@
     promoPop.className = "mfg-promo-pop";
     promoPop.setAttribute("role", "dialog");
     promoPop.setAttribute("aria-label", "Promotions");
+    // Focusable container so focus can land on the dialog itself (AT then
+    // announces the dialog name + reads its contents, rather than "Close button").
+    promoPop.setAttribute("tabindex", "-1");
     promoPop.style.display = "none";
     document.body.appendChild(promoPop);
     promoPop.addEventListener("mouseenter", function () { clearTimeout(promoPopHideTimer); });
@@ -152,27 +176,47 @@
       nub.style.top = ny + "px";
     }
   }
-  function showPromoPop(badge) {
+  function showPromoPop(badge, pin) {
     var promos = [];
     try { promos = JSON.parse(decodeURIComponent(badge.getAttribute("data-promos") || "[]")); } catch (e) { promos = []; }
     if (!promos.length) return;
     clearTimeout(promoPopHideTimer);
+    if (pin) promoPopPinned = true;
     var pop = ensurePromoPop();
     if (promoPopBadge === badge && pop.style.display === "block") return;
     promoPopBadge = badge;
+    pop.setAttribute("aria-label", "Promotions for " + (badge.getAttribute("data-product") || "product"));
     pop.innerHTML =
       '<div class="mfg-promo-pop__nubbin"></div>' +
       '<button type="button" class="mfg-promo-pop__close" aria-label="Close">' + icon(UTIL, "close") + "</button>" +
-      '<div class="mfg-promo-pop__header">' + esc(badge.getAttribute("data-product") || "") + "</div>" +
-      '<div class="mfg-promo-pop__body">' + promos.map(promoItemHTML).join("") + "</div>";
+      '<div class="mfg-promo-pop__header" role="heading" aria-level="2">' + esc(badge.getAttribute("data-product") || "") + "</div>" +
+      '<div class="mfg-promo-pop__body" role="list" aria-label="' +
+        esc(promos.length + " promotion" + (promos.length !== 1 ? "s" : "")) + '">' +
+        promos.map(promoItemHTML).join("") + "</div>";
     pop.style.display = "block";
+    // Show only two promotions at a time; cap the scroll body to the height of
+    // the first two items so the rest reveal on scroll (robust to variable
+    // description lengths). ≤2 promos fall back to the CSS max-height.
+    var popBody = pop.querySelector(".mfg-promo-pop__body");
+    var items = popBody ? popBody.querySelectorAll(".mfg-promo-pop__item") : [];
+    if (popBody && items.length > 2) {
+      popBody.style.maxHeight = (items[0].offsetHeight + items[1].offsetHeight) + "px";
+      popBody.style.overflowY = "auto";
+    } else if (popBody) {
+      popBody.style.maxHeight = "";
+      popBody.style.overflowY = "";
+    }
     positionPromoPop(pop, badge);
   }
   function hidePromoPopNow() {
-    if (promoPop) promoPop.style.display = "none";
+    if (promoPop) { promoPop.style.display = "none"; promoPop.removeAttribute("aria-modal"); }
     promoPopBadge = null;
+    promoPopPinned = false;
   }
   function hidePromoPop() {
+    // A click-pinned popover ignores hover/focus-out auto-hide; it closes only
+    // via the close button, Escape, another badge, or an outside click.
+    if (promoPopPinned) return;
     clearTimeout(promoPopHideTimer);
     promoPopHideTimer = setTimeout(hidePromoPopNow, 140);
   }
@@ -195,8 +239,270 @@
     var badge = e.target.closest && e.target.closest(".mfg-promo-badge");
     if (badge) hidePromoPop();
   });
+  document.addEventListener("click", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-promo-badge");
+    if (badge) {
+      e.preventDefault();
+      // Toggle: a second click on the pinned badge closes it.
+      if (promoPopBadge === badge && promoPop && promoPop.style.display === "block" && promoPopPinned) {
+        hidePromoPopNow();
+      } else {
+        showPromoPop(badge, true);
+        // Pull focus into the dialog so keyboard/AT/automation land inside it
+        // (the grid's a11y tree is large; a body-appended popover is otherwise
+        // easy to miss). aria-modal marks it as the active surface.
+        if (promoPop) {
+          promoPop.setAttribute("aria-modal", "true");
+          // Focus the dialog container itself (not the Close button) so AT
+          // announces "Promotions for … , dialog" and reads the offer list.
+          promoPop.focus();
+        }
+      }
+      return;
+    }
+    // Click outside a pinned popover dismisses it.
+    if (promoPopPinned && promoPop && promoPop.style.display === "block" &&
+        !(e.target.closest && e.target.closest(".mfg-promo-pop"))) {
+      hidePromoPopNow();
+    }
+  });
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && promoPop && promoPop.style.display === "block") hidePromoPopNow();
+  });
+
+  // --- free-items badge hover/click popover ---------------------------------
+  // The green "+N free items" badge (mfg-freecount-badge_on) on a Product Name
+  // cell opens a popover listing that row's UNLOCKED free items. Same content /
+  // computation as updateProductBadges (freeItemsFor filtered by live qty), so
+  // the list always matches the badge's count. Mirrors the promo popover's
+  // hover-open / click-to-pin behaviour.
+  var freePop = null, freePopBadge = null, freePopHideTimer = null, freePopPinned = false;
+
+  // Read the badge's row and return its product name + unlocked free items.
+  function freePopDataFor(badge) {
+    var tr = badge.closest && badge.closest("tr");
+    if (!tr) return { product: "", items: [] };
+    var cell = tr.querySelector(".mfg-qty-cell");
+    var link = tr.querySelector(".mfg-product-link");
+    var qty = parseInt((tr.querySelector(".mfg-qty-value") || {}).textContent, 10) || 0;
+    var tiers = [], uom = "";
+    if (cell) {
+      uom = cell.getAttribute("data-uom") || "";
+      try { tiers = JSON.parse(decodeURIComponent(cell.getAttribute("data-tiers") || "[]")); } catch (e) { tiers = []; }
+    }
+    var net = cell ? (parseFloat(cell.getAttribute("data-net")) || 0) : 0;
+    var items = freeItemsFor(tiers, uom)
+      .filter(function (it) { return qty >= it.unlockAt; })
+      .map(function (it) { return { label: it.label, uom: it.uom, note: it.note, units: it.units, value: it.freeUnits * net }; });
+    return { product: link ? link.textContent : "This product", items: items };
+  }
+
+  function freePopItemHTML(it) {
+    return (
+      '<li class="mfg-free-pop__item" role="listitem">' +
+        '<div class="mfg-free-pop__item-body">' +
+          '<div class="mfg-free-pop__item-name">' + esc(it.label) + "</div>" +
+          '<div class="mfg-free-pop__item-meta">' + fmtNum(it.units) + " &times; " + esc(it.uom || "Each") +
+            (it.value ? ' &middot; <span class="mfg-free-pop__item-value">' + fmtMoney(it.value) + " value</span>" : "") +
+          "</div>" +
+        "</div>" +
+      "</li>"
+    );
+  }
+
+  function ensureFreePop() {
+    if (freePop) return freePop;
+    freePop = document.createElement("div");
+    freePop.className = "mfg-free-pop mfg-promo-pop";
+    freePop.setAttribute("role", "dialog");
+    freePop.setAttribute("aria-label", "Free items");
+    freePop.setAttribute("tabindex", "-1");
+    freePop.style.display = "none";
+    document.body.appendChild(freePop);
+    freePop.addEventListener("mouseenter", function () { clearTimeout(freePopHideTimer); });
+    freePop.addEventListener("mouseleave", hideFreePop);
+    freePop.addEventListener("click", function (e) {
+      if (e.target.closest(".mfg-promo-pop__close")) hideFreePopNow();
+    });
+    return freePop;
+  }
+  function positionFreePop(pop, badge) {
+    var r = badge.getBoundingClientRect();
+    var pw = pop.offsetWidth, ph = pop.offsetHeight, gap = 10, edge = 8;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var left = r.right + gap, flipped = false;
+    if (left + pw > vw - edge) { left = r.left - gap - pw; flipped = true; }
+    if (left < edge) left = edge;
+    var top = r.top - edge;
+    if (top + ph > vh - edge) top = vh - edge - ph;
+    if (top < edge) top = edge;
+    pop.style.left = left + "px";
+    pop.style.top = top + "px";
+    var nub = pop.querySelector(".mfg-promo-pop__nubbin");
+    if (nub) {
+      nub.classList.toggle("mfg-promo-pop__nubbin_right", flipped);
+      var ny = Math.max(6, Math.min(ph - 18, (r.top + r.height / 2) - top - 6));
+      nub.style.top = ny + "px";
+    }
+  }
+  function showFreePop(badge, pin) {
+    var data = freePopDataFor(badge);
+    if (!data.items.length) return;
+    clearTimeout(freePopHideTimer);
+    if (pin) freePopPinned = true;
+    var pop = ensureFreePop();
+    if (freePopBadge === badge && pop.style.display === "block") return;
+    freePopBadge = badge;
+    pop.setAttribute("aria-label", "Free items for " + data.product);
+    pop.innerHTML =
+      '<div class="mfg-promo-pop__nubbin"></div>' +
+      '<button type="button" class="mfg-promo-pop__close" aria-label="Close">' + icon(UTIL, "close") + "</button>" +
+      '<div class="mfg-promo-pop__header" role="heading" aria-level="2">' +
+        esc(data.product) +
+        '<span class="mfg-free-pop__count">' + data.items.length + " free item" + (data.items.length !== 1 ? "s" : "") + " unlocked</span>" +
+      "</div>" +
+      '<ul class="mfg-promo-pop__body mfg-free-pop__body" role="list">' +
+        data.items.map(freePopItemHTML).join("") +
+      "</ul>";
+    pop.style.display = "block";
+    positionFreePop(pop, badge);
+  }
+  function hideFreePopNow() {
+    if (freePop) { freePop.style.display = "none"; freePop.removeAttribute("aria-modal"); }
+    freePopBadge = null;
+    freePopPinned = false;
+  }
+  function hideFreePop() {
+    if (freePopPinned) return;
+    clearTimeout(freePopHideTimer);
+    freePopHideTimer = setTimeout(hideFreePopNow, 140);
+  }
+  document.addEventListener("mouseover", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-freecount-badge_on");
+    if (badge) showFreePop(badge);
+  });
+  document.addEventListener("mouseout", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-freecount-badge_on");
+    if (!badge) return;
+    var to = e.relatedTarget;
+    if (to && (to.closest(".mfg-freecount-badge_on") === badge || to.closest(".mfg-free-pop"))) return;
+    hideFreePop();
+  });
+  document.addEventListener("focusin", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-freecount-badge_on");
+    if (badge) showFreePop(badge);
+  });
+  document.addEventListener("focusout", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-freecount-badge_on");
+    if (badge) hideFreePop();
+  });
+  document.addEventListener("click", function (e) {
+    var badge = e.target.closest && e.target.closest(".mfg-freecount-badge_on");
+    if (badge) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (freePopBadge === badge && freePop && freePop.style.display === "block" && freePopPinned) {
+        hideFreePopNow();
+      } else {
+        showFreePop(badge, true);
+        if (freePop) { freePop.setAttribute("aria-modal", "true"); freePop.focus(); }
+      }
+      return;
+    }
+    if (freePopPinned && freePop && freePop.style.display === "block" &&
+        !(e.target.closest && e.target.closest(".mfg-free-pop"))) {
+      hideFreePopNow();
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && freePop && freePop.style.display === "block") { hideFreePopNow(); return; }
+    // Enter / Space on a focused badge pins the popover (button semantics).
+    if (e.key === "Enter" || e.key === " ") {
+      var badge = e.target.closest && e.target.closest(".mfg-freecount-badge_on");
+      if (badge) {
+        e.preventDefault();
+        if (freePopBadge === badge && freePop && freePop.style.display === "block" && freePopPinned) hideFreePopNow();
+        else { showFreePop(badge, true); if (freePop) { freePop.setAttribute("aria-modal", "true"); freePop.focus(); } }
+      }
+    }
+  });
+
+  // --- Row-actions menu ------------------------------------------------------
+  // The ▾ button on each line opens a small menu with line-level actions. The
+  // key job it enables: "Remove line" (sets Order Qty to 0) — the removal path
+  // an edge-case rep needs when a SKU was added by mistake.
+  var rowMenu = null, rowMenuBtn = null;
+  function ensureRowMenu() {
+    if (rowMenu) return rowMenu;
+    rowMenu = document.createElement("div");
+    rowMenu.className = "mfg-rowmenu";
+    rowMenu.setAttribute("role", "menu");
+    rowMenu.style.display = "none";
+    document.body.appendChild(rowMenu);
+    return rowMenu;
+  }
+  function hideRowMenu() {
+    if (rowMenu) rowMenu.style.display = "none";
+    if (rowMenuBtn) { rowMenuBtn.setAttribute("aria-expanded", "false"); }
+    rowMenuBtn = null;
+  }
+  function showRowMenu(btn) {
+    var tr = btn.closest("tr");
+    var qtyCell = tr && tr.querySelector(".mfg-qty-cell");
+    if (!qtyCell) return;
+    var product = (tr.querySelector(".mfg-product-link") || {}).textContent || "this line";
+    var suggestedCell = qtyCell.previousElementSibling;
+    var suggested = suggestedCell ? (parseInt(suggestedCell.textContent, 10) || 0) : 0;
+    var menu = ensureRowMenu();
+    rowMenuBtn = btn;
+    btn.setAttribute("aria-expanded", "true");
+    menu.innerHTML =
+      '<button type="button" role="menuitem" class="mfg-rowmenu__item" data-act="suggested">' +
+        icon(UTIL, "add", "mfg-rowmenu__icon") + "Set to suggested quantity (" + suggested + ")</button>" +
+      '<button type="button" role="menuitem" class="mfg-rowmenu__item mfg-rowmenu__item_danger" data-act="remove">' +
+        icon(UTIL, "delete", "mfg-rowmenu__icon") + "Remove line (set quantity to 0)</button>";
+    menu._qtyCell = qtyCell;
+    menu._suggested = suggested;
+    menu._product = product;
+    menu.style.display = "block";
+    var r = btn.getBoundingClientRect();
+    var mw = menu.offsetWidth;
+    var left = Math.max(8, r.right - mw);
+    var top = r.bottom + 4;
+    if (top + menu.offsetHeight > window.innerHeight - 8) top = r.top - menu.offsetHeight - 4;
+    menu.style.left = left + "px";
+    menu.style.top = top + "px";
+    var first = menu.querySelector(".mfg-rowmenu__item");
+    if (first) first.focus();
+  }
+  document.addEventListener("click", function (e) {
+    var item = e.target.closest && e.target.closest(".mfg-rowmenu__item");
+    if (item && rowMenu) {
+      var cell = rowMenu._qtyCell;
+      if (item.getAttribute("data-act") === "remove") setLineQty(cell, 0);
+      else if (item.getAttribute("data-act") === "suggested") setLineQty(cell, rowMenu._suggested);
+      var focusCell = cell;
+      hideRowMenu();
+      if (focusCell) focusCell.focus();
+      return;
+    }
+    var btn = e.target.closest && e.target.closest(".mfg-row-action");
+    if (btn) {
+      e.preventDefault();
+      if (rowMenuBtn === btn && rowMenu && rowMenu.style.display === "block") hideRowMenu();
+      else showRowMenu(btn);
+      return;
+    }
+    if (rowMenu && rowMenu.style.display === "block" && !(e.target.closest && e.target.closest(".mfg-rowmenu"))) {
+      hideRowMenu();
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && rowMenu && rowMenu.style.display === "block") {
+      var b = rowMenuBtn;
+      hideRowMenu();
+      if (b) b.focus();
+    }
   });
 
   function valueCell(v) { return '<span class="mfg-value-link">' + v + "</span>"; }
@@ -205,7 +511,6 @@
     return (
       '<td class="mfg-col-product"><a href="#" class="mfg-product-link">' + r.product + "</a></td>" +
       "<td>" + r.category + "</td>" +
-      "<td>" + r.brand + "</td>" +
       "<td>" + promoCell(r) + "</td>" +
       "<td>" + r.uom + "</td>" +
       // Money columns render as plain default-black text (they are NOT links);
@@ -213,7 +518,8 @@
       '<td class="mfg-num-col">' + r.list + "</td>" +
       '<td class="mfg-num-col">' + r.suggested + "</td>" +
       // ---- editable Order Qty cell ----
-      '<td class="mfg-num-col mfg-qty-cell" tabindex="0" role="button" aria-label="Edit order quantity"' +
+      '<td class="mfg-num-col mfg-qty-cell" tabindex="0" role="button" aria-label="' +
+        esc("Edit order quantity for " + r.product + " (" + r.uom + "), current quantity " + r.qty) + '"' +
         ' data-uom="' + esc(r.uom) + '"' +
         ' data-category="' + esc(r.category || "") + '"' +
         ' data-net="' + parseMoney(r.netUnit) + '"' +
@@ -225,8 +531,9 @@
       '<td class="mfg-num-col">' + r.discount + "</td>" +
       '<td class="mfg-num-col">' + valueCell(r.netUnit) + "</td>" +
       '<td class="mfg-num-col">' + r.spPrice + "</td>" +
-      '<td class="mfg-num-col mfg-nettotal-cell">' + r.netTotal + "</td>" +
-      '<td class="mfg-col-rowaction"><button class="mfg-row-action" title="Row actions" aria-label="Row actions">' + icon(UTIL, "down") + "</button></td>"
+      '<td class="mfg-num-col mfg-nettotal-cell"><span class="mfg-nettotal-value">' + r.netTotal + "</span></td>" +
+      '<td class="mfg-col-rowaction"><button class="mfg-row-action" title="Row actions" aria-haspopup="menu" aria-label="' +
+        esc("Row actions for " + r.product + " (" + r.uom + ")") + '">' + icon(UTIL, "down") + "</button></td>"
     );
   }
 
@@ -356,6 +663,25 @@
   // --- Order Qty editing + popover ------------------------------------------
   var edit = null; // { cell, input, popover, netEl }
   var POPOVER_STYLE = "bar"; // "bar" = promo progress + rounding | "rounding" = rounding only
+
+  // Keyboard-focus-to-edit: when a qty cell is reached by Tab, open its editor so
+  // keyboard/AT users get a real <input> without a separate click. The flag is
+  // set on a Tab keydown and consumed by the very next focusin — so arrow-key
+  // column navigation and the post-commit programmatic refocus (neither preceded
+  // by Tab) do NOT auto-open the editor. Mouse users are unaffected.
+  var qtyTabViaKeyboard = false;
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Tab") qtyTabViaKeyboard = true;
+  }, true);
+  document.addEventListener("focusin", function (e) {
+    var wasTab = qtyTabViaKeyboard;
+    qtyTabViaKeyboard = false; // consume on any focus move, so it never goes stale
+    if (!wasTab) return;
+    var qtyCell = e.target.closest && e.target.closest(".mfg-qty-cell");
+    if (!qtyCell || e.target !== qtyCell) return; // focus landed on the cell itself
+    if (qtyCell.classList.contains("mfg-qty-editing")) return;
+    startEdit(qtyCell);
+  });
 
   function nextTier(qty, tiers) {
     for (var i = 0; i < tiers.length; i++) { if (qty < tiers[i].q) return tiers[i]; }
@@ -678,10 +1004,18 @@
       var net = parseFloat(cell.getAttribute("data-net")) || 0;
       var tiers = [];
       try { tiers = JSON.parse(decodeURIComponent(cell.getAttribute("data-tiers") || "[]")); } catch (e) { tiers = []; }
-      var items = freeItemsFor(tiers, cell.getAttribute("data-uom")).map(function (it) {
+      var prodUom = cell.getAttribute("data-uom") || "";
+      var items = freeItemsFor(tiers, prodUom).map(function (it) {
         return { label: it.label, uom: it.uom, note: it.note, units: it.units, unlockAt: it.unlockAt, value: it.freeUnits * net, unlocked: qty >= it.unlockAt };
       });
-      if (items.length) products.push({ product: link.textContent, qty: qty, items: items });
+      // Key by product + UoM so each UoM line of a product forms its own clubbed
+      // group (a product sold as Pack of 6 vs Single Bottle unlocks different
+      // rewards, shown as separate rowgroups).
+      if (items.length) products.push({
+        product: link.textContent, productUom: prodUom,
+        prodKey: link.textContent + "␟" + prodUom,
+        qty: qty, items: items
+      });
     });
     return products;
   }
@@ -694,6 +1028,8 @@
       var link = tr.querySelector(".mfg-product-link");
       var cell = tr.querySelector(".mfg-qty-cell");
       if (!link) return;
+      // The unlock badge decorates the Product Name cell (the frozen first column
+      // for variants B and E), pinned to the right of the product name.
       var td = link.parentElement;
       td.classList.add("mfg-product-cell");
       var existing = td.querySelector(".mfg-freecount-badge");
@@ -720,7 +1056,69 @@
       }
       badge.className = "mfg-freecount-badge mfg-freecount-badge_on";
       badge.textContent = "+" + unlocked + " free item" + (unlocked !== 1 ? "s" : "");
-      badge.title = unlocked + " free item" + (unlocked !== 1 ? "s" : "") + " unlocked";
+      // Interactive: hover / click / keyboard opens the free-items popover.
+      badge.setAttribute("role", "button");
+      badge.setAttribute("tabindex", "0");
+      badge.setAttribute("aria-haspopup", "dialog");
+      badge.title = "View " + unlocked + " unlocked free item" + (unlocked !== 1 ? "s" : "");
+    });
+  }
+
+  // Variant F only: inject a dedicated "Free Items" column header immediately to
+  // the right of "Order Qty". The per-row chips are (re)rendered by
+  // updateFreeColumn on every qty edit; both reuse the shared free-items popover.
+  function setupFreeColumn(card) {
+    var thead = card.querySelector(".mfg-grid thead tr");
+    if (!thead) return;
+    // Find the "Order Qty" header cell and drop the Free Items column right after it.
+    var qtyTh = null;
+    thead.querySelectorAll("th").forEach(function (th) {
+      var lbl = th.querySelector("[title]");
+      if (lbl && lbl.getAttribute("title") === "Order Qty") qtyTh = th;
+    });
+    if (!qtyTh) return;
+    if (!thead.querySelector(".mfg-col-freeitems")) {
+      var th = document.createElement("th");
+      th.className = "mfg-col-freeitems";
+      th.setAttribute("scope", "col");
+      th.innerHTML = '<div class="slds-truncate" title="Free Items">Free Items</div>';
+      qtyTh.parentNode.insertBefore(th, qtyTh.nextSibling);
+    }
+    card._freeColReady = true;
+    if (card._refreshFreeSummary) card._refreshFreeSummary();
+  }
+
+  // Variant F only: render each row's unlocked-free-items chip in the dedicated
+  // Free Items column (inserted just after the Order Qty cell). Rows with none
+  // show an em-dash placeholder so the column stays aligned.
+  function updateFreeColumn(body) {
+    var card = body.closest && body.closest(".mfg-assortment-card");
+    if (!card || !card._freeColReady) return;
+    body.querySelectorAll("tr").forEach(function (tr) {
+      var cell = tr.querySelector(".mfg-qty-cell");
+      if (!cell) return;
+      // Find (or create) the free-items <td> immediately after the qty cell.
+      var td = tr.querySelector(".mfg-col-freeitems");
+      if (!td) {
+        td = document.createElement("td");
+        td.className = "mfg-col-freeitems";
+        cell.parentNode.insertBefore(td, cell.nextSibling);
+      }
+      var qty = 0, tiers = [], uom = "";
+      var qtyEl = tr.querySelector(".mfg-qty-value");
+      if (qtyEl) qty = parseInt(qtyEl.textContent, 10) || 0;
+      uom = cell.getAttribute("data-uom") || "";
+      try { tiers = JSON.parse(decodeURIComponent(cell.getAttribute("data-tiers") || "[]")); } catch (e) { tiers = []; }
+      var unlocked = freeItemsFor(tiers, uom).filter(function (it) { return qty >= it.unlockAt; }).length;
+      if (!unlocked) {
+        td.innerHTML = '<span class="mfg-freeitems-empty" aria-hidden="true">&mdash;</span>';
+        return;
+      }
+      td.innerHTML =
+        '<span class="mfg-freecount-badge mfg-freecount-badge_on" role="button" tabindex="0" ' +
+          'aria-haspopup="dialog" title="View ' + unlocked + ' unlocked free item' + (unlocked !== 1 ? "s" : "") + '">' +
+          "+" + unlocked + " free item" + (unlocked !== 1 ? "s" : "") +
+        "</span>";
     });
   }
 
@@ -795,6 +1193,23 @@
       out.items = p.items.filter(function (it) { return it.unlocked; });
       return out;
     }).filter(function (p) { return p.items.length; });
+  }
+
+  // A single product can appear as several grid rows (different UoM/pack lines) and
+  // each row unlocks its own free items. Coalesce groups that share the same `key`
+  // (e.g. product name) into one so the lead cell spans ALL its free items via
+  // rowspan, instead of repeating the product name on every row.
+  function mergeGroups(groups, key) {
+    var order = [], map = {};
+    groups.forEach(function (g) {
+      var k = g[key];
+      if (!map[k]) {
+        var out = {}; for (var f in g) { if (g.hasOwnProperty(f)) out[f] = f === "items" ? [] : g[f]; }
+        map[k] = out; order.push(k);
+      }
+      map[k].items = map[k].items.concat(g.items);
+    });
+    return order.map(function (k) { return map[k]; });
   }
 
   // Render one grouped free-items table. `lead` configures the first (rowgroup)
@@ -878,17 +1293,19 @@
   // Only worth showing a count when a group has more than one item — a lone "1 item"
   // just wastes a line, so it's suppressed.
   function itemCountSub(p) { return p.items.length > 1 ? p.items.length + " items" : ""; }
+  // Product rewards are clubbed per product + UoM, so the lead cell's sub-line
+  // shows just the UoM (e.g. "Pack of 6") — the free-item count is dropped.
+  function productUomSub(p) {
+    return p.productUom || "";
+  }
   var LEAD_PROMO = { header: "Promotion", main: function (p) { return p.promo || "Promotion"; }, sub: function () { return ""; } };
-  var LEAD_PRODUCT = { header: "Product", main: function (p) { return p.product; }, sub: itemCountSub };
+  var LEAD_PRODUCT = { header: "Product", main: function (p) { return p.product; }, sub: productUomSub };
   // Custom free items club by category (Snacks, Beverages, …) instead of product.
   var LEAD_CATEGORY = { header: "Category", main: function (p) { return p.category; }, sub: itemCountSub };
 
   // One collapsible accordion section wrapping a free-items table (or empty state).
   function freeAccordion(title, subtitle, groups, emptyMsg, lead) {
     var count = groups.reduce(function (n, g) { return n + g.items.length; }, 0);
-    var worth = groups.reduce(function (s, g) {
-      return s + g.items.reduce(function (t, it) { return t + (it.value || 0); }, 0);
-    }, 0);
     var open = false; // all sections start collapsed; the buyer expands what they want
     var inner = count
       ? freeTableHTML(groups, lead)
@@ -899,9 +1316,8 @@
           icon(UTIL, "chevrondown", "mfg-free-acc__chevron") +
           '<span class="mfg-free-acc__titles">' +
             '<span class="mfg-free-acc__title">' + esc(title) + "</span>" +
-            '<span class="mfg-free-acc__sub">' + esc(subtitle) + "</span>" +
+            (subtitle ? '<span class="mfg-free-acc__sub">' + esc(subtitle) + "</span>" : "") +
           "</span>" +
-          '<span class="mfg-free-acc__count">' + count + " item" + (count !== 1 ? "s" : "") + (count ? " · " + fmtMoney(worth) : "") + "</span>" +
         "</button>" +
         '<div class="mfg-free-acc__body">' + inner + "</div>" +
       "</div>"
@@ -974,17 +1390,18 @@
 
   function freeDrawerHTML(stdBody, freeBody, flat) {
     var promo = earnedGroups(collectPromoFree(stdBody));
-    var product = earnedGroups(collectFreeItems(stdBody));
+    // Club all free items a product unlocks under one (row-spanned) product cell.
+    var product = mergeGroups(earnedGroups(collectFreeItems(stdBody)), "prodKey");
     var direct = earnedGroups(collectDirectFree(freeBody));
     if (flat) {
       return '<div class="mfg-free-drawer__scroll mfg-free-drawer__flat">' + freeFlatTableHTML(promo, product, direct) + "</div>";
     }
     var sections =
-      freeAccordion("Promotion offers", "Unlocked by adding products that carry a promotion",
+      freeAccordion("Promotion offers", "",
         promo, "No promotion offers yet — add a product that has a promotion.", LEAD_PROMO) +
-      freeAccordion("Product rewards", "Unlocked by reaching order-quantity milestones",
+      freeAccordion("Product rewards", "",
         product, "No product rewards yet — increase order quantities to unlock rewards.", LEAD_PRODUCT) +
-      freeAccordion("Custom Free items", "Free items you ordered from the Free Items template",
+      freeAccordion("Manually added free items", "",
         direct, 'No custom free items yet — choose "Free Items" in Order Item Template, then order the items you want.', null);
     return '<div class="mfg-free-drawer__scroll mfg-free-drawer__acc">' + sections + "</div>";
   }
@@ -1091,6 +1508,33 @@
       var direct = summarize(collectDirectFree(src.free));
       var unlocked = promo.n + product.n + direct.n;
       var grand = promo.val + product.val + direct.val;
+      // Publish live totals so the free-items modal header can total the value
+      // AND break it down per source (promotion offers / product rewards / custom).
+      card._freeTotals = {
+        count: unlocked, value: grand,
+        parts: [
+          { label: "Promotion offers", n: promo.n, val: promo.val },
+          { label: "Product rewards", n: product.n, val: product.val },
+          { label: "Manually added free items", n: direct.n, val: direct.val }
+        ]
+      };
+      if (card._updateFreeModalTotal) card._updateFreeModalTotal();
+      // Variant E: no free-items figure in the Order Summary (it shows only the
+      // three priced totals). Free items surface via the blue scoped notification
+      // above the grid, which opens the free-items modal. No top strip.
+      var variantId = card.getAttribute("data-variant");
+      if (variantId === "e" || variantId === "f") {
+        if (strip) strip.style.display = "none";
+        // Blue scoped notification above the grid: visible only while at least
+        // one free item is unlocked (built in setupFreeModal).
+        if (card._unlockNotif) card._unlockNotif.hidden = unlocked === 0;
+        if (unlocked === 0 && !drawer.hidden) setOpen(false); // close modal if nothing left
+        // Both E and F keep the "+N free items" badge on the product-name cell.
+        // Variant F additionally opens a per-line detail side panel on click.
+        updateProductBadges(body);
+        reserveSpace();
+        return;
+      }
       // Hide the whole indicator (notification + "Learn more") until at least one
       // free item is actually unlocked. Inline display beats the .mfg-free-summary
       // display:flex rule, which an [hidden] attribute would not.
@@ -1115,9 +1559,13 @@
             '<span class="mfg-free-notif__breakdown">' +
               aspect("Promotion offers", promo) +
               aspect("Product rewards", product) +
-              aspect("Custom free items", direct) +
+              aspect("Manually added free items", direct) +
             "</span>" +
-            '<button type="button" class="mfg-free-summary__cta">' + (drawer.hidden ? "Learn more" : "Hide details") + "</button>" +
+            '<button type="button" class="mfg-free-summary__cta">' +
+              (card.getAttribute("data-variant") === "e"
+                ? "View free items"
+                : (drawer.hidden ? "Learn more" : "Hide details")) +
+            "</button>" +
           "</div>" +
         "</div>";
       updateProductBadges(body);
@@ -1129,6 +1577,16 @@
 
     // Single source of truth: header chevron and the CTA both drive this.
     function setOpen(open) {
+      // Variant E: free items are shown in a modal (opened from the scoped
+      // notification's "View free items" link), not an inline drawer. Fill the
+      // relocated drawer and toggle the modal; skip all the bottom-tray plumbing.
+      var sv = card.getAttribute("data-variant");
+      if (sv === "e" || sv === "f") {
+        if (open) fillDrawer();
+        drawer.hidden = !open;
+        if (card._toggleFreeModal) card._toggleFreeModal(open);
+        return;
+      }
       if (open) fillDrawer();
       drawer.hidden = !open;
       summary.classList.toggle("mfg-summary--open", open);
@@ -1137,7 +1595,9 @@
       if (cta) cta.textContent = open ? "Hide details" : "Learn more";
       // Single view: while expanded, lock page scroll so only the summary's own
       // drawer scrolls; collapsing restores normal page scroll.
-      if (document.body.classList.contains("mfg-single")) {
+      // Variant E's summary is a docked side rail with its own scroll, so it must
+      // NOT lock page scroll the way the bottom-drawer variants (B/D) do.
+      if (document.body.classList.contains("mfg-single") && card.getAttribute("data-variant") !== "e" && card.getAttribute("data-variant") !== "f") {
         document.documentElement.classList.toggle("mfg-summary-locked", open);
       }
       if (!open) reserveSpace(); // re-measure the collapsed bar
@@ -1147,7 +1607,9 @@
       if (!e.target.closest(".mfg-free-summary__cta")) return;
       setOpen(drawer.hidden);
     });
-    if (toggle) {
+    // Variant E's summary chevron keeps the default totals-collapse behaviour
+    // (wired in initCard); only the notification link opens the free-items modal.
+    if (toggle && card.getAttribute("data-variant") !== "e" && card.getAttribute("data-variant") !== "f") {
       toggle.addEventListener("click", function () { setOpen(drawer.hidden); });
     }
 
@@ -1230,9 +1692,140 @@
     FREE_SUMMARY_REFRESH.push(function () { refresh(); if (!drawer.hidden) fillDrawer(); });
     card._refreshFreeSummary = refresh;
     card._reserveSpace = reserveSpace;
+    card._setSummaryOpen = setOpen; // variant E's modal open/close reuses this
     refresh();
     reserveSpace();
     window.requestAnimationFrame(reserveSpace);
+  }
+
+  // --- Variant E (inspection feedback): scoped notification → free-items modal --
+  // Same data + counting as the Variant B summary (setupFreeSummary already ran),
+  // but reshaped per the UX inspection: the notification strip becomes a
+  // PERSISTENT top banner whose "View free items" link opens a MODAL listing every
+  // free item. No right-side panel, no inline drawer, no in-grid unlock badges.
+  function setupFreeModal(card) {
+    var layout = card.querySelector(".mfg-grid-layout");
+    var summary = card.querySelector(".mfg-order-summary");
+    var strip = summary && summary.querySelector(".mfg-free-summary");
+    var drawer = summary && summary.querySelector(".mfg-free-drawer");
+    if (!layout || !summary || !drawer) return;
+
+    // 0) Blue scoped notification, docked JUST ABOVE the grid. It appears only
+    //    once at least one free item is unlocked (e.g. an order-qty bump crosses
+    //    a reward threshold) and its "View free items" link opens the same modal
+    //    the Order-Summary CTA does. refresh() (variant-E branch) toggles [hidden].
+    if (!card._unlockNotif) {
+      var notif = document.createElement("div");
+      notif.className = "mfg-unlock-notif slds-scoped-notification slds-media slds-media_center";
+      notif.setAttribute("role", "status");
+      notif.hidden = true;
+      notif.innerHTML =
+        '<div class="slds-media__figure mfg-unlock-notif__figure">' +
+          icon(UTIL, "info", "mfg-unlock-notif__icon") +
+        "</div>" +
+        '<div class="slds-media__body mfg-unlock-notif__body">' +
+          '<span class="mfg-unlock-notif__title">You have unlocked some free items</span>' +
+        "</div>" +
+        '<button type="button" class="mfg-unlock-notif__cta">View free items</button>';
+      layout.parentNode.insertBefore(notif, layout);
+      notif.querySelector(".mfg-unlock-notif__cta").addEventListener("click", function () {
+        if (card._setSummaryOpen) card._setSummaryOpen(true);
+      });
+      card._unlockNotif = notif;
+    }
+
+    // 1) No top strip — the free-items figure lives inside the Order Summary.
+    if (strip) strip.style.display = "none";
+
+    // Order Summary is always expanded (and not collapsible) for this variant:
+    // keep the chevron down and the totals row permanently visible.
+    var toggle = summary.querySelector(".mfg-order-summary__toggle");
+    if (toggle) toggle.setAttribute("aria-expanded", "true");
+    var totals = summary.querySelector(".mfg-order-summary__totals");
+    if (totals) totals.classList.remove("mfg-hidden");
+
+    // The free-items entry point for this variant is the blue scoped
+    // notification above the grid (built above) — the Order Summary shows only
+    // the three priced totals, with no separate "Free items" metric.
+
+    // 2) Build the modal shell and move the free-items drawer into its body. The
+    //    Order Summary footer is left as the default in-flow totals bar.
+    var modal = document.createElement("section");
+    modal.className = "slds-modal slds-modal_large mfg-free-modal";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("tabindex", "-1");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-hidden", "true");
+    modal.setAttribute("aria-labelledby", "mfg-free-modal-heading");
+    modal.innerHTML =
+      '<div class="slds-modal__container">' +
+        '<div class="slds-modal__header">' +
+          '<button type="button" class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse mfg-free-modal__close" title="Close">' +
+            icon(UTIL, "close", "mfg-free-modal__close-icon") +
+            '<span class="slds-assistive-text">Close</span>' +
+          "</button>" +
+          '<h1 id="mfg-free-modal-heading" class="slds-modal__title slds-hyphenate">Free items on this order</h1>' +
+        "</div>" +
+        '<div class="slds-modal__content slds-var-p-around_medium mfg-free-modal__content"></div>' +
+        '<div class="slds-modal__footer">' +
+          '<button type="button" class="slds-button slds-button_neutral mfg-free-modal__done">Close</button>' +
+        "</div>" +
+      "</div>";
+    var backdrop = document.createElement("div");
+    backdrop.className = "slds-backdrop mfg-free-modal-backdrop";
+
+    // Total line lives at the top of the modal body — below the header, above the
+    // expandable sections — summing the full free-items value across all sources.
+    var content = modal.querySelector(".mfg-free-modal__content");
+    var totalBar = document.createElement("p");
+    totalBar.className = "mfg-free-modal__total";
+    totalBar.id = "mfg-free-modal-total";
+    content.appendChild(totalBar);
+    content.appendChild(drawer);
+    drawer.hidden = true;
+    document.body.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    // 3) Open/close plumbing. setOpen(true/false) (driven by the notification link)
+    //    calls this to reveal/hide the modal + backdrop.
+    // Header line totalling the full free-items value across all three sources.
+    var totalEl = modal.querySelector(".mfg-free-modal__total");
+    card._updateFreeModalTotal = function () {
+      var t = card._freeTotals || { count: 0, value: 0, parts: [] };
+      // Left: a per-source breakdown across all three sources ("Promotion offers
+      // worth $45.00 · Product rewards worth $471.50 · Custom free items worth
+      // $0.00"). Right: the labelled grand total.
+      var parts = t.parts || [];
+      // Two-line layout matching Figma node 120:446727:
+      //   Line 1 (semibold, 16px): "You've unlocked $X worth of free items"
+      //   Line 2 (regular, 14px):  bullet-separated per-source breakdown
+      //     "$45.00 from promotion offers • $471.50 from product rewards • …".
+      var frags = parts.filter(function (p) { return p.val > 0; }).map(function (p) {
+        return fmtMoney(p.val) + " from " + esc(p.label).toLowerCase();
+      });
+      totalEl.innerHTML = frags.length
+        ? '<span class="mfg-free-modal__total-head">You&rsquo;ve unlocked ' + fmtMoney(t.value) + " worth of free items</span>" +
+          '<span class="mfg-free-modal__total-list">' + frags.join(" &bull; ") + ".</span>"
+        : '<span class="mfg-free-modal__total-head">You haven&rsquo;t unlocked any free items yet.</span>';
+    };
+    card._updateFreeModalTotal();
+    card._toggleFreeModal = function (open) {
+      if (open && card._updateFreeModalTotal) card._updateFreeModalTotal();
+      modal.classList.toggle("slds-fade-in-open", open);
+      backdrop.classList.toggle("slds-backdrop_open", open);
+      modal.setAttribute("aria-hidden", String(!open));
+      if (open) modal.focus();
+    };
+    function close() { if (card._setSummaryOpen) card._setSummaryOpen(false); }
+    modal.querySelector(".mfg-free-modal__close").addEventListener("click", close);
+    modal.querySelector(".mfg-free-modal__done").addEventListener("click", close);
+    backdrop.addEventListener("click", close);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && modal.classList.contains("slds-fade-in-open")) close();
+    });
+
+    // The free-items metric block now exists — refresh so it shows live count/value.
+    if (card._refreshFreeSummary) card._refreshFreeSummary();
   }
 
   // --- Variant C: click a product name to open a tabbed detail side panel ----
@@ -1245,86 +1838,221 @@
     var tiers = [];
     try { tiers = JSON.parse(decodeURIComponent(cell.getAttribute("data-tiers") || "[]")); } catch (e) { tiers = []; }
     var qty = parseInt((tr.querySelector(".mfg-qty-value") || {}).textContent, 10) || 0;
-    // column order: 3 product, 4 category, 5 brand, 6 promo, 7 uom, 8 list,
-    // 9 suggested, 10 qty, 11 discount, 12 net unit, 13 sp price, 14 net total
+    // column order: 3 product, 4 category, 5 promo, 6 uom, 7 list,
+    // 8 suggested, 9 qty, 10 discount, 11 net unit, 12 sp price, 13 net total
     return {
       product: link ? link.textContent : "This product",
-      category: txt(4), brand: txt(5), promo: txt(6),
-      uom: cell.getAttribute("data-uom") || txt(7),
-      list: txt(8), suggested: txt(9), qty: qty,
-      discount: txt(11), netUnit: txt(12), spPrice: txt(13), netTotal: txt(14),
+      category: txt(4), promo: txt(5),
+      uom: cell.getAttribute("data-uom") || txt(6),
+      list: txt(7), suggested: txt(8), qty: qty,
+      discount: txt(10), netUnit: txt(11), spPrice: txt(12), netTotal: txt(13),
       tiers: tiers
     };
   }
 
-  function dRow(label, value) {
-    return '<div class="mfg-detail-row"><dt>' + esc(label) + "</dt><dd>" + esc(value || "—") + "</dd></div>";
-  }
-
-  function detailsTabHTML(d) {
+  // One read-only field (label above value) in the 2-column section grids.
+  function detailField(label, value) {
     return (
-      '<dl class="mfg-detail-list">' +
-        dRow("Category", d.category) +
-        dRow("Brand", d.brand) +
-        dRow("Unit of measure", d.uom) +
-        dRow("List price", d.list) +
-        dRow("Suggested qty", d.suggested) +
-        dRow("Order qty", fmtNum(d.qty)) +
-        dRow("Net unit price", d.netUnit) +
-        dRow("Net total", d.netTotal) +
-      "</dl>"
+      '<div class="mfg-detail-field">' +
+        '<div class="mfg-detail-field__label">' + esc(label) + "</div>" +
+        '<div class="mfg-detail-field__value">' + esc(value || "—") + "</div>" +
+      "</div>"
     );
   }
 
-  function promotionsTabHTML(d) {
-    if (!d.tiers.length) {
-      return '<div class="mfg-detail-empty">' + icon(UTIL, "info", "mfg-detail-empty__icon") + "<span>No promotions on this product.</span></div>";
-    }
-    var items = d.tiers.map(function (t) {
-      var unlocked = d.qty >= t.q;
-      var status = unlocked
-        ? '<span class="mfg-free-item__status mfg-free-item__status_on">' + icon(UTIL, "success", "mfg-free-item__status-icon") + "Unlocked</span>"
-        : '<span class="mfg-free-item__status">' + icon(UTIL, "lock", "mfg-free-item__status-icon") + fmtNum(t.q - d.qty) + " more to unlock</span>";
-      return (
-        '<li class="mfg-free-item ' + (unlocked ? "is-unlocked" : "is-locked") + '">' +
-          '<span class="mfg-free-item__qty">' + icon(UTIL, "promotions", "mfg-detail-promo-icon") + "</span>" +
-          '<div class="mfg-free-item__body">' +
-            '<div class="mfg-free-item__name">' + esc(t.label) + "</div>" +
-            (t.reward ? '<div class="mfg-free-item__note">' + esc(t.reward) + "</div>" : "") +
-            '<div class="mfg-free-item__meta">at ' + fmtNum(t.q) + " units</div>" +
-            status +
-          "</div>" +
-        "</li>"
-      );
-    }).join("");
-    return '<ul class="mfg-free-panel__list">' + items + "</ul>";
+  // Collapsible section: grey rounded header (chevron + title) over a 2-col grid.
+  // Native <details>/<summary> so the toggle needs no extra JS and stays a11y-sound.
+  function detailSection(title, open, gridHTML) {
+    return (
+      '<details class="mfg-detail-section"' + (open ? " open" : "") + ">" +
+        '<summary class="mfg-detail-section__header">' +
+          icon(UTIL, "chevronright", "mfg-detail-section__chevron") +
+          '<span class="mfg-detail-section__title">' + esc(title) + "</span>" +
+        "</summary>" +
+        '<div class="mfg-detail-section__grid">' + gridHTML + "</div>" +
+      "</details>"
+    );
   }
 
+  // Details tab modeled on Figma node 44:110544: a Product Description block,
+  // then collapsible "Product Details" and "Pricing Details" sections of
+  // read-only fields. (The design's thumbnail image is intentionally omitted.)
+  function detailsTabHTML(d) {
+    var desc = d.category
+      ? d.category + " product" + (d.uom ? ", ordered as " + d.uom + "." : ".")
+      : "Product available in this assortment.";
+    var productDetails =
+      detailField("Category", d.category) +
+      detailField("Unit of measure", d.uom) +
+      detailField("Suggested qty", d.suggested) +
+      detailField("Order qty", fmtNum(d.qty)) +
+      detailField("Product name", d.product);
+    var pricingDetails =
+      detailField("List price", d.list) +
+      detailField("Discount", d.discount) +
+      detailField("Net unit price", d.netUnit) +
+      detailField("Sp. price", d.spPrice) +
+      detailField("Net total", d.netTotal);
+    return (
+      '<div class="mfg-detail-desc">' +
+        '<div class="mfg-detail-desc__label">Product Description</div>' +
+        '<p class="mfg-detail-desc__text">' + esc(desc) + "</p>" +
+      "</div>" +
+      detailSection("Product Details", true, productDetails) +
+      detailSection("Pricing Details", false, pricingDetails)
+    );
+  }
+
+  // Promotions tab reuses the promotion popover's own item markup + classes, so
+  // the side panel and the in-grid badge popover read identically (title,
+  // description, expiration, Terms & Conditions).
+  function promotionsTabHTML(d) {
+    var promos = promoDetailsFor({ promo: parseInt(d.promo, 10) || 0 });
+    if (!promos.length) {
+      return '<div class="mfg-detail-empty">' + icon(UTIL, "info", "mfg-detail-empty__icon") + "<span>No promotions on this product.</span></div>";
+    }
+    return '<div class="mfg-promo-pop__body mfg-detail-promos">' + promos.map(promoItemHTML).join("") + "</div>";
+  }
+
+  var freePct = function (n, of) { return Math.max(0, Math.min(100, (n / Math.max(1, of)) * 100)); };
+  // Sorted reward list for a row (fixed thresholds), reused by render + live sync.
+  function freeGoals(d) {
+    return freeItemsFor(d.tiers, d.uom).slice().sort(function (a, b) { return a.unlockAt - b.unlockAt; });
+  }
+
+  // Free-items tab: an order-quantity control (number field + draggable slider)
+  // drives an unlock-progress view. The single milestone track doubles as the
+  // slider; per-reward rows each carry their own progress bar toward unlocking.
   function freeTabHTML(d) {
-    var items = freeItemsFor(d.tiers, d.uom);
+    var items = freeGoals(d);
     if (!items.length) {
       return '<div class="mfg-detail-empty">' + icon(UTIL, "info", "mfg-detail-empty__icon") + "<span>No free items available for this product.</span></div>";
     }
-    var unlocked = items.filter(function (it) { return d.qty >= it.unlockAt; }).length;
-    var head = '<div class="mfg-detail-freehead"><strong>' + unlocked + "</strong> of " + items.length + " free item" + (items.length !== 1 ? "s" : "") + " unlocked</div>";
-    var list = items.map(function (it) {
-      var isUnlocked = d.qty >= it.unlockAt;
-      var status = isUnlocked
+    var qty = d.qty;
+    var maxAt = items[items.length - 1].unlockAt || 1;
+    var unlocked = items.filter(function (it) { return qty >= it.unlockAt; }).length;
+    var nextLocked = null;
+    for (var i = 0; i < items.length; i++) { if (qty < items[i].unlockAt) { nextLocked = items[i]; break; } }
+
+    // Milestone markers positioned along the 0 → highest-threshold track.
+    var markers = items.map(function (it) {
+      var on = qty >= it.unlockAt;
+      return '<span class="mfg-free-track__marker' + (on ? " is-on" : "") + '" style="left:' + freePct(it.unlockAt, maxAt) + '%" ' +
+        'title="' + esc(it.label) + " at " + fmtNum(it.unlockAt) + ' units"></span>';
+    }).join("");
+    var nextNote = nextLocked
+      ? "Add <strong>" + fmtNum(nextLocked.unlockAt - qty) + "</strong> more units to unlock " + esc(nextLocked.label)
+      : "All free items unlocked 🎉";
+
+    var qtyField =
+      '<div class="mfg-free-qtyset">' +
+        '<label class="mfg-free-qtyset__label" for="mfg-free-qty">Order quantity</label>' +
+        '<div class="mfg-free-qtyset__row">' +
+          '<input type="number" id="mfg-free-qty" class="slds-input mfg-free-qty-input" min="0" step="1" inputmode="numeric" value="' + qty + '" />' +
+          (d.uom ? '<span class="mfg-free-qtyset__uom">' + esc(d.uom) + "</span>" : "") +
+        "</div>" +
+        '<p class="mfg-free-qtyset__hint">Enter or drag the slider to set the quantity — free items unlock as it grows.</p>' +
+      "</div>";
+
+    var track =
+      '<div class="mfg-free-progress">' +
+        '<div class="mfg-free-progress__caption"><strong>' + unlocked + "</strong> of " + items.length +
+          " free item" + (items.length !== 1 ? "s" : "") + " unlocked</div>" +
+        '<div class="mfg-free-slider-wrap">' +
+          '<div class="mfg-free-track" aria-hidden="true">' +
+            '<div class="mfg-free-track__fill" style="width:' + freePct(qty, maxAt) + '%"></div>' +
+            markers +
+          "</div>" +
+          '<input type="range" class="mfg-free-slider" min="0" max="' + maxAt + '" step="1" value="' +
+            Math.min(qty, maxAt) + '" aria-label="Order quantity" />' +
+        "</div>" +
+        '<div class="mfg-free-track__scale">' +
+          '<span class="mfg-free-track__tick is-first" style="left:0">0</span>' +
+          items.map(function (it, idx) {
+            var last = idx === items.length - 1;
+            return '<span class="mfg-free-track__tick' + (last ? " is-last" : "") + (qty >= it.unlockAt ? " is-on" : "") +
+              '" style="' + (last ? "right:0" : "left:" + freePct(it.unlockAt, maxAt) + "%") + '">' +
+              fmtNum(it.unlockAt) + (last ? " units" : "") + "</span>";
+          }).join("") +
+        "</div>" +
+        '<div class="mfg-free-progress__next">' + nextNote + "</div>" +
+      "</div>";
+
+    // Per-reward progress rows.
+    var rows = items.map(function (it) {
+      var on = qty >= it.unlockAt;
+      var status = on
         ? '<span class="mfg-free-item__status mfg-free-item__status_on">' + icon(UTIL, "success", "mfg-free-item__status-icon") + "Unlocked</span>"
-        : '<span class="mfg-free-item__status">' + icon(UTIL, "lock", "mfg-free-item__status-icon") + fmtNum(it.unlockAt - d.qty) + " more to unlock</span>";
+        : '<span class="mfg-free-item__status">' + icon(UTIL, "lock", "mfg-free-item__status-icon") + fmtNum(it.unlockAt - qty) + " more to unlock</span>";
       return (
-        '<li class="mfg-free-item ' + (isUnlocked ? "is-unlocked" : "is-locked") + '">' +
-          '<span class="mfg-free-item__qty">' + fmtNum(it.units) + "</span>" +
-          '<div class="mfg-free-item__body">' +
-            '<div class="mfg-free-item__name">' + esc(it.label) + "</div>" +
-            (it.note ? '<div class="mfg-free-item__note">' + esc(it.note) + "</div>" : "") +
-            '<div class="mfg-free-item__meta">at ' + fmtNum(it.unlockAt) + " units</div>" +
+        '<li class="mfg-free-goal ' + (on ? "is-unlocked" : "is-locked") + '" data-unlock-at="' + it.unlockAt + '">' +
+          '<div class="mfg-free-goal__top">' +
+            '<span class="mfg-free-goal__name">' + fmtNum(it.units) + " × " + esc(it.label) + "</span>" +
             status +
+          "</div>" +
+          (it.note ? '<div class="mfg-free-goal__note">' + esc(it.note) + "</div>" : "") +
+          '<div class="mfg-free-goal__bar"><div class="mfg-free-goal__bar-fill" style="width:' + freePct(qty, it.unlockAt) + '%"></div></div>' +
+          '<div class="mfg-free-goal__meta">' +
+            "<span>" + fmtNum(Math.min(qty, it.unlockAt)) + " / " + fmtNum(it.unlockAt) + " units</span>" +
           "</div>" +
         "</li>"
       );
     }).join("");
-    return head + '<ul class="mfg-free-panel__list">' + list + "</ul>";
+
+    return qtyField + track + '<ul class="mfg-free-goals">' + rows + "</ul>";
+  }
+
+  // Repaint the free tab's live bits for a given qty without rebuilding the DOM
+  // (so the slider keeps its drag). `skip` names the control the user is driving,
+  // which must not be written back mid-interaction ("slider" or "number").
+  function syncFreeTab(panelBody, d, qty, skip) {
+    var items = freeGoals(d);
+    if (!items.length) return;
+    var maxAt = items[items.length - 1].unlockAt || 1;
+    var unlocked = items.filter(function (it) { return qty >= it.unlockAt; }).length;
+    var nextLocked = null;
+    for (var i = 0; i < items.length; i++) { if (qty < items[i].unlockAt) { nextLocked = items[i]; break; } }
+
+    var numEl = panelBody.querySelector(".mfg-free-qty-input");
+    if (numEl && skip !== "number") numEl.value = qty;
+    var slider = panelBody.querySelector(".mfg-free-slider");
+    if (slider && skip !== "slider") slider.value = Math.min(qty, maxAt);
+
+    var fill = panelBody.querySelector(".mfg-free-track__fill");
+    if (fill) fill.style.width = freePct(qty, maxAt) + "%";
+    var markerEls = panelBody.querySelectorAll(".mfg-free-track__marker");
+    var tickEls = panelBody.querySelectorAll(".mfg-free-track__tick:not(.is-first)");
+    items.forEach(function (it, idx) {
+      if (markerEls[idx]) markerEls[idx].classList.toggle("is-on", qty >= it.unlockAt);
+      if (tickEls[idx]) tickEls[idx].classList.toggle("is-on", qty >= it.unlockAt);
+    });
+    var cap = panelBody.querySelector(".mfg-free-progress__caption");
+    if (cap) cap.innerHTML = "<strong>" + unlocked + "</strong> of " + items.length +
+      " free item" + (items.length !== 1 ? "s" : "") + " unlocked";
+    var next = panelBody.querySelector(".mfg-free-progress__next");
+    if (next) next.innerHTML = nextLocked
+      ? "Add <strong>" + fmtNum(nextLocked.unlockAt - qty) + "</strong> more units to unlock " + esc(nextLocked.label)
+      : "All free items unlocked 🎉";
+
+    var goalEls = panelBody.querySelectorAll(".mfg-free-goal");
+    items.forEach(function (it, idx) {
+      var el = goalEls[idx];
+      if (!el) return;
+      var on = qty >= it.unlockAt;
+      el.classList.toggle("is-unlocked", on);
+      el.classList.toggle("is-locked", !on);
+      var status = el.querySelector(".mfg-free-item__status");
+      if (status) {
+        status.className = "mfg-free-item__status" + (on ? " mfg-free-item__status_on" : "");
+        status.innerHTML = on
+          ? icon(UTIL, "success", "mfg-free-item__status-icon") + "Unlocked"
+          : icon(UTIL, "lock", "mfg-free-item__status-icon") + fmtNum(it.unlockAt - qty) + " more to unlock";
+      }
+      var bar = el.querySelector(".mfg-free-goal__bar-fill");
+      if (bar) bar.style.width = freePct(qty, it.unlockAt) + "%";
+      var meta = el.querySelector(".mfg-free-goal__meta span");
+      if (meta) meta.textContent = fmtNum(Math.min(qty, it.unlockAt)) + " / " + fmtNum(it.unlockAt) + " units";
+    });
   }
 
   var DETAIL_TABS = [
@@ -1344,6 +2072,7 @@
 
     var active = "details";
     var current = null; // last row's data
+    var currentTr = null; // the row the panel is showing (for live qty edits)
     var trigger = null; // product link that opened the panel (for focus return)
 
     function render() {
@@ -1369,6 +2098,7 @@
 
     function open(tr, triggerEl) {
       current = rowData(tr);
+      currentTr = tr;
       active = "details";
       trigger = triggerEl || null;
       render();
@@ -1392,8 +2122,30 @@
     // tab switching + close
     panel.addEventListener("click", function (e) {
       if (e.target.closest(".mfg-detail-panel__close")) { close(); return; }
+      if (e.target.closest(".mfg-promo-pop__terms")) { e.preventDefault(); return; }
       var tabBtn = e.target.closest(".mfg-detail-tab");
       if (tabBtn) { active = tabBtn.getAttribute("data-tab"); render(); panel.querySelector(".mfg-detail-tab.is-active").focus(); }
+    });
+
+    // Free-items tab: the qty field + slider both drive the order quantity.
+    // Dragging/typing gives a live preview; the release/blur (change) commits the
+    // new quantity to the actual order line so real free items unlock.
+    panel.addEventListener("input", function (e) {
+      var src = e.target.closest(".mfg-free-slider") ? "slider"
+        : e.target.closest(".mfg-free-qty-input") ? "number" : null;
+      if (!src || !current) return;
+      var qty = Math.max(0, parseInt(e.target.value, 10) || 0);
+      syncFreeTab(panel.querySelector(".mfg-detail-panel__body"), current, qty, src);
+    });
+    panel.addEventListener("change", function (e) {
+      var isSlider = !!e.target.closest(".mfg-free-slider");
+      if (!isSlider && !e.target.closest(".mfg-free-qty-input")) return;
+      if (!currentTr) return;
+      var qty = Math.max(0, parseInt(e.target.value, 10) || 0);
+      var cell = currentTr.querySelector(".mfg-qty-cell");
+      if (cell) setLineQty(cell, qty); // updates order qty, totals, free summary
+      current = rowData(currentTr);
+      syncFreeTab(panel.querySelector(".mfg-detail-panel__body"), current, current.qty);
     });
 
     // keyboard: Arrow keys rove tabs; Escape closes the panel
@@ -1424,13 +2176,18 @@
     var variant = card ? card.getAttribute("data-variant") : null;
     // Variant B explores a popover-free flow: plain inline edit, no rounding
     // popover and no during-edit side rail — free items live in the summary.
-    var plain = variant === "b" || variant === "d";
+    var plain = variant === "b" || variant === "d" || variant === "e" || variant === "f";
     // The qty-edit free-items side panel is retired: Variant A dropped it,
     // Variant B rolls free items into the summary, and Variant C shows them in
     // a click-to-open tabbed detail panel instead.
     var noPanel = plain || variant === "a" || variant === "c";
 
     cell.classList.add("mfg-qty-editing");
+    // While editing, the cell is no longer a "button" — the inner spinbutton is
+    // the real control. Drop the wrapping button role/tabindex so AT, keyboard,
+    // and automation target the <input> cleanly instead of a button-wrapping-input.
+    cell.removeAttribute("role");
+    cell.removeAttribute("tabindex");
     cell.innerHTML = '<input type="number" min="0" step="1" class="slds-input mfg-qty-input" value="' + qty + '" aria-label="Order quantity" />';
     var input = cell.querySelector(".mfg-qty-input");
 
@@ -1454,6 +2211,7 @@
       net: parseFloat(cell.getAttribute("data-net")) || 0,
       netEl: cell.parentElement.querySelector(".mfg-nettotal-cell")
     };
+    input.setAttribute("aria-label", "Order quantity for " + edit.product + " (" + edit.uom + ")");
     if (!noPanel) {
       showFreePanel(edit.product, edit.tiers, edit.uom, qty);
     }
@@ -1513,8 +2271,13 @@
     if (edit.popover && edit.popover.parentNode) edit.popover.parentNode.removeChild(edit.popover);
 
     cell.classList.remove("mfg-qty-editing");
+    // Restore the read-state button semantics dropped in startEdit and refresh
+    // the accessible name so it announces the committed quantity.
+    cell.setAttribute("role", "button");
+    cell.setAttribute("tabindex", "0");
+    cell.setAttribute("aria-label", "Edit order quantity for " + edit.product + " (" + edit.uom + "), current quantity " + qty);
     cell.innerHTML = qtyCellHTML(qty, roundDir);
-    if (netEl) netEl.textContent = fmtMoney(qty * net); // Net Total is plain black, not a link
+    if (netEl) setNetTotal(netEl, fmtMoney(qty * net)); // Net Total is plain black, not a link
     hideFreePanel();
     edit = null;
     if (refocus) cell.focus();
@@ -1523,6 +2286,30 @@
     // keep the free-items summary (variant B) in sync with the new qty
     if (card && card._refreshFreeSummary) card._refreshFreeSummary();
     updateOrderTotals(card); // live Order Summary totals track the qty change
+    syncCartFromGrid(card);  // persist entered qty into the cart immediately
+  }
+
+  // Programmatically set a line's Order Qty (used by the Row-actions menu, e.g.
+  // "Remove line" → 0, "Set to suggested"). Mirrors commitEdit's read-state
+  // rebuild + totals refresh without going through an active inline edit.
+  function setLineQty(cell, qty) {
+    if (!cell) return;
+    if (cell.classList.contains("mfg-qty-editing")) commitEdit(qty, null, true);
+    var net = parseFloat(cell.getAttribute("data-net")) || 0;
+    var netEl = cell.parentElement.querySelector(".mfg-nettotal-cell");
+    var productEl = cell.parentElement.querySelector(".mfg-product-link");
+    var product = productEl ? productEl.textContent : "This product";
+    var uom = cell.getAttribute("data-uom") || "";
+    var orig = parseInt((cell.querySelector(".mfg-qty-value") || {}).textContent, 10) || 0;
+    if (orig === qty) return;
+    cell.setAttribute("aria-label", "Edit order quantity for " + product + " (" + uom + "), current quantity " + qty);
+    cell.innerHTML = qtyCellHTML(qty, null);
+    if (netEl) setNetTotal(netEl, fmtMoney(qty * net));
+    var card = cell.closest(".mfg-assortment-card");
+    markEdited(cell, netEl, net, orig);
+    if (card && card._refreshFreeSummary) card._refreshFreeSummary();
+    updateOrderTotals(card);
+    syncCartFromGrid(card);  // persist entered qty into the cart immediately
   }
 
   // --- inline-edit dirty tracking + docked save bar -------------------------
@@ -1566,7 +2353,7 @@
     dirty.forEach(function (d) {
       d.cell.classList.remove("mfg-is-edited");
       d.cell.innerHTML = qtyCellHTML(d.origQty, null);
-      if (d.netEl) d.netEl.innerHTML = '<span class="mfg-value-link">' + fmtMoney(d.origQty * d.net) + "</span>";
+      if (d.netEl) setNetTotal(d.netEl, '<span class="mfg-value-link">' + fmtMoney(d.origQty * d.net) + "</span>");
       var card = d.cell.closest(".mfg-assortment-card");
       if (card && cards.indexOf(card) === -1) cards.push(card);
     });
@@ -1660,7 +2447,7 @@
     // free-items section — wired in setupFreeSummary)
     var summaryToggle = card.querySelector(".mfg-order-summary__toggle");
     var summaryTotals = card.querySelector(".mfg-order-summary__totals");
-    if (summaryToggle && variant !== "b" && variant !== "d") {
+    if (summaryToggle && variant !== "b" && variant !== "d" && variant !== "e" && variant !== "f") {
       summaryToggle.addEventListener("click", function () {
         var open = summaryToggle.getAttribute("aria-expanded") === "true";
         summaryToggle.setAttribute("aria-expanded", String(!open));
@@ -1670,8 +2457,15 @@
 
     // Variant B: free-items indicator + expandable drawer in the summary
     if (variant === "b" || variant === "d") { setupFreeSummary(card, body); setupFrozenProductColumn(card); }
-    // Variant C: click a product name to open a tabbed detail side panel
-    if (variant === "c") setupDetailPanel(card, body);
+    // Variant E (inspection feedback): reuse the free-items summary, but relocate
+    // it into a persistent top notification + a right-side Order Summary panel.
+    else if (variant === "e") { setupFreeSummary(card, body); setupFreeModal(card); }
+    // Variant F: same as E (notification + free-items modal), but instead of a
+    // dedicated column, clicking a line item opens a tabbed detail side panel
+    // (Details / Promotions / Free items with an unlock-progress view).
+    else if (variant === "f") { setupFreeSummary(card, body); setupFreeModal(card); }
+    // Variants C & F: click a product name to open a tabbed detail side panel
+    if (variant === "c" || variant === "f") setupDetailPanel(card, body);
   }
 
   // Cart grid empty state: a single centred placeholder row when the cart has no
@@ -1681,7 +2475,7 @@
     if (!body || body.querySelector(".mfg-parent-row")) return;
     var mode = card.classList.contains("mfg-mode-free") ? "free items" : "products";
     body.innerHTML =
-      '<tr class="mfg-cart-empty"><td colspan="16">' +
+      '<tr class="mfg-cart-empty"><td colspan="15">' +
         "No " + mode + " in your cart yet — set an Order Qty on the Assortment Products tab, then choose Add to Cart." +
       "</td></tr>";
   }
@@ -1900,6 +2694,21 @@
     showToast("Added to cart");
   }
 
+  // Live cart persistence: mirror the main grid's entered quantities into the
+  // cart on every qty commit, so the Cart tab always reflects what's in the grid
+  // (no manual Add-to-Cart step) and the order carries across tab navigation.
+  // Only the main assortment card seeds the cart — edits made inside the cart
+  // card update its own totals in place; re-snapshotting there would drop a
+  // just-zeroed line mid-edit and steal focus.
+  function syncCartFromGrid(card) {
+    if (!CART_STATE.cartCard || !card || card._isCart) return;
+    var snap = subsetFromCard(card);
+    window.MFG_CART.standard = snap.standard;
+    window.MFG_CART.free = snap.free;
+    renderCartCard();
+    updateCartTabCount();
+  }
+
   // docked save-bar actions
   if (editFooter) {
     editFooter.addEventListener("click", function (e) {
@@ -1981,8 +2790,8 @@
   var VARIANTS = [
     { id: "a", label: "Variant A", desc: "Gamified rounding popover + free-items side rail" },
     { id: "b", label: "Variant B", desc: "Free items rolled up into the Order Summary drawer" },
-    { id: "c", label: "Variant C", desc: "Open canvas for the next UI idea" },
-    { id: "d", label: "Variant D", desc: "Free items in one flattened table — reward type as a column" }
+    { id: "e", label: "Inspection feedback", desc: "Free-items metric in Order Summary + per-row Net Total badges + free-items modal" },
+    { id: "f", label: "Variant F", desc: "Same as Inspection feedback, plus a click-to-open detail side panel (Details / Promotions / Free items with unlock progress)" }
   ];
 
   function uniquifyIds(root, suffix) {
@@ -2077,7 +2886,7 @@
       var section = sectionFor(v, single);
       if (stack) stack.appendChild(section); // moves template card too when appended
       section.appendChild(card);
-      if (!single && (v.id === "b" || v.id === "d")) addGotoPrototype(card, v);
+      if (!single && (v.id === "b" || v.id === "d" || v.id === "e" || v.id === "f")) addGotoPrototype(card, v);
     });
     return cards;
   }

@@ -70,6 +70,8 @@
   --mfg-v-12px: 12px;
   --mfg-v-318px: 318px;
   --mfg-v-neg6px: -6px;
+  --mfg-v-24px: 24px;
+  --mfg-v-48px: 48px;
   --mfg-v-1280px: 1280px;
   --mfg-v-13px: 13px;
   --mfg-v-1440px: 1440px;
@@ -292,8 +294,48 @@ body.mfg-single .mfg-style-switch { display: none; }
   gap: var(--mfg-spacing-4);
   flex-wrap: wrap;
 }
-.mfg-toggle { align-items: center; }
+.mfg-toggle { align-items: center; position: relative; }
+/* The faux switch is decorative (aria-hidden); let clicks fall through to the
+   real <input> so the control is operable by pointer + automation. */
+.mfg-toggle__faux { pointer-events: none; }
+/* SLDS visually hides the checkbox to a 1x1 box, which no pointer/automation can
+   click. Overlay a transparent, switch-sized hit area of the real input on top
+   of the faux so a direct click on the control toggles it. */
+.mfg-toggle > input[type="checkbox"] {
+  position: absolute; left: 0; top: var(--mfg-v-50pct); transform: translateY(-50%);
+  width: var(--mfg-v-48px); height: var(--mfg-v-24px);
+  margin: 0; opacity: 0; cursor: pointer; z-index: 2;
+  /* SLDS clips the input to nothing (clip-path: inset(50%)), which also removes
+     it from hit-testing. Un-clip so the transparent hit area is clickable. */
+  clip: auto; clip-path: none;
+}
 .mfg-toggle__label { font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); white-space: nowrap; padding-left: var(--mfg-spacing-2); }
+/* Row-actions overflow menu (opened from the per-line action button). Gives a
+   pointer/keyboard/AT path to quick line edits — set-to-suggested and remove. */
+.mfg-rowmenu {
+  position: fixed; z-index: 9999;
+  background: var(--mfg-surface);
+  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
+  border-radius: var(--mfg-radius-2);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  padding: var(--mfg-spacing-1);
+}
+.mfg-rowmenu__item {
+  display: flex; align-items: center; gap: var(--mfg-spacing-2);
+  width: var(--mfg-v-100pct);
+  padding: var(--mfg-spacing-2) var(--mfg-spacing-3);
+  background: transparent; border: 0; border-radius: var(--mfg-radius-1);
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
+  text-align: left; cursor: pointer; white-space: nowrap;
+}
+.mfg-rowmenu__item:hover, .mfg-rowmenu__item:focus-visible {
+  background: var(--mfg-surface-container-2); outline: none;
+}
+.mfg-rowmenu__item_danger { color: var(--mfg-error-fg); }
+.mfg-rowmenu__item_danger:hover, .mfg-rowmenu__item_danger:focus-visible {
+  background: var(--mfg-error-container);
+}
+.mfg-rowmenu__icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); flex: none; fill: currentColor; }
 .mfg-template { display: flex; flex-direction: column; gap: 2px; }
 .mfg-template__label { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
 .mfg-template__menu {
@@ -414,7 +456,7 @@ body.mfg-single .mfg-style-switch { display: none; }
   align-self: flex-start;
   font-size: var(--slds-g-font-scale-1, 14px);
   font-weight: var(--slds-g-font-weight-7, 700);
-  color: var(--mfg-success-fg);
+  color: var(--mfg-on-surface-2);
 }
 .mfg-free-item.is-locked .mfg-free-item__qty { color: var(--mfg-on-surface-1); }
 .mfg-free-item__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -428,7 +470,7 @@ body.mfg-single .mfg-style-switch { display: none; }
   font-weight: var(--slds-g-font-weight-6, 600);
   color: var(--mfg-on-surface-1);
 }
-.mfg-free-item__status_on { color: var(--mfg-success-fg); }
+.mfg-free-item__status_on { color: var(--mfg-on-surface-2); }
 .mfg-free-item__status-icon { width: var(--slds-g-sizing-4, 12px); height: var(--slds-g-sizing-4, 12px); fill: currentColor; }
 .mfg-free-panel__empty {
   display: flex; align-items: flex-start; gap: var(--mfg-spacing-2);
@@ -478,24 +520,170 @@ body.mfg-single .mfg-style-switch { display: none; }
   padding: var(--mfg-spacing-4);
   overflow-y: auto;
 }
-.mfg-detail-list { margin: 0; display: flex; flex-direction: column; gap: var(--mfg-spacing-3); }
-.mfg-detail-row { display: flex; justify-content: space-between; gap: var(--mfg-spacing-3); }
-.mfg-detail-row dt { color: var(--mfg-on-surface-1); font-size: var(--slds-g-font-scale-base, 13px); }
-.mfg-detail-row dd {
-  margin: 0; text-align: right; color: var(--mfg-on-surface-3);
-  font-size: var(--slds-g-font-scale-base, 13px); font-weight: var(--slds-g-font-weight-6, 600);
+/* Details tab (Figma node 44:110544): description block + collapsible sections. */
+.mfg-detail-desc { margin-bottom: var(--mfg-spacing-4); }
+.mfg-detail-desc__label {
+  font-size: var(--slds-g-font-scale-base, 13px);
+  font-weight: var(--slds-g-font-weight-6, 590);
+  color: var(--mfg-on-surface-2); line-height: 18px; margin-bottom: var(--mfg-spacing-1);
+}
+.mfg-detail-desc__text {
+  margin: 0; font-size: var(--slds-g-font-scale-neg-1, 12px);
+  color: var(--mfg-on-surface-1); line-height: 17px;
+}
+.mfg-detail-section { margin-bottom: var(--mfg-spacing-3); }
+.mfg-detail-section__header {
+  display: flex; align-items: center; gap: var(--mfg-spacing-2);
+  height: 32px; padding: 0 var(--mfg-spacing-2);
+  background: var(--mfg-surface-container-2); border-radius: var(--mfg-radius-2);
+  cursor: pointer; list-style: none;
+}
+.mfg-detail-section__header::-webkit-details-marker { display: none; }
+.mfg-detail-section__chevron {
+  width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-on-surface-1);
+  flex: 0 0 auto; transition: transform .12s ease;
+}
+.mfg-detail-section[open] > .mfg-detail-section__header .mfg-detail-section__chevron {
+  transform: rotate(90deg);
+}
+.mfg-detail-section__title {
+  font-size: var(--slds-g-font-scale-2, 16px); font-weight: var(--slds-g-font-weight-4, 400);
+  color: var(--mfg-on-surface-2); line-height: 22px;
+}
+.mfg-detail-section__grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--mfg-spacing-3);
+  padding: var(--mfg-spacing-4) var(--mfg-spacing-3) var(--mfg-spacing-2);
+}
+.mfg-detail-field { display: flex; flex-direction: column; gap: var(--mfg-spacing-1); min-width: 0; }
+.mfg-detail-field__label {
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-1); line-height: 18px;
+}
+.mfg-detail-field__value {
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); line-height: 18px;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .mfg-detail-freehead {
   margin-bottom: var(--mfg-spacing-3);
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
 }
-.mfg-detail-freehead strong { color: var(--mfg-success-fg); font-weight: var(--slds-g-font-weight-7, 700); }
+.mfg-detail-freehead strong { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-7, 700); }
 .mfg-detail-promo-icon { width: var(--mfg-v-15px); height: var(--mfg-v-15px); fill: var(--mfg-accent-1); }
 .mfg-detail-empty {
   display: flex; align-items: flex-start; gap: var(--mfg-spacing-2);
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-1);
 }
 .mfg-detail-empty__icon { width: var(--mfg-v-15px); height: var(--mfg-v-15px); fill: var(--mfg-on-surface-1); flex: 0 0 auto; margin-top: var(--mfg-v-1px); }
+
+/* ---- Free-items tab: unlock-progress view (Variants C & F) ---------------- */
+/* Overall milestone track: a filled bar from 0 → highest threshold, with a dot
+   per reward that turns green once its threshold is met. */
+/* Order-quantity control that drives the unlock progress. */
+.mfg-free-qtyset { margin-bottom: var(--mfg-spacing-4); }
+.mfg-free-qtyset__label {
+  display: block; font-size: var(--slds-g-font-scale-base, 13px);
+  font-weight: var(--slds-g-font-weight-6, 590); color: var(--mfg-on-surface-2);
+  line-height: 18px; margin-bottom: var(--mfg-spacing-1);
+}
+.mfg-free-qtyset__row { display: flex; align-items: center; gap: var(--mfg-spacing-2); }
+.mfg-free-qtyset__row .mfg-free-qty-input { width: 96px; text-align: right; }
+.mfg-free-qtyset__uom { font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-1); }
+.mfg-free-qtyset__hint {
+  margin: var(--mfg-spacing-1) 0 0; font-size: var(--slds-g-font-scale-neg-1, 12px);
+  color: var(--mfg-on-surface-1); line-height: 16px;
+}
+
+/* Milestone track doubles as a draggable slider: the native range input sits on
+   top (transparent track, visible thumb) over the visual fill + threshold dots. */
+.mfg-free-slider-wrap {
+  position: relative; height: 20px; display: flex; align-items: center;
+  margin: var(--mfg-spacing-3) 0 var(--mfg-spacing-2);
+}
+.mfg-free-slider-wrap .mfg-free-track {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); margin: 0;
+}
+.mfg-free-slider {
+  -webkit-appearance: none; appearance: none;
+  position: relative; z-index: 2; width: 100%; height: 20px; margin: 0;
+  background: transparent; cursor: pointer;
+}
+.mfg-free-slider:focus { outline: none; }
+.mfg-free-slider::-webkit-slider-runnable-track { background: transparent; height: 20px; border: 0; }
+.mfg-free-slider::-moz-range-track { background: transparent; height: 20px; border: 0; }
+.mfg-free-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--slds-g-color-surface-1, #fff); border: 2px solid var(--mfg-accent-1);
+  box-shadow: 0 1px 2px rgba(0,0,0,.25); cursor: grab;
+}
+.mfg-free-slider::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--slds-g-color-surface-1, #fff); border: 2px solid var(--mfg-accent-1);
+  box-shadow: 0 1px 2px rgba(0,0,0,.25); cursor: grab;
+}
+.mfg-free-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--mfg-accent-container, rgba(11,109,244,.25)); }
+.mfg-free-slider:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--mfg-accent-container, rgba(11,109,244,.25)); }
+.mfg-free-slider:active::-webkit-slider-thumb { cursor: grabbing; }
+
+.mfg-free-progress { margin-bottom: var(--mfg-spacing-4); }
+.mfg-free-progress__caption {
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
+  margin-bottom: var(--mfg-spacing-2);
+}
+.mfg-free-progress__caption strong { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-7, 700); }
+.mfg-free-track {
+  position: relative; height: 8px; border-radius: 999px;
+  background: var(--mfg-surface-container-3, #e5e5e5);
+  margin: var(--mfg-spacing-3) 0 var(--mfg-spacing-2);
+}
+.mfg-free-track__fill {
+  position: absolute; inset: 0 auto 0 0; height: 100%;
+  border-radius: 999px; background: var(--mfg-success-fg);
+  transition: width 200ms ease;
+}
+.mfg-free-track__marker {
+  position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--slds-g-color-surface-1, #fff);
+  border: 2px solid var(--mfg-on-surface-1, #747474);
+}
+.mfg-free-track__marker.is-on { border-color: var(--mfg-success-fg); background: var(--mfg-success-fg); }
+.mfg-free-track__scale {
+  position: relative; height: 15px;
+  font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1);
+}
+.mfg-free-track__tick {
+  position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap;
+}
+.mfg-free-track__tick.is-first { left: 0; transform: none; }
+.mfg-free-track__tick.is-last { transform: none; }
+.mfg-free-track__tick.is-on { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-6, 600); }
+.mfg-free-progress__next {
+  margin-top: var(--mfg-spacing-2);
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
+}
+.mfg-free-progress__next strong { color: var(--mfg-on-surface-3); font-weight: var(--slds-g-font-weight-7, 700); }
+
+/* Per-reward progress rows */
+.mfg-free-goals { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--mfg-spacing-3); }
+.mfg-free-goal {
+  padding: var(--mfg-spacing-3);
+  border: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
+  border-radius: var(--slds-g-radius-border-2, 4px);
+  background: var(--slds-g-color-surface-1, #fff);
+}
+.mfg-free-goal.is-unlocked { border-color: var(--mfg-success-border); background: var(--mfg-success-container); }
+.mfg-free-goal__top { display: flex; align-items: center; justify-content: space-between; gap: var(--mfg-spacing-2); }
+.mfg-free-goal__name { font-weight: var(--slds-g-font-weight-6, 600); color: var(--mfg-on-surface-3); font-size: var(--slds-g-font-scale-base, 13px); }
+.mfg-free-goal__note { margin-top: var(--mfg-spacing-1); font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
+.mfg-free-goal__bar {
+  height: 6px; border-radius: 999px; margin: var(--mfg-spacing-2) 0 var(--mfg-spacing-1);
+  background: var(--mfg-surface-container-3, #e5e5e5); overflow: hidden;
+}
+.mfg-free-goal__bar-fill { height: 100%; border-radius: 999px; background: var(--mfg-success-fg); transition: width 200ms ease; }
+.mfg-free-goal.is-locked .mfg-free-goal__bar-fill { background: var(--mfg-accent-1); }
+.mfg-free-goal__meta { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
+
 .mfg-grid { border-collapse: collapse; width: var(--mfg-v-100pct); min-width: var(--mfg-v-1280px); font-size: var(--slds-g-font-scale-base, 13px); }
 .mfg-grid thead th {
   background: var(--mfg-surface-container-2);
@@ -524,6 +712,24 @@ body.mfg-single .mfg-style-switch { display: none; }
 .mfg-num-col { text-align: right; }
 .mfg-grid td.mfg-num-col { text-align: right; }
 .mfg-col-rowaction { width: var(--mfg-v-40px); text-align: center; }
+
+/* Base variants (A / E / F): widen the data columns so the grid overflows its
+   scroll container (.mfg-grid-wrapper) and the horizontal scrollbar appears.
+   Scoped away from variant B, which owns its own frozen-column geometry. */
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid { min-width: var(--mfg-v-2100px); }
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid .mfg-num-col { min-width: var(--mfg-v-150px); }
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid thead th:nth-child(5),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid tbody td:nth-child(5),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid thead th:nth-child(6),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid tbody td:nth-child(6),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid thead th:nth-child(7),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid tbody td:nth-child(7) { min-width: var(--mfg-v-180px); }
+.mfg-assortment-card:not([data-variant="b"]) .mfg-col-product { width: var(--mfg-v-280px); }
+
+/* Variant F: dedicated Free Items column sits right after Order Qty. */
+.mfg-col-freeitems { width: var(--mfg-v-130px, 130px); white-space: nowrap; }
+.mfg-grid td.mfg-col-freeitems { text-align: left; }
+.mfg-freeitems-empty { color: var(--mfg-on-surface-3, #a8b3c2); }
 
 .mfg-grid .mfg-product-link { color: var(--mfg-accent-1); text-decoration: none; }
 .mfg-grid .mfg-product-link:hover { text-decoration: underline; }
@@ -617,6 +823,10 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
   border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-surface-container-3, #d8dde3);
 }
 .mfg-freecount-badge_on { background: var(--mfg-success-container); color: var(--mfg-success-fg); border-color: var(--mfg-success-border); }
+/* The unlocked "+N free items" badge is interactive — opens a details popover. */
+.mfg-freecount-badge_on { cursor: pointer; }
+.mfg-freecount-badge_on:hover { border-color: var(--mfg-success-fg); }
+.mfg-freecount-badge_on:focus-visible { outline: var(--mfg-v-2px, 2px) solid var(--mfg-accent-1); outline-offset: var(--mfg-v-1px, 1px); }
 .mfg-freecount-badge_none { background: var(--mfg-surface-container-2, #f1f1f1); color: var(--mfg-on-surface-1, #8a8a8a); }
 /* Free Items template loaded in the grid: these are free items themselves, so
    never show the "+N free items" earned badge on their product cells. */
@@ -687,6 +897,10 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 }
 .mfg-promo-pop__body { max-height: 60vh; overflow-y: auto; }
 .mfg-promo-pop__item { padding: var(--mfg-spacing-3) 0; }
+/* When reused inside the detail side panel, the panel body already supplies the
+   outer padding, so drop the first item's top pad. */
+.mfg-detail-promos { max-height: none; }
+.mfg-detail-promos .mfg-promo-pop__item:first-child { padding-top: 0; }
 .mfg-promo-pop__item + .mfg-promo-pop__item { border-top: var(--mfg-v-1px) solid var(--mfg-border-1); }
 .mfg-promo-pop__title { font-size: var(--mfg-v-14px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
 .mfg-promo-pop__desc { font-size: var(--mfg-v-13px); color: var(--mfg-on-surface-1); line-height: var(--mfg-v-1_35); margin-top: var(--mfg-spacing-2); }
@@ -698,6 +912,42 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 }
 .mfg-promo-pop__terms svg { width: var(--slds-g-sizing-5, 14px); height: var(--slds-g-sizing-5, 14px); fill: var(--mfg-accent-1); }
 .mfg-promo-pop__terms:hover { text-decoration: underline; }
+
+/* Free-items popover — reuses the .mfg-promo-pop shell (position/border/nubbin);
+   these rules style its heading count + the unlocked free-item list rows. */
+/* "N Free Items" title — Body/font-scale-2/Regular, navy (Figma 120:446796). */
+.mfg-free-pop__count {
+  display: block; margin-top: var(--mfg-v-2px, 2px);
+  font-size: var(--slds-g-font-scale-2, 16px); font-weight: var(--slds-g-font-weight-4, 400);
+  line-height: var(--slds-g-font-line-height-3, 1.375);
+  color: var(--mfg-on-surface-3);
+}
+.mfg-free-pop__body { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; }
+.mfg-free-pop__item {
+  display: flex; gap: var(--mfg-spacing-2, 8px); align-items: flex-start;
+  padding: var(--mfg-spacing-3, 12px) 0;
+}
+.mfg-free-pop__item + .mfg-free-pop__item { border-top: var(--mfg-v-1px, 1px) solid var(--mfg-border-1); }
+.mfg-free-pop__item-icon {
+  flex: 0 0 auto; display: inline-flex; margin-top: var(--mfg-v-2px, 2px);
+  width: var(--slds-g-sizing-6, 16px); height: var(--slds-g-sizing-6, 16px);
+  align-items: center; justify-content: center;
+}
+.mfg-free-pop__item-icon svg {
+  width: var(--slds-g-sizing-5, 14px); height: var(--slds-g-sizing-5, 14px);
+  fill: var(--mfg-success-fg);
+}
+.mfg-free-pop__item-body { min-width: 0; display: flex; flex-direction: column; gap: var(--mfg-v-2px, 2px); }
+/* Item name — Body/font-scale-1/Bold (14px / 700). Meta + value — font-scale-neg-1
+   (12px / 400) in muted grey, uniform weight (Figma 120:446796). */
+.mfg-free-pop__item-name {
+  font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-7, 700);
+  line-height: var(--slds-g-font-line-height-3, 1.375);
+  color: var(--mfg-on-surface-2);
+}
+.mfg-free-pop__item-note { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
+.mfg-free-pop__item-meta { font-size: var(--slds-g-font-scale-neg-1, 12px); font-weight: var(--slds-g-font-weight-4, 400); color: var(--mfg-on-surface-1); }
+.mfg-free-pop__item-value { color: var(--mfg-on-surface-1); font-weight: var(--slds-g-font-weight-4, 400); }
 
 .mfg-row-action { background: none; border: none; cursor: pointer; padding: var(--mfg-v-2px); }
 .mfg-row-action svg { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); fill: var(--mfg-on-surface-1); }
@@ -863,6 +1113,145 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
 .mfg-assortment-card[data-variant="b"].mfg-summary-resized .mfg-free-acc__body {
   max-height: var(--mfg-free-acc-body-h);
 }
+/* ===================== Variant E — inspection feedback ===================== */
+/* The free-items figure lives INSIDE the Order Summary as a "Free items (N)
+   $value · View free items" metric alongside the priced totals (SLDS2/Kondo
+   global tokens only). No top strip, no scoped notification, no right-side
+   panel. The "View free items" CTA opens a modal listing every free item; the
+   modal drawer is relocated there. Per-row unlock badges sit next to the Net
+   Total number. The top strip element is kept but hidden. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-free-summary { display: none; }
+/* "Free items" metric inside the Order Summary totals row. */
+.mfg-free-total { display: inline-flex; align-items: center; gap: var(--slds-g-spacing-2, 8px); }
+.mfg-free-total__count { color: var(--slds-g-color-on-surface-1, #747474); }
+.mfg-free-total__value {
+  font-weight: var(--slds-g-font-weight-7, 700);
+  color: var(--slds-g-color-on-surface-3, #181818);
+}
+.mfg-free-total__cta {
+  border: 0; background: transparent; padding: 0;
+  color: var(--slds-g-color-accent-1, #0176d3);
+  font-size: var(--slds-g-font-scale-1, 14px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  cursor: pointer; text-decoration: underline;
+}
+.mfg-free-total__cta:hover { color: var(--slds-g-color-accent-2, #014486); }
+.mfg-free-total__cta[hidden] { display: none; }
+/* Per-row unlock badge pinned to the right of the (frozen) Product Name cell. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) td.mfg-product-cell {
+  display: flex; align-items: center; gap: var(--slds-g-spacing-2, 8px);
+}
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) td.mfg-product-cell .mfg-product-link {
+  flex: 0 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Freeze the leading columns (expand, #, check, Product Name) to the left so the
+   rest of the row scrolls horizontally beneath them. The Product column gets a
+   wider fixed width to fit the "Product Name + badge"; the grid is forced wider
+   than the card so horizontal scrolling always demonstrates the frozen columns.
+   Left offsets = cumulative widths (check is display:none → contributes 0):
+   expand 32 + # 32 = 64 for Product. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-col-product { width: var(--mfg-v-320px, 320px); }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid { min-width: var(--mfg-v-1800px, 1800px); }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-product,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-product {
+  position: sticky;
+  z-index: 2;
+  background: var(--slds-g-color-surface-1, #fff);
+}
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-expand { left: 0; }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-num { left: var(--slds-g-spacing-6, 32px); }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-check { left: var(--slds-g-spacing-10, 64px); }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-product,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-product { left: var(--slds-g-spacing-10, 64px); }
+/* Frozen header cells sit above frozen body cells. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid thead th.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid thead th.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid thead th.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid thead th.mfg-col-product {
+  z-index: 3;
+  background: var(--mfg-surface-container-2);
+}
+/* Keep frozen cells opaque on row hover. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr:hover td.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr:hover td.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr:hover td.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr:hover td.mfg-col-product {
+  background: var(--slds-g-color-surface-container-2, #f7f9fb);
+}
+/* Shadow marking the frozen/scrolling boundary at the Product column's edge. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-product,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-product {
+  box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.18);
+}
+/* Order Summary stays permanently expanded — the header is a static label, so
+   the chevron reads as decorative (no collapse affordance). */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-order-summary__toggle { cursor: default; }
+/* Sticky footer stack: the Cancel/Add-to-Cart bar (edit footer) and the Order
+   Summary (header + totals) stay pinned together at the viewport bottom while
+   the grid scrolls, then settle at the card's bottom. The edit footer sticks
+   just above the summary (bottom: --mfg-summary-bar-h, published by JS). */
+body.mfg-single .mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-order-summary {
+  position: sticky;
+  bottom: 0;
+  z-index: 90;
+  border-radius: 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.14);
+}
+/* Free-items modal: bigger footprint + the relocated drawer flows normally. */
+.mfg-free-modal .slds-modal__container {
+  width: 95vw; max-width: var(--mfg-v-1360px, 1360px);
+}
+.mfg-free-modal .mfg-free-drawer { padding: 0; border-bottom: 0; background: transparent; }
+.mfg-free-modal .mfg-free-drawer__scroll { max-height: none; }
+/* In the modal each expanded section grows to its full height (no internal
+   260px scroll) so the WHOLE modal grows/shrinks with what's expanded — the
+   modal body (.mfg-free-modal__content) is the single scroll region. */
+.mfg-free-modal .mfg-free-acc__body { max-height: none; overflow-y: visible; }
+/* Height follows the content: short when the accordions are collapsed, growing
+   as they expand, capped at 90vh (then the body scrolls). No min-height, so a
+   fully-collapsed modal stays compact. */
+.mfg-free-modal__content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+/* Total line at the top of the modal body — below the header, above the
+   expandable sections — summing the full free-items value across all sources.
+   The 8px inner padding matches the section pills' padding, so the "Total free
+   items" label lines up with the section titles and the count · value lines up
+   with each section's own count · value (they read as one column). */
+/* Typography matches the Figma node (Body/font-scale-2/Regular): SF Pro,
+   font-scale-2 (16px), font-weight-4 (400), 22px line-height, on-surface-2. */
+/* Two-line total header (Figma node 120:446727): a semibold headline over a
+   regular per-source breakdown, stacked with a 4px gap. */
+.mfg-free-modal__total {
+  display: flex; flex-direction: column; gap: var(--slds-g-spacing-1, 4px);
+  margin: 0 0 var(--mfg-spacing-3, 12px);
+  padding: 0 var(--slds-g-spacing-2, 8px) var(--mfg-spacing-3, 12px);
+  border-bottom: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
+  font-family: var(--slds-g-font-family-base, "SF Pro", "Salesforce Sans", -apple-system, BlinkMacSystemFont, Arial, sans-serif);
+  color: var(--mfg-on-surface-2, #444);
+}
+.mfg-free-modal__total-head {
+  font-size: var(--slds-g-font-scale-2, 16px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: var(--slds-g-font-line-height-3, 1.375); /* 16px × 1.375 = 22px */
+}
+.mfg-free-modal__total-list {
+  font-size: var(--slds-g-font-scale-1, 14px);
+  font-weight: var(--slds-g-font-weight-4, 400);
+  line-height: var(--slds-g-font-line-height-3, 1.375); /* 14px × 1.375 ≈ 19px */
+}
+
 .mfg-order-summary__toggle {
   display: flex; align-items: center; gap: var(--mfg-spacing-2);
   width: var(--mfg-v-100pct); background: var(--mfg-surface-container-2);
@@ -892,44 +1281,89 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
 }
 /* Scoped notification summarising the free-item value by aspect + grand total */
 .mfg-free-notif {
-  display: flex; align-items: flex-start; gap: var(--mfg-spacing-3);
+  display: flex; align-items: center; gap: var(--slds-g-spacing-3, 12px);
   padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
-  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-success-border);
-  border-radius: var(--slds-g-radius-border-2, 4px);
-  background: var(--mfg-success-container);
+  border: 0;
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  /* SLDS2 --slds-g-color-success-container-1 (#acf3e4) */
+  background: #acf3e4;
 }
 .mfg-free-notif__figure { margin: 0; flex: 0 0 auto; }
-.mfg-free-notif__icon { width: var(--mfg-v-18px); height: var(--mfg-v-18px); fill: var(--mfg-success-fg); margin-top: var(--mfg-v-1px); }
+/* SLDS2 --slds-g-color-on-success-1 (#056764) */
+.mfg-free-notif__icon { width: var(--mfg-v-18px); height: var(--mfg-v-18px); fill: #056764; }
 .mfg-free-notif__body {
   flex: 1 1 auto; min-width: 0;
   display: flex; align-items: baseline; flex-wrap: wrap;
-  gap: var(--mfg-spacing-1, 4px) var(--mfg-spacing-3, 12px);
+  gap: var(--slds-g-spacing-1, 4px) var(--slds-g-spacing-3, 12px);
+  /* SLDS2 Body/font-scale-base/Semibold: 13 / Semibold / 18 */
+  font-size: var(--slds-g-font-size-base, 13px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: 18px;
+  color: #056764;
 }
 .mfg-free-notif__title {
-  font-size: var(--slds-g-font-scale-1, 14px); color: var(--mfg-success-fg);
+  font-size: var(--slds-g-font-size-base, 13px);
+  color: #056764;
 }
-.mfg-free-notif__title strong { font-weight: var(--slds-g-font-weight-7, 700); }
+.mfg-free-notif__title strong { font-weight: inherit; }
 .mfg-free-notif__breakdown {
   display: inline-flex; flex-wrap: wrap; align-items: baseline;
-  gap: var(--mfg-spacing-1, 4px) var(--mfg-spacing-3, 12px);
+  gap: var(--slds-g-spacing-1, 4px) var(--slds-g-spacing-3, 12px);
 }
 .mfg-free-notif__breakdown::before {
-  content: "·"; margin-right: var(--mfg-spacing-1, 4px); color: var(--mfg-on-surface-1);
+  content: "·"; margin-right: var(--slds-g-spacing-1, 4px); color: #056764;
 }
 .mfg-free-notif__aspect {
-  display: inline-flex; align-items: baseline; gap: var(--mfg-spacing-1, 4px);
-  font-size: var(--slds-g-font-scale-1, 14px); color: var(--mfg-on-surface-2);
+  display: inline-flex; align-items: baseline; gap: var(--slds-g-spacing-1, 4px);
+  font-size: var(--slds-g-font-size-base, 13px); color: #056764;
 }
 .mfg-free-notif__aspect + .mfg-free-notif__aspect::before {
-  content: "·"; margin-right: var(--mfg-spacing-2, 8px); color: var(--mfg-on-surface-1);
+  content: "·"; margin-right: var(--mfg-spacing-2, 8px); color: #056764;
 }
-.mfg-free-notif__aspect-val { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg); }
+.mfg-free-notif__aspect-val { font-weight: inherit; color: #056764; }
 .mfg-free-summary__cta {
   border: 0; background: transparent; cursor: pointer; padding: 0;
-  font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-6, 600);
-  color: var(--mfg-accent-2); white-space: nowrap; flex: 0 0 auto; margin-left: auto;
+  /* SLDS2 Body/font-scale-base/Underline Semibold: 13 / Semibold / 18, on-success-1 */
+  font-size: var(--slds-g-font-size-base, 13px); font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: 18px; text-decoration: underline;
+  color: #056764; white-space: nowrap; flex: 0 0 auto; margin-left: auto;
 }
 .mfg-free-summary__cta:hover { text-decoration: underline; }
+
+/* Variant E: blue scoped notification docked just above the grid, shown only
+   when a free item has been unlocked. Uses the Figma "info container" blue
+   (--mfg-promo-container #d8e6fe) with on-info blue (--mfg-on-info #0b5cab). */
+.mfg-unlock-notif {
+  display: flex; align-items: center; gap: var(--slds-g-spacing-3, 12px);
+  margin: 0 var(--mfg-spacing-4) var(--mfg-spacing-3);
+  padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
+  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-promo-container, #d8e6fe);
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  background: var(--mfg-promo-container, #d8e6fe);
+  color: var(--mfg-on-info, #0b5cab);
+}
+.mfg-unlock-notif[hidden] { display: none; }
+.mfg-unlock-notif__figure { margin: 0; flex: 0 0 auto; display: inline-flex; }
+.mfg-unlock-notif__icon {
+  width: var(--mfg-v-18px, 18px); height: var(--mfg-v-18px, 18px);
+  fill: var(--mfg-on-info, #0b5cab);
+}
+.mfg-unlock-notif__body { flex: 1 1 auto; min-width: 0; }
+.mfg-unlock-notif__title {
+  font-size: var(--slds-g-font-size-base, 13px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: 18px; color: var(--mfg-on-info, #0b5cab);
+}
+.mfg-unlock-notif__cta {
+  border: 0; background: transparent; cursor: pointer; padding: 0;
+  font-size: var(--slds-g-font-size-base, 13px); font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: 18px; text-decoration: underline;
+  color: var(--mfg-accent-2, #0250d9); white-space: nowrap; flex: 0 0 auto; margin-left: auto;
+}
+.mfg-unlock-notif__cta:hover { text-decoration: underline; }
+.mfg-unlock-notif__cta:focus-visible {
+  outline: 2px solid var(--mfg-accent-1, #066afe); outline-offset: 2px; border-radius: 2px;
+}
 
 /* The free-items region lives INSIDE the Order Summary, directly under its
    header. Expanding it (via the header chevron or "Learn more") grows the
@@ -961,7 +1395,10 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
 /* Free items rendered as a table; a product spans multiple rows (rowspan) */
 .mfg-free-table {
   width: var(--mfg-v-100pct); border-collapse: collapse; table-layout: fixed;
-  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-3);
+  font-family: var(--slds-g-font-family-base, "SF Pro", "Salesforce Sans", -apple-system, BlinkMacSystemFont, Arial, sans-serif);
+  font-size: var(--slds-g-font-scale-base, 13px);
+  line-height: var(--slds-g-font-line-height-4, 1.5);
+  color: var(--mfg-on-surface-3);
   background: var(--slds-g-color-surface-1, #fff);
   border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-surface-container-3);
   border-radius: var(--slds-g-radius-border-2, 4px);
@@ -1004,8 +1441,12 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
   display: block; margin-top: var(--mfg-spacing-1);
   font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1);
 }
-.mfg-free-table__uom { color: var(--mfg-on-surface-2); white-space: nowrap; }
-.mfg-free-table__qty { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg); white-space: nowrap; }
+/* Fixed widths for the trailing columns so they line up across ALL sections —
+   including Custom free items, whose table has no lead column. With
+   table-layout:fixed the remaining width goes to the lead + Free item columns,
+   which sums to the same in every table, so UoM/Qty/Price share one geometry. */
+.mfg-free-table__uom { color: var(--mfg-on-surface-2); white-space: nowrap; width: 16%; }
+.mfg-free-table__qty { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); white-space: nowrap; width: 9%; }
 .mfg-free-table__at { color: var(--mfg-on-surface-1); white-space: nowrap; }
 /* Variant D flat table: reward-type is a clubbed (rowspan) leading column that
    holds a colored badge; product/promotion clubs within it via .mfg-free-table__prod. */
@@ -1041,10 +1482,11 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
   position: sticky; left: 0; z-index: 2;
 }
 .mfg-free-drawer__scroll .mfg-free-table_flat thead th:first-child { z-index: 3; }
+.mfg-free-table__value { width: 18%; }
 th.mfg-free-table__value { text-align: right; }
 td.mfg-free-table__value {
   text-align: right; white-space: nowrap;
-  font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg);
+  font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2);
 }
 /* List price is struck through (it's waived); the $0.00 free price sits beside
    it as the true final price. */
@@ -1054,7 +1496,7 @@ td.mfg-free-table__value {
   font-weight: var(--slds-g-font-weight-4, 400);
   margin-right: var(--mfg-spacing-1, 4px);
 }
-.mfg-free-table__free-price { color: var(--mfg-success-fg); font-weight: var(--slds-g-font-weight-7, 700); }
+.mfg-free-table__free-price { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-7, 700); }
 .mfg-free-table__row.is-locked .mfg-free-table__qty { color: var(--mfg-on-surface-1); }
 .mfg-free-table__row.is-locked { color: var(--mfg-on-surface-1); }
 
@@ -1069,30 +1511,40 @@ td.mfg-free-table__value {
 
 /* --- Free-items drawer: accordions by source (promotion / product / added) --- */
 .mfg-free-acc { background: var(--slds-g-color-surface-1, #fff); }
-.mfg-free-acc + .mfg-free-acc { margin-top: var(--mfg-spacing-4); }
+/* Figma spec (node 12:16799): sections are separated by an 8px gap. */
+.mfg-free-acc + .mfg-free-acc { margin-top: var(--slds-g-spacing-2, 8px); }
+/* Figma spec: the section header is a standalone rounded pill — 32px tall,
+   surface-container-2 (#f3f3f3) background, 8px radius, 8px horizontal padding,
+   8px gap between chevron/title, no connecting border. */
 .mfg-free-acc__head {
-  display: flex; align-items: center; gap: var(--mfg-spacing-3);
+  display: flex; align-items: center; gap: var(--slds-g-spacing-2, 8px);
   width: var(--mfg-v-100pct); text-align: left; cursor: pointer;
-  padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
-  background: var(--mfg-surface-container-2, #f3f3f3);
-  border: 0; border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
-  font: inherit; color: var(--mfg-on-surface-3);
+  min-height: var(--mfg-v-32px, 32px);
+  padding: 0 var(--slds-g-spacing-2, 8px);
+  background: var(--slds-g-color-surface-container-2, #f3f3f3);
+  border: 0;
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  font-family: var(--slds-g-font-family-base, "SF Pro", "Salesforce Sans", -apple-system, BlinkMacSystemFont, Arial, sans-serif);
+  color: var(--slds-g-color-on-surface-2, #2e2e2e);
 }
-.mfg-free-acc.is-collapsed .mfg-free-acc__head { border-bottom: 0; }
 .mfg-free-acc__head:hover { background: var(--mfg-surface-container-3); }
 .mfg-free-acc__head:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-accent-1); outline-offset: -2px; }
+/* Figma spec: chevron icon renders at 12px. */
 .mfg-free-acc__chevron {
-  width: var(--mfg-v-14px); height: var(--mfg-v-14px); flex: 0 0 auto;
-  fill: var(--mfg-on-surface-2); transition: transform .15s ease;
+  width: var(--mfg-v-12px, 12px); height: var(--mfg-v-12px, 12px); flex: 0 0 auto;
+  fill: var(--slds-g-color-on-surface-2, #2e2e2e); transition: transform .15s ease;
 }
 .mfg-free-acc.is-collapsed .mfg-free-acc__chevron { transform: rotate(-90deg); }
 .mfg-free-acc__titles {
   flex: 1 1 auto; min-width: 0;
   display: flex; align-items: baseline; gap: var(--mfg-spacing-2);
 }
+/* Figma spec: title is font-scale-2 (16px), weight 400, on-surface-2, lh 22px. */
 .mfg-free-acc__title {
-  flex: 0 0 auto; font-weight: var(--slds-g-font-weight-7, 700);
-  color: var(--mfg-on-surface-3); font-size: var(--slds-g-font-scale-base, 13px);
+  flex: 0 0 auto; font-weight: var(--slds-g-font-weight-4, 400);
+  color: var(--slds-g-color-on-surface-2, #2e2e2e);
+  font-size: var(--slds-g-font-scale-2, 16px);
+  line-height: var(--slds-g-font-line-height-3, 1.375); /* 16px × 1.375 = 22px */
 }
 .mfg-free-acc__sub {
   flex: 1 1 auto; min-width: 0;
@@ -1263,7 +1715,7 @@ td.mfg-free-table__value {
 /* marker states */
 .mfg-gg-marker.is-unlocked .mfg-gg-dot { background: var(--slds-g-color-palette-green-50, #2e844a); box-shadow: 0 0 0 1px var(--slds-g-color-palette-green-50, #2e844a); }
 .mfg-gg-marker.is-unlocked .mfg-gg-dot-icon { fill: var(--slds-g-color-on-accent-1, #fff); }
-.mfg-gg-marker.is-unlocked .mfg-gg-ml { color: var(--slds-g-color-palette-green-50, #2e844a); font-weight: var(--slds-g-font-weight-6, 600); }
+.mfg-gg-marker.is-unlocked .mfg-gg-ml { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-6, 600); }
 .mfg-gg-marker.is-next .mfg-gg-dot { background: var(--mfg-promo-container); box-shadow: 0 0 0 3px rgba(6,106,254,0.25); border-color: var(--mfg-surface); }
 .mfg-gg-marker.is-next .mfg-gg-dot-icon { fill: var(--mfg-on-surface-3); }
 .mfg-gg-marker.is-next .mfg-gg-ml { color: var(--mfg-accent-1); font-weight: var(--slds-g-font-weight-7, 700); }
