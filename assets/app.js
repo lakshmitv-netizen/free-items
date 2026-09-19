@@ -190,7 +190,7 @@
       '<div class="mfg-promo-pop__nubbin"></div>' +
       '<button type="button" class="mfg-promo-pop__close" aria-label="Close">' + icon(UTIL, "close") + "</button>" +
       '<div class="mfg-promo-pop__header" role="heading" aria-level="2">' + esc(badge.getAttribute("data-product") || "") + "</div>" +
-      '<div class="mfg-promo-pop__body" role="list" aria-label="' +
+      '<div class="mfg-promo-pop__body" tabindex="0" role="list" aria-label="' +
         esc(promos.length + " promotion" + (promos.length !== 1 ? "s" : "")) + '">' +
         promos.map(promoItemHTML).join("") + "</div>";
     pop.style.display = "block";
@@ -361,7 +361,7 @@
         esc(data.product) +
         '<span class="mfg-free-pop__count">' + data.items.length + " free item" + (data.items.length !== 1 ? "s" : "") + " unlocked</span>" +
       "</div>" +
-      '<ul class="mfg-promo-pop__body mfg-free-pop__body" role="list">' +
+      '<ul class="mfg-promo-pop__body mfg-free-pop__body" tabindex="0" role="list">' +
         data.items.map(freePopItemHTML).join("") +
       "</ul>";
     pop.style.display = "block";
@@ -507,7 +507,22 @@
 
   function valueCell(v) { return '<span class="mfg-value-link">' + v + "</span>"; }
 
-  function rowCells(r) {
+  function rowCells(r, variant) {
+    // Shared data-* payload the qty-edit logic reads regardless of presentation.
+    var qtyData =
+      ' data-uom="' + esc(r.uom) + '"' +
+      ' data-category="' + esc(r.category || "") + '"' +
+      ' data-net="' + parseMoney(r.netUnit) + '"' +
+      " data-promofree=\"" + encodeURIComponent(JSON.stringify(r.promoFree || null)) + "\"" +
+      " data-tiers=\"" + encodeURIComponent(JSON.stringify(r.promoTiers || [])) + "\"";
+    // ---- editable Order Qty cell (click/Enter to edit) ----
+    var qtyCellTd =
+      '<td class="mfg-num-col mfg-qty-cell" tabindex="0" role="button" aria-label="' +
+        esc("Edit Order Qty: " + r.product + " (" + r.uom + "), current " + r.qty) + '"' +
+        qtyData + ">" +
+        '<span class="mfg-qty-value">' + r.qty + "</span>" +
+        '<span class="mfg-qty-pencil">' + icon(UTIL, "edit") + "</span>" +
+      "</td>";
     return (
       '<td class="mfg-col-product"><a href="#" class="mfg-product-link">' + r.product + "</a></td>" +
       "<td>" + r.category + "</td>" +
@@ -517,17 +532,7 @@
       // only Net Unit Price keeps the blue value-link treatment below.
       '<td class="mfg-num-col">' + r.list + "</td>" +
       '<td class="mfg-num-col">' + r.suggested + "</td>" +
-      // ---- editable Order Qty cell ----
-      '<td class="mfg-num-col mfg-qty-cell" tabindex="0" role="button" aria-label="' +
-        esc("Edit order quantity for " + r.product + " (" + r.uom + "), current quantity " + r.qty) + '"' +
-        ' data-uom="' + esc(r.uom) + '"' +
-        ' data-category="' + esc(r.category || "") + '"' +
-        ' data-net="' + parseMoney(r.netUnit) + '"' +
-        " data-promofree=\"" + encodeURIComponent(JSON.stringify(r.promoFree || null)) + "\"" +
-        " data-tiers=\"" + encodeURIComponent(JSON.stringify(r.promoTiers || [])) + "\">" +
-        '<span class="mfg-qty-value">' + r.qty + "</span>" +
-        '<span class="mfg-qty-pencil">' + icon(UTIL, "edit") + "</span>" +
-      "</td>" +
+      qtyCellTd +
       '<td class="mfg-num-col">' + r.discount + "</td>" +
       '<td class="mfg-num-col">' + valueCell(r.netUnit) + "</td>" +
       '<td class="mfg-num-col">' + r.spPrice + "</td>" +
@@ -548,6 +553,11 @@
   }
 
   function renderInto(body, prefix, rows) {
+    // Derive the variant from the owning card so rowCells can pick the qty-cell
+    // presentation (variant E uses a persistent, labeled input). Detached
+    // tbodies (e.g. the cart clone) have no card ancestor → legacy button cell.
+    var ownerCard = body.closest && body.closest(".mfg-assortment-card");
+    var variant = ownerCard ? ownerCard.getAttribute("data-variant") : null;
     var html = "";
     (rows || window.MFG_ROWS).forEach(function (r, i) {
       var hasChildren = r.children && r.children.length;
@@ -559,7 +569,7 @@
       html += "</td>";
       html += '<td class="mfg-col-num">' + r.num + "</td>";
       html += checkboxCell(prefix + "-r-" + i);
-      html += rowCells(r);
+      html += rowCells(r, variant);
       html += "</tr>";
 
       if (hasChildren) {
@@ -567,7 +577,7 @@
           html += '<tr class="mfg-child-row' + (expanded ? "" : " mfg-hidden") + '" data-parent="' + i + '">';
           html += '<td class="mfg-col-expand"></td><td class="mfg-col-num"></td>';
           html += checkboxCell(prefix + "-r-" + i + "-" + j);
-          html += rowCells(c);
+          html += rowCells(c, variant);
           html += "</tr>";
         });
       }
@@ -600,6 +610,11 @@
   // captured subset; every other card from the full catalogs.
   function rowsFor(card, freeMode) {
     if (card && card._isCart) return window.MFG_CART[freeMode ? "free" : "standard"] || [];
+    // Variant M carries its own manufacturing dataset; every other card shares
+    // the default beverage catalog.
+    if (card && card.getAttribute("data-variant") === "m") {
+      return freeMode ? (window.MFG_FREE_ITEM_ROWS_M || window.MFG_FREE_ITEM_ROWS) : (window.MFG_ROWS_M || window.MFG_ROWS);
+    }
     return freeMode ? window.MFG_FREE_ITEM_ROWS : window.MFG_ROWS;
   }
   // Both catalog bodies for a card: the mounted grid for the current mode, and a
@@ -715,7 +730,7 @@
       var state = qty >= t.q ? "is-unlocked" : (next && t.q === next.q ? "is-next" : "is-locked");
       var mIcon = qty >= t.q ? "success" : (state === "is-next" ? "promotions" : "lock");
       markers +=
-        '<div class="mfg-gg-marker ' + state + '" style="left:' + pct + '%">' +
+        '<div class="mfg-gg-marker ' + state + '" data-q="' + t.q + '" style="left:' + pct + '%">' +
           '<span class="mfg-gg-dot">' + icon(UTIL, mIcon, "mfg-gg-dot-icon") + "</span>" +
           '<span class="mfg-gg-mq">' + t.q + "</span>" +
           '<span class="mfg-gg-ml">' + esc(t.label) + "</span>" +
@@ -731,6 +746,52 @@
         "</div>" +
       "</div>"
     );
+  }
+
+  // Variant G: make the milestone progress bar an INTERACTIVE control. The user
+  // can drag along the track (or the knob), or click a milestone dot, to set the
+  // Order Qty toward the next promotion — the cell input also still accepts
+  // typing. Handlers are delegated on the popover element so they survive the
+  // innerHTML rebuilds refreshPopover() does on every value change. Setting the
+  // value is a live PREVIEW; it commits on Enter / blur like any qty edit.
+  function wireGamifiedSlider(ed) {
+    var pop = ed.popover;
+    if (!pop || !ed.tiers.length) return;
+    var max = ed.tiers[ed.tiers.length - 1].q;
+    if (!max) return;
+    function setQty(q) {
+      q = Math.max(0, Math.min(max, Math.round(q)));
+      if ((parseInt(ed.input.value, 10) || 0) === q) return;
+      ed.input.value = q;
+      refreshPopover();
+    }
+    // Click a milestone dot/label → jump exactly to that threshold.
+    pop.addEventListener("click", function (e) {
+      var m = e.target.closest(".mfg-gg-marker");
+      if (!m) return;
+      var q = parseInt(m.getAttribute("data-q"), 10);
+      if (!isNaN(q)) { setQty(q); ed.input.focus(); }
+    });
+    // Drag / click along the track → set qty proportional to pointer position.
+    var rect = null;
+    function fromX(clientX) { return (clientX - rect.left) / rect.width * max; }
+    function onMove(e) { if (rect) setQty(fromX(e.clientX)); }
+    function onUp() {
+      rect = null;
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+    }
+    pop.addEventListener("pointerdown", function (e) {
+      if (e.target.closest(".mfg-gg-marker")) return; // markers = exact jumps
+      var track = pop.querySelector(".mfg-gg-track");
+      if (!track || !track.contains(e.target)) return;
+      e.preventDefault();
+      rect = track.getBoundingClientRect();
+      setQty(fromX(e.clientX));
+      ed.input.focus();
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+    });
   }
 
   // inline cancel / confirm segmented actions; data-value carries the value ✓ commits.
@@ -817,7 +878,9 @@
     );
   }
 
-  function popoverHTML(orig, qty, size, uom, tiers) {
+  // hideStats: variant G (gamified) shows only the milestone progress — the
+  // Entered → Rounded stat header is suppressed there (kept for Variant A).
+  function popoverHTML(orig, qty, size, uom, tiers, hideStats) {
     var showPromo = tiers && tiers.length && POPOVER_STYLE === "bar";
     if (!showPromo) return roundingPopoverHTML(qty, size, uom);
 
@@ -826,7 +889,7 @@
       '<button class="slds-button slds-button_icon slds-popover__close mfg-pop-close" title="Close">' +
         icon(UTIL, "close", "slds-button__icon") + '<span class="slds-assistive-text">Close</span>' +
       "</button>" +
-      roundingStatHeader(qty, size, uom) +
+      (hideStats ? "" : roundingStatHeader(qty, size, uom)) +
       '<div class="slds-popover__body mfg-pop-body">' + promoSection + "</div>"
     );
   }
@@ -834,7 +897,7 @@
   function refreshPopover() {
     if (!edit) return;
     var qty = parseInt(edit.input.value, 10) || 0;
-    edit.popover.innerHTML = popoverHTML(edit.orig, qty, edit.size, edit.uom, edit.tiers);
+    edit.popover.innerHTML = popoverHTML(edit.orig, qty, edit.size, edit.uom, edit.tiers, edit.gamified);
     updateFreePanel(qty);
   }
 
@@ -1523,11 +1586,14 @@
       // three priced totals). Free items surface via the blue scoped notification
       // above the grid, which opens the free-items modal. No top strip.
       var variantId = card.getAttribute("data-variant");
-      if (variantId === "e" || variantId === "f") {
+      if (variantId === "e" || variantId === "f" || variantId === "m") {
         if (strip) strip.style.display = "none";
         // Blue scoped notification above the grid: visible only while at least
         // one free item is unlocked (built in setupFreeModal).
         if (card._unlockNotif) card._unlockNotif.hidden = unlocked === 0;
+        // Showing/hiding the notification changes the grid's top offset — re-fit
+        // the grid so it (and the summary below it) still fit without page scroll.
+        if (card._fitGrid) card._fitGrid();
         if (unlocked === 0 && !drawer.hidden) setOpen(false); // close modal if nothing left
         // Both E and F keep the "+N free items" badge on the product-name cell.
         // Variant F additionally opens a per-line detail side panel on click.
@@ -1581,7 +1647,7 @@
       // notification's "View free items" link), not an inline drawer. Fill the
       // relocated drawer and toggle the modal; skip all the bottom-tray plumbing.
       var sv = card.getAttribute("data-variant");
-      if (sv === "e" || sv === "f") {
+      if (sv === "e" || sv === "f" || sv === "m") {
         if (open) fillDrawer();
         drawer.hidden = !open;
         if (card._toggleFreeModal) card._toggleFreeModal(open);
@@ -1597,7 +1663,7 @@
       // drawer scrolls; collapsing restores normal page scroll.
       // Variant E's summary is a docked side rail with its own scroll, so it must
       // NOT lock page scroll the way the bottom-drawer variants (B/D) do.
-      if (document.body.classList.contains("mfg-single") && card.getAttribute("data-variant") !== "e" && card.getAttribute("data-variant") !== "f") {
+      if (document.body.classList.contains("mfg-single") && card.getAttribute("data-variant") !== "e" && card.getAttribute("data-variant") !== "f" && card.getAttribute("data-variant") !== "m") {
         document.documentElement.classList.toggle("mfg-summary-locked", open);
       }
       if (!open) reserveSpace(); // re-measure the collapsed bar
@@ -1609,7 +1675,7 @@
     });
     // Variant E's summary chevron keeps the default totals-collapse behaviour
     // (wired in initCard); only the notification link opens the free-items modal.
-    if (toggle && card.getAttribute("data-variant") !== "e" && card.getAttribute("data-variant") !== "f") {
+    if (toggle && card.getAttribute("data-variant") !== "e" && card.getAttribute("data-variant") !== "f" && card.getAttribute("data-variant") !== "m") {
       toggle.addEventListener("click", function () { setOpen(drawer.hidden); });
     }
 
@@ -1710,6 +1776,26 @@
     var drawer = summary && summary.querySelector(".mfg-free-drawer");
     if (!layout || !summary || !drawer) return;
 
+    // 1) No top strip — the free-items figure lives inside the Order Summary.
+    //    (Applies to every card, including the hidden Cart-tab clone, so its
+    //    Order Summary reads the same — this part is purely local, no shared ids.)
+    if (strip) strip.style.display = "none";
+
+    // Order Summary is always expanded (and not collapsible) for this variant:
+    // keep the chevron down and the totals row permanently visible.
+    var toggle = summary.querySelector(".mfg-order-summary__toggle");
+    if (toggle) toggle.setAttribute("aria-expanded", "true");
+    var totals = summary.querySelector(".mfg-order-summary__totals");
+    if (totals) totals.classList.remove("mfg-hidden");
+
+    // The free-items notification and the body-level modal are PAGE-LEVEL
+    // singletons that carry fixed ids (mfg-free-modal-heading / -total). Only
+    // the primary assortment card owns them. The cloned Cart-tab grid
+    // (card._isCart) must NOT build a second copy — doing so duplicated those
+    // ids, added a second modal <h1> (breaking heading hierarchy), and stacked
+    // a duplicate document-level Escape listener. Bail out here for the clone.
+    if (card._isCart) return;
+
     // 0) Blue scoped notification, docked JUST ABOVE the grid. It appears only
     //    once at least one free item is unlocked (e.g. an order-qty bump crosses
     //    a reward threshold) and its "View free items" link opens the same modal
@@ -1734,20 +1820,6 @@
       card._unlockNotif = notif;
     }
 
-    // 1) No top strip — the free-items figure lives inside the Order Summary.
-    if (strip) strip.style.display = "none";
-
-    // Order Summary is always expanded (and not collapsible) for this variant:
-    // keep the chevron down and the totals row permanently visible.
-    var toggle = summary.querySelector(".mfg-order-summary__toggle");
-    if (toggle) toggle.setAttribute("aria-expanded", "true");
-    var totals = summary.querySelector(".mfg-order-summary__totals");
-    if (totals) totals.classList.remove("mfg-hidden");
-
-    // The free-items entry point for this variant is the blue scoped
-    // notification above the grid (built above) — the Order Summary shows only
-    // the three priced totals, with no separate "Free items" metric.
-
     // 2) Build the modal shell and move the free-items drawer into its body. The
     //    Order Summary footer is left as the default in-flow totals bar.
     var modal = document.createElement("section");
@@ -1764,7 +1836,7 @@
             icon(UTIL, "close", "mfg-free-modal__close-icon") +
             '<span class="slds-assistive-text">Close</span>' +
           "</button>" +
-          '<h1 id="mfg-free-modal-heading" class="slds-modal__title slds-hyphenate">Free items on this order</h1>' +
+          '<h2 id="mfg-free-modal-heading" class="slds-modal__title slds-hyphenate">Free items on this order</h2>' +
         "</div>" +
         '<div class="slds-modal__content slds-var-p-around_medium mfg-free-modal__content"></div>' +
         '<div class="slds-modal__footer">' +
@@ -1809,12 +1881,29 @@
         : '<span class="mfg-free-modal__total-head">You haven&rsquo;t unlocked any free items yet.</span>';
     };
     card._updateFreeModalTotal();
+    // Collect the modal's currently-visible focusable elements (order matters for
+    // Tab wrapping). Used by the focus trap and to place initial focus.
+    function focusables() {
+      var sel = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      return Array.prototype.filter.call(modal.querySelectorAll(sel), function (el) {
+        return el.offsetParent !== null || el === document.activeElement;
+      });
+    }
     card._toggleFreeModal = function (open) {
       if (open && card._updateFreeModalTotal) card._updateFreeModalTotal();
       modal.classList.toggle("slds-fade-in-open", open);
       backdrop.classList.toggle("slds-backdrop_open", open);
       modal.setAttribute("aria-hidden", String(!open));
-      if (open) modal.focus();
+      if (open) {
+        // Remember what to return focus to, then move focus into the dialog.
+        card._modalReturnFocus = document.activeElement;
+        modal.focus();
+      } else if (card._modalReturnFocus && typeof card._modalReturnFocus.focus === "function") {
+        // Restore focus to the control that opened the dialog (the notification
+        // "View free items" CTA), so keyboard/SR users aren't dropped at the top.
+        card._modalReturnFocus.focus();
+        card._modalReturnFocus = null;
+      }
     };
     function close() { if (card._setSummaryOpen) card._setSummaryOpen(false); }
     modal.querySelector(".mfg-free-modal__close").addEventListener("click", close);
@@ -1823,9 +1912,90 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && modal.classList.contains("slds-fade-in-open")) close();
     });
+    // Focus trap: while the dialog is open, keep Tab / Shift+Tab cycling inside it
+    // instead of leaking to the page behind the backdrop (WCAG 2.4.3 / 2.1.2).
+    modal.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab" || !modal.classList.contains("slds-fade-in-open")) return;
+      var list = focusables();
+      if (!list.length) { e.preventDefault(); modal.focus(); return; }
+      var first = list[0], last = list[list.length - 1];
+      var active = document.activeElement;
+      if (e.shiftKey && (active === first || active === modal)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    });
 
     // The free-items metric block now exists — refresh so it shows live count/value.
     if (card._refreshFreeSummary) card._refreshFreeSummary();
+  }
+
+  // --- Variant E: move the vertical scroll from the page to the grid body -----
+  // The 2000+ row grid otherwise pushes the scoped "unlocked free items"
+  // notification (and the permanently-expanded Order Summary) off-screen, which
+  // was the #1 blocker: neither is visible on load. Instead of the whole page
+  // scrolling, we cap the grid-wrapper's height to the space between its top and
+  // the viewport bottom (reserving room for whatever sits below it in the card —
+  // the Order Summary + footer), so only the grid body scrolls. The header,
+  // filter row, notification and summary stay pinned. Sticky <thead> (CSS) keeps
+  // the column labels visible during that internal scroll. Recomputed on resize.
+  function setupGridScroll(card) {
+    // Only on the full-screen single-variant page; the 3-variant showcase and the
+    // hidden cart clone keep normal page flow.
+    if (card._isCart || !document.body.classList.contains("mfg-single")) return;
+    var wrap = card.querySelector(".mfg-grid-wrapper");
+    if (!wrap) return;
+    function belowHeight() {
+      // Sum the heights of the card-body children that follow the grid layout
+      // (the Order Summary, any footer) so they remain visible below the grid.
+      var layout = card.querySelector(".mfg-grid-layout") || wrap;
+      var below = 0;
+      for (var el = layout.nextElementSibling; el; el = el.nextElementSibling) {
+        if (el.offsetParent !== null) below += el.getBoundingClientRect().height;
+      }
+      // The docked "unsaved changes" edit footer is a page-level bar (not a grid
+      // sibling) that appears on the first edit and sits above the summary —
+      // reserve its height too so the grid shrinks to keep the page unscrolled.
+      var ef = document.getElementById("edit-footer");
+      if (ef && !ef.hidden && ef.offsetParent !== null) {
+        below += ef.getBoundingClientRect().height;
+      }
+      return below;
+    }
+    function fit() {
+      // rect.top is stable once the page no longer scrolls (scrollY stays 0),
+      // which is exactly the state this produces.
+      var top = wrap.getBoundingClientRect().top + window.scrollY;
+      var reserve = belowHeight() + 24; // 24px breathing room / card padding
+      var max = Math.max(96, window.innerHeight - top - reserve);
+      card.style.setProperty("--mfg-grid-scroll-max", max + "px");
+      // Second pass, self-correcting in BOTH directions: make the Order Summary
+      // sit flush at the viewport bottom. Reading a rect here forces a reflow,
+      // so the summary's post-set position is accurate. delta > 0 means there's
+      // an empty gap below the summary (the static reserve over-counted — e.g.
+      // the docked footer doesn't occupy flow space at this height) → grow the
+      // grid to fill it; delta < 0 means it overflows → shrink. Either way the
+      // grid ends exactly filling the space between its top and the summary.
+      var anchor = card.querySelector(".mfg-order-summary") || wrap;
+      var delta = window.innerHeight - anchor.getBoundingClientRect().bottom;
+      if (Math.abs(delta) > 1) {
+        card.style.setProperty(
+          "--mfg-grid-scroll-max",
+          Math.max(96, max + delta) + "px"
+        );
+      }
+    }
+    // Expose so the free-items unlock toggle (which shows/hides the notification
+    // above the grid, changing wrap.top) can re-fit the grid. Run once now and
+    // again on the next frame, since the notification's height isn't laid out at
+    // the synchronous moment its [hidden] attribute is toggled.
+    card._fitGrid = function () { fit(); requestAnimationFrame(fit); };
+    fit();
+    // Re-run after first paint in case web fonts / late layout shifted metrics.
+    requestAnimationFrame(fit);
+    var raf = null;
+    window.addEventListener("resize", function () {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(fit);
+    });
   }
 
   // --- Variant C: click a product name to open a tabbed detail side panel ----
@@ -2174,27 +2344,40 @@
 
     var card = cell.closest(".mfg-assortment-card");
     var variant = card ? card.getAttribute("data-variant") : null;
+    // Dual-identity variant "g" (data-variant="e" + mfg-ux-gamified): re-enable
+    // Variant A's gamified qty-edit popover on top of the E base. It carries a
+    // base variant of "e" (normally a plain, popover-free flow), so this flag
+    // opts it back into the during-edit progress-bar popover.
+    var gamified = !!(card && card.classList.contains("mfg-ux-gamified"));
     // Variant B explores a popover-free flow: plain inline edit, no rounding
     // popover and no during-edit side rail — free items live in the summary.
-    var plain = variant === "b" || variant === "d" || variant === "e" || variant === "f";
+    var plain = !gamified && (variant === "b" || variant === "d" || variant === "e" || variant === "f" || variant === "m");
     // The qty-edit free-items side panel is retired: Variant A dropped it,
     // Variant B rolls free items into the summary, and Variant C shows them in
-    // a click-to-open tabbed detail panel instead.
-    var noPanel = plain || variant === "a" || variant === "c";
+    // a click-to-open tabbed detail panel instead. The gamified variant shows
+    // the popover's progress bar (no side panel), matching Variant A.
+    var noPanel = plain || variant === "a" || variant === "c" || gamified;
 
     cell.classList.add("mfg-qty-editing");
     // While editing, the cell is no longer a "button" — the inner spinbutton is
-    // the real control. Drop the wrapping button role/tabindex so AT, keyboard,
-    // and automation target the <input> cleanly instead of a button-wrapping-input.
+    // the real control. Drop the wrapping button role/tabindex AND the cell's own
+    // aria-label ("Edit Order Qty: …") so AT, keyboard, and automation target the
+    // labeled <input> cleanly. The resting label is deliberately worded "Edit
+    // Order Qty:" (not "…order quantity for…") so it does NOT substring-collide
+    // with the input's name "Order quantity for <product> (<uom>)" — a loose
+    // name lookup for the field can no longer resolve to the non-fillable cell.
+    // The SLDS editable-cell pattern keeps the field's accessible name on the
+    // active editor only. commitEdit restores role/tabindex/aria-label on end.
     cell.removeAttribute("role");
     cell.removeAttribute("tabindex");
+    cell.removeAttribute("aria-label");
     cell.innerHTML = '<input type="number" min="0" step="1" class="slds-input mfg-qty-input" value="' + qty + '" aria-label="Order quantity" />';
     var input = cell.querySelector(".mfg-qty-input");
 
     var pop = null;
     if (!plain) {
       pop = document.createElement("section");
-      pop.className = "slds-popover slds-popover_small slds-nubbin_top mfg-qty-popover" + (tiers.length ? " mfg-qty-popover_promo" : "");
+      pop.className = "slds-popover slds-popover_small slds-nubbin_top mfg-qty-popover" + (tiers.length ? " mfg-qty-popover_promo" : "") + (gamified && tiers.length ? " mfg-qty-popover_interactive" : "");
       pop.setAttribute("role", "dialog");
       pop.setAttribute("aria-label", "Order quantity options");
       document.body.appendChild(pop);
@@ -2206,7 +2389,7 @@
       uom: cell.getAttribute("data-uom"),
       tiers: tiers,
       product: productEl ? productEl.textContent : "This product",
-      card: card, variant: variant, plain: plain,
+      card: card, variant: variant, plain: plain, gamified: gamified,
       freePanel: (card && !noPanel) ? card.querySelector(".mfg-free-panel") : null,
       net: parseFloat(cell.getAttribute("data-net")) || 0,
       netEl: cell.parentElement.querySelector(".mfg-nettotal-cell")
@@ -2219,6 +2402,7 @@
       refreshPopover();
       positionPopover();
       input.addEventListener("input", refreshPopover);
+      if (gamified) wireGamifiedSlider(edit);
     }
     input.focus();
     input.select();
@@ -2229,10 +2413,13 @@
   }
 
   // Commit the active edit respecting the variant: plain value for B, otherwise
-  // snap to the pack multiple.
+  // snap to the pack multiple. Variant G (gamified) also commits the exact value:
+  // its interactive slider/milestones set the qty directly, and since it hides
+  // the Entered→Rounded explainer, a silent pack-snap would move a clicked
+  // milestone off its threshold — so the value the user set is the value kept.
   function commitActive() {
     if (!edit) return;
-    if (edit.plain) { commitEdit(parseInt(edit.input.value, 10) || 0, null, true); }
+    if (edit.plain || edit.gamified) { commitEdit(parseInt(edit.input.value, 10) || 0, null, true); }
     else commitRounded();
   }
 
@@ -2275,7 +2462,7 @@
     // the accessible name so it announces the committed quantity.
     cell.setAttribute("role", "button");
     cell.setAttribute("tabindex", "0");
-    cell.setAttribute("aria-label", "Edit order quantity for " + edit.product + " (" + edit.uom + "), current quantity " + qty);
+    cell.setAttribute("aria-label", "Edit Order Qty: " + edit.product + " (" + edit.uom + "), current " + qty);
     cell.innerHTML = qtyCellHTML(qty, roundDir);
     if (netEl) setNetTotal(netEl, fmtMoney(qty * net)); // Net Total is plain black, not a link
     hideFreePanel();
@@ -2302,7 +2489,7 @@
     var uom = cell.getAttribute("data-uom") || "";
     var orig = parseInt((cell.querySelector(".mfg-qty-value") || {}).textContent, 10) || 0;
     if (orig === qty) return;
-    cell.setAttribute("aria-label", "Edit order quantity for " + product + " (" + uom + "), current quantity " + qty);
+    cell.setAttribute("aria-label", "Edit Order Qty: " + product + " (" + uom + "), current " + qty);
     cell.innerHTML = qtyCellHTML(qty, null);
     if (netEl) setNetTotal(netEl, fmtMoney(qty * net));
     var card = cell.closest(".mfg-assortment-card");
@@ -2378,6 +2565,14 @@
     var variant = card.getAttribute("data-variant") || "x";
     var prefix = gridPrefixOf(card);
 
+    // Variant M2 is a purpose-built manufacturing grid rendered by its own
+    // self-contained module (assets/m2.js). It replaces the CPG grid markup
+    // wholesale, so skip every generic wiring path below.
+    if (variant === "m2") { if (window.setupM2) window.setupM2(card); return; }
+    // Variant M3 — same purpose-built manufacturing UX as M2, but the grid is
+    // rendered by AG Grid Community (assets/m2ag.js) instead of a hand table.
+    if (variant === "m3") { if (window.setupM2AG) window.setupM2AG(card); return; }
+
     renderInto(body, prefix, rowsFor(card, card.classList.contains("mfg-mode-free")));
     if (card._isCart) applyCartEmptyState(card);
     updateCountFor(body, countEl);
@@ -2447,7 +2642,7 @@
     // free-items section — wired in setupFreeSummary)
     var summaryToggle = card.querySelector(".mfg-order-summary__toggle");
     var summaryTotals = card.querySelector(".mfg-order-summary__totals");
-    if (summaryToggle && variant !== "b" && variant !== "d" && variant !== "e" && variant !== "f") {
+    if (summaryToggle && variant !== "b" && variant !== "d" && variant !== "e" && variant !== "f" && variant !== "m") {
       summaryToggle.addEventListener("click", function () {
         var open = summaryToggle.getAttribute("aria-expanded") === "true";
         summaryToggle.setAttribute("aria-expanded", String(!open));
@@ -2459,13 +2654,19 @@
     if (variant === "b" || variant === "d") { setupFreeSummary(card, body); setupFrozenProductColumn(card); }
     // Variant E (inspection feedback): reuse the free-items summary, but relocate
     // it into a persistent top notification + a right-side Order Summary panel.
-    else if (variant === "e") { setupFreeSummary(card, body); setupFreeModal(card); }
+    // Variant M (manufacturing) reuses the exact Inspection-feedback wiring —
+    // proving the interaction model is data-agnostic — plus a detail side panel
+    // so bundle/kit BOM components and specs can be inspected per line.
+    else if (variant === "e" || variant === "m") { setupFreeSummary(card, body); setupFreeModal(card); if (variant === "e") setupGridScroll(card); }
     // Variant F: same as E (notification + free-items modal), but instead of a
     // dedicated column, clicking a line item opens a tabbed detail side panel
     // (Details / Promotions / Free items with an unlock-progress view).
     else if (variant === "f") { setupFreeSummary(card, body); setupFreeModal(card); }
     // Variants C & F: click a product name to open a tabbed detail side panel
-    if (variant === "c" || variant === "f") setupDetailPanel(card, body);
+    if (variant === "c" || variant === "f" || variant === "m") setupDetailPanel(card, body);
+    // Dual-identity variant "g" (mfg-ux-gamified): the E base plus Variant A's
+    // gamified qty-edit progress-bar popover — wired directly in startEdit (no
+    // per-card setup needed), so nothing extra is initialised here.
   }
 
   // Cart grid empty state: a single centred placeholder row when the cart has no
@@ -2791,7 +2992,11 @@
     { id: "a", label: "Variant A", desc: "Gamified rounding popover + free-items side rail" },
     { id: "b", label: "Variant B", desc: "Free items rolled up into the Order Summary drawer" },
     { id: "e", label: "Inspection feedback", desc: "Free-items metric in Order Summary + per-row Net Total badges + free-items modal" },
-    { id: "f", label: "Variant F", desc: "Same as Inspection feedback, plus a click-to-open detail side panel (Details / Promotions / Free items with unlock progress)" }
+    { id: "g", base: "e", label: "Inspection feedback + gamified unlock", desc: "Everything in Inspection feedback, plus Variant A's gamified progress-bar popover on the Order Qty cell: while you edit a line's quantity, a milestone track shows how much more to order to unlock the next free item ('12 more to unlock Lay's Classic'), with a marker per promotion tier that flips from locked to unlocked as the bar fills." },
+    { id: "f", label: "Variant F", desc: "Same as Inspection feedback, plus a click-to-open detail side panel (Details / Promotions / Free items with unlock progress)" },
+    { id: "m", label: "Variant M — Manufacturing", desc: "Inspection-feedback UX re-skinned for a manufacturing order: volume price breaks, bundle/kit BOM expansion, contracted-price line, industrial UoMs. Same grid + modal, manufacturing data." },
+    { id: "m2", label: "Variant M2 — Manufacturing (purpose-built)", desc: "If Manufacturing Cloud designed the grid from scratch: agreement context bar (contract price, draw-down, rebate, credit), per-line UoM selector, enforced min/order-multiple qty stepper, contract vs list price, ATP/availability, and one expandable detail row that carries the price-break ladder, kit BOM, alternate UoMs, agreement perks and delivery/split. Rich order summary." },
+    { id: "m3", label: "Variant M3 — Manufacturing (AG Grid)", desc: "Identical UX to M2 — same agreement bar, UoM selector, enforced qty stepper, contract pricing, ATP, expandable detail and rich summary — but the order grid is rendered by AG Grid Community (the same build as the mfgOrderGrid LWC), using custom cell renderers and full-width rows for the expandable detail." }
   ];
 
   function uniquifyIds(root, suffix) {
@@ -2803,7 +3008,20 @@
   }
 
   function labelCard(card, v) {
-    card.setAttribute("data-variant", v.id);
+    // Dual-identity variants (v.base set, e.g. "g" built on "e"): the DOM element
+    // carries data-variant = the BASE id, so every existing base-variant CSS rule
+    // and JS branch applies verbatim (pixel-identical, zero-risk copy). The
+    // routing/label identity (v.id) is kept on data-variant-key, and a distinct
+    // id-prefix keeps grid element ids unique. An extra class flags the UX layer
+    // (mfg-ux-gamified → startEdit shows Variant A's progress-bar popover).
+    if (v.base) {
+      card.setAttribute("data-variant", v.base);
+      card.setAttribute("data-variant-key", v.id);
+      card.setAttribute("data-id-prefix", v.id);
+      card.classList.add("mfg-ux-gamified");
+    } else {
+      card.setAttribute("data-variant", v.id);
+    }
   }
 
   // "?variant=b" renders that single variant full-screen on its own page.
@@ -2886,7 +3104,7 @@
       var section = sectionFor(v, single);
       if (stack) stack.appendChild(section); // moves template card too when appended
       section.appendChild(card);
-      if (!single && (v.id === "b" || v.id === "d" || v.id === "e" || v.id === "f")) addGotoPrototype(card, v);
+      if (!single && (v.id === "b" || v.id === "d" || v.id === "e" || v.id === "g" || v.id === "f" || v.id === "m" || v.id === "m2" || v.id === "m3")) addGotoPrototype(card, v);
     });
     return cards;
   }
@@ -2933,7 +3151,10 @@
   // stay in view while the table scrolls between them (see CSS).
   (function dockFootersIntoSingleCard() {
     if (!ONLY) return;
-    var card = document.querySelector('.mfg-assortment-card[data-variant="' + ONLY + '"]');
+    // In single mode builtCards[0] IS the rendered variant card. Use it directly
+    // rather than a data-variant lookup, which fails for dual-identity variants
+    // (e.g. "g" renders with data-variant="e").
+    var card = builtCards[0] || document.querySelector('.mfg-assortment-card[data-variant="' + ONLY + '"]');
     if (!card) return;
     var ef = document.getElementById("edit-footer");
     var cardFooter = card.querySelector(".mfg-order-summary");

@@ -12,8 +12,11 @@
     rel="stylesheet"
     href="https://unpkg.com/@salesforce-ux/design-system@2.264.0/assets/styles/salesforce-lightning-design-system.min.css"
   />
-  <link rel="stylesheet" href="assets/styles.css?v=124" />
+  <link rel="stylesheet" href="assets/styles.css?v=137" />
   <link rel="stylesheet" href="assets/slds2-kondo.css?v=79" />
+  <!-- AG Grid Community (MIT) — powers Variant M3 (same build as the mfgOrderGrid LWC) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-quartz.css" />
 </head>
 <body>
   <a href="#main-content" class="mfg-skip-link">Skip to main content</a>
@@ -81,13 +84,13 @@
 
     <nav class="slds-context-bar__secondary" role="navigation" aria-label="Global">
       <ul class="slds-grid">
-        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Home</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
-        <li class="slds-context-bar__item slds-is-active"><a href="#" class="slds-context-bar__label-action" aria-current="page"><span class="slds-truncate">Orders</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
-        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Contacts</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
-        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Accounts</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
-        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Visits</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
-        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Calendar</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
-        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">More</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Home</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon slds-button_icon" title="Home list"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg><span class="slds-assistive-text">Home list</span></button></div></li>
+        <li class="slds-context-bar__item slds-is-active"><a href="#" class="slds-context-bar__label-action" aria-current="page"><span class="slds-truncate">Orders</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon" title="Orders list"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg><span class="slds-assistive-text">Orders list</span></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Contacts</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon" title="Contacts list"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg><span class="slds-assistive-text">Contacts list</span></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Accounts</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon" title="Accounts list"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg><span class="slds-assistive-text">Accounts list</span></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Visits</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon" title="Visits list"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg><span class="slds-assistive-text">Visits list</span></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">Calendar</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon" title="Calendar list"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg><span class="slds-assistive-text">Calendar list</span></button></div></li>
+        <li class="slds-context-bar__item"><a href="#" class="slds-context-bar__label-action"><span class="slds-truncate">More</span></a><div class="slds-context-bar__icon-action"><button class="slds-button slds-button_icon" title="More items"><svg class="slds-button__icon" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#chevrondown"></use></svg><span class="slds-assistive-text">More items</span></button></div></li>
       </ul>
     </nav>
     <div class="mfg-context-bar__edit">
@@ -172,7 +175,7 @@
           <div class="slds-grid slds-path__scroller-container">
             <div class="slds-path__scroller" role="application">
               <div class="slds-path__scroller_inner">
-                <ul class="slds-path__nav" role="listbox" aria-orientation="horizontal">
+                <ul class="slds-path__nav" role="listbox" aria-orientation="horizontal" aria-label="Order Stage">
                   <li class="slds-path__item slds-is-current slds-is-active" role="presentation">
                     <a aria-selected="true" class="slds-path__link" href="#" role="option" tabindex="0">
                       <span class="slds-path__stage"><svg class="slds-icon slds-icon_x-small" aria-hidden="true"><use xlink:href="assets/icons/utility-sprite/svg/symbols.svg#check"></use></svg></span>
@@ -307,7 +310,7 @@
 
             <!-- Data grid + contextual free-items side panel -->
             <div class="mfg-grid-layout">
-            <div class="mfg-grid-wrapper">
+            <div class="mfg-grid-wrapper" tabindex="0" role="region" aria-label="Assortment line items, scrollable">
               <table class="slds-table slds-table_bordered slds-table_fixed-layout slds-tree slds-table_tree mfg-grid" aria-label="Assortment Line Items">
                 <thead>
                   <tr class="slds-line-height_reset">
@@ -374,7 +377,10 @@
     </div>
   </div>
 
-  <script src="assets/data.js?v=83"></script>
-  <script src="assets/app.js?v=114"></script>
+  <script src="assets/data.js?v=85"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.min.js"></script>
+  <script src="assets/m2.js?v=2"></script>
+  <script src="assets/m2ag.js?v=3"></script>
+  <script src="assets/app.js?v=135"></script>
 </body>
 </html>

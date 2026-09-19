@@ -1,0 +1,35 @@
+{
+  "$comment": "Project design-system export for variant E — SLDS 2 'Kondo' reskin (assets/slds2-kondo.css, Figma node 43-11725) plus the stock SLDS base neutrals the shared Salesforce chrome renders. Pass to the SPEX auditor with `--tokens`; it replaces the generic SLDS-1 placeholder set for V4 (consistency) and V1 (contrast fix suggestions).",
+  "colors": {
+    "accent-1": "#066afe",
+    "accent-2": "#0250d9",
+    "on-surface-1": "#5c5c5c",
+    "on-surface-2": "#2e2e2e",
+    "on-surface-3": "#001e5b",
+    "brand-base-20": "#002775",
+    "border-2": "#5c5c5c",
+    "on-accent-1": "#ffffff",
+    "slds-text-default": "#181818",
+    "slds-text-weak": "#706e6b",
+    "slds-on-surface-1": "#747474",
+    "slds-neutral": "#919191",
+    "slds-brand": "#0070d2",
+    "slds-brand-legacy": "#0176d3",
+    "text-error": "#c23934"
+  },
+  "spacing": [0, 4, 8, 12, 16, 24, 32, 48, 64],
+  "fontSizes": [12, 13, 14, 16, 18, 20, 24, 28, 32, 36, 48],
+  "fontWeights": [300, 400, 600, 700],
+  "radii": [0, 4, 8, 12],
+  "viewports": {
+    "mobile": { "width": 375, "height": 667 },
+    "tablet": { "width": 768, "height": 1024 },
+    "desktop": { "width": 1440, "height": 900 }
+  },
+  "thresholds": {
+    "contrast": {
+      "wcagAA": { "normal": 4.5, "large": 3.0 },
+      "wcagAAA": { "normal": 7.0, "large": 4.5 }
+    }
+  }
+}
