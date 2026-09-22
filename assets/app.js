@@ -1788,18 +1788,14 @@
     var totals = summary.querySelector(".mfg-order-summary__totals");
     if (totals) totals.classList.remove("mfg-hidden");
 
-    // The free-items notification and the body-level modal are PAGE-LEVEL
-    // singletons that carry fixed ids (mfg-free-modal-heading / -total). Only
-    // the primary assortment card owns them. The cloned Cart-tab grid
-    // (card._isCart) must NOT build a second copy — doing so duplicated those
-    // ids, added a second modal <h1> (breaking heading hierarchy), and stacked
-    // a duplicate document-level Escape listener. Bail out here for the clone.
-    if (card._isCart) return;
-
     // 0) Blue scoped notification, docked JUST ABOVE the grid. It appears only
     //    once at least one free item is unlocked (e.g. an order-qty bump crosses
-    //    a reward threshold) and its "View free items" link opens the same modal
-    //    the Order-Summary CTA does. refresh() (variant-E branch) toggles [hidden].
+    //    a reward threshold) and its "View free items" link opens the free-items
+    //    modal. refresh() (variant-E branch) toggles [hidden]. Built for BOTH the
+    //    primary assortment card and the cloned Cart-tab grid (card._isCart) so
+    //    the Cart screen carries the same banner; the clone reuses the assortment
+    //    card's single page-level modal (see the _isCart bail below) rather than
+    //    building a duplicate, so its CTA drives that card's _setSummaryOpen.
     if (!card._unlockNotif) {
       var notif = document.createElement("div");
       notif.className = "mfg-unlock-notif slds-scoped-notification slds-media slds-media_center";
@@ -1815,10 +1811,22 @@
         '<button type="button" class="mfg-unlock-notif__cta">View free items</button>';
       layout.parentNode.insertBefore(notif, layout);
       notif.querySelector(".mfg-unlock-notif__cta").addEventListener("click", function () {
-        if (card._setSummaryOpen) card._setSummaryOpen(true);
+        // The Cart-tab clone has no modal of its own — open the assortment
+        // card's shared, page-level modal instead.
+        var owner = card._isCart ? CART_STATE.assortCard : card;
+        if (owner && owner._setSummaryOpen) owner._setSummaryOpen(true);
       });
       card._unlockNotif = notif;
     }
+
+    // The body-level free-items modal is a PAGE-LEVEL singleton carrying fixed
+    // ids (mfg-free-modal-heading / -total). Only the primary assortment card
+    // owns it. The cloned Cart-tab grid (card._isCart) must NOT build a second
+    // copy — doing so duplicated those ids, added a second modal <h1> (breaking
+    // heading hierarchy), and stacked a duplicate document-level Escape listener.
+    // Its notification (built above) reuses the assortment card's modal, so bail
+    // out here before the modal build.
+    if (card._isCart) return;
 
     // 2) Build the modal shell and move the free-items drawer into its body. The
     //    Order Summary footer is left as the default in-flow totals bar.
