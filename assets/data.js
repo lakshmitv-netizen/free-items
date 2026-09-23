@@ -16,8 +16,8 @@ window.MFG_ROWS = [
       { q: 6, label: "5% off", reward: "5% off the line" },
       { q: 8, label: "10% off", reward: "10% off the line" },
       { q: 12, label: "Free case", reward: "1 case free (6 units)" },
-      { q: 18, label: "Free cooler", reward: "1 branded cooler (1 unit)" },
-      { q: 24, label: "Free pallet", reward: "1 pallet free (12 units)" },
+      { q: 18, label: "Free cooler", reward: "1 branded cooler (1 unit)", promo: "" },
+      { q: 24, label: "Free pallet", reward: "1 pallet free (12 units)", promo: "" },
       { q: 30, label: "Free crate", reward: "1 crate free (24 units)" }
     ],
     /* promoFree: reward granted simply for adding a product that carries this

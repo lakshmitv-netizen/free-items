@@ -1494,8 +1494,9 @@ body.mfg-single .mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .
    including Custom free items, whose table has no lead column. With
    table-layout:fixed the remaining width goes to the lead + Free item columns,
    which sums to the same in every table, so UoM/Qty/Price share one geometry. */
-.mfg-free-table__uom { color: var(--mfg-on-surface-2); white-space: nowrap; width: 16%; }
-.mfg-free-table__qty { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); white-space: nowrap; width: 9%; }
+.mfg-free-table__uom { color: var(--mfg-on-surface-2); white-space: nowrap; width: 13%; }
+.mfg-free-table__qty { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); white-space: nowrap; width: 8%; }
+.mfg-free-table__promo { color: var(--mfg-on-surface-2); width: 17%; }
 .mfg-free-table__at { color: var(--mfg-on-surface-1); white-space: nowrap; }
 /* Variant D flat table: reward-type is a clubbed (rowspan) leading column that
    holds a colored badge; product/promotion clubs within it via .mfg-free-table__prod. */

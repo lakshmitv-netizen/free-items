@@ -951,7 +951,11 @@
       var freeUnits = inner ? parseInt(inner[1], 10) : units;
       var product = t.free || FREE_PRODUCTS[t.label] || t.label;
       var itemUom = t.uom || deriveUom(t.reward || t.label, inner ? parseInt(inner[1], 10) : null);
-      return { label: product, uom: itemUom, note: t.reward || "", units: units, freeUnits: freeUnits, unlockAt: t.q };
+      // Per-tier promotion override: a tier may name its own campaign, or set an
+      // empty string to explicitly show "no promotion". Absent → inherit the
+      // product's promotion (resolved by the caller). null signals "not set".
+      var tierPromo = t.hasOwnProperty("promo") ? t.promo : null;
+      return { label: product, uom: itemUom, note: t.reward || "", units: units, freeUnits: freeUnits, unlockAt: t.q, promo: tierPromo };
     });
   }
 
@@ -1068,8 +1072,16 @@
       var tiers = [];
       try { tiers = JSON.parse(decodeURIComponent(cell.getAttribute("data-tiers") || "[]")); } catch (e) { tiers = []; }
       var prodUom = cell.getAttribute("data-uom") || "";
+      // Promotion carrying this product's rewards — surfaced in the free-items
+      // modal's Promotions column. Read from the row's promoFree; falls back to a
+      // generic label when the product has no named campaign.
+      var prodPromo = "";
+      try { var pfp = JSON.parse(decodeURIComponent(cell.getAttribute("data-promofree") || "null")); prodPromo = (pfp && pfp.promo) || ""; } catch (e) { prodPromo = ""; }
       var items = freeItemsFor(tiers, prodUom).map(function (it) {
-        return { label: it.label, uom: it.uom, note: it.note, units: it.units, unlockAt: it.unlockAt, value: it.freeUnits * net, unlocked: qty >= it.unlockAt };
+        // Reward keeps its own promo when the tier set one (including "" for none);
+        // otherwise it inherits the product's campaign, and shows blank if neither.
+        var rowPromo = (it.promo === null || it.promo === undefined) ? (prodPromo || "") : it.promo;
+        return { label: it.label, uom: it.uom, note: it.note, units: it.units, unlockAt: it.unlockAt, value: it.freeUnits * net, unlocked: qty >= it.unlockAt, promo: rowPromo };
       });
       // Key by product + UoM so each UoM line of a product forms its own clubbed
       // group (a product sold as Pack of 6 vs Single Bottle unlocks different
@@ -1196,10 +1208,20 @@
   var FREE_SUMMARY_REFRESH = []; // refresh callbacks for every wired free-summary
   function refreshAllFreeSummaries() { FREE_SUMMARY_REFRESH.forEach(function (fn) { fn(); }); }
 
+  // Cart-level example offers: unlike product rewards, these aren't tied to a
+  // single line — they apply to the order as a whole (a festival campaign, a
+  // cart-value threshold, …). Shown as illustrative examples once anything is
+  // ordered, so the Offers section demonstrates more than product-bundle offers.
+  var CART_LEVEL_OFFERS = [
+    { promo: "Diwali offer", label: "Festive gift hamper", note: "Seasonal festival campaign", units: 1, uom: "Each", value: 55.0 },
+    { promo: "Cart level offer", label: "Assorted snack pack", note: "Unlocked on qualifying cart value", units: 1, uom: "Case of 6", value: 35.0 }
+  ];
+
   // Promotion-related free items: rows whose promoFree is set, unlocked once the
-  // line is ordered (live qty > 0).
+  // line is ordered (live qty > 0). Cart-level offers are appended afterwards.
   function collectPromoFree(body) {
     var groups = [];
+    var anyOrdered = false;
     body.querySelectorAll("tr").forEach(function (tr) {
       var link = tr.querySelector(".mfg-product-link");
       var cell = tr.querySelector(".mfg-qty-cell");
@@ -1207,10 +1229,18 @@
       if (!link || !cell || !qtyEl) return;
       var pf = null;
       try { pf = JSON.parse(decodeURIComponent(cell.getAttribute("data-promofree") || "null")); } catch (e) { pf = null; }
-      if (!pf) return;
       var qty = parseInt(qtyEl.textContent, 10) || 0;
-      groups.push({ product: link.textContent, promo: pf.promo || "Promotion", items: [
-        { label: pf.label, note: pf.note, units: pf.units || 1, uom: pf.uom || "Each", value: pf.value || 0, unlocked: qty > 0 }
+      if (qty > 0) anyOrdered = true;
+      if (!pf) return;
+      groups.push({ product: link.textContent, promo: pf.promo || "Offer", items: [
+        { label: pf.label, note: pf.note, units: pf.units || 1, uom: pf.uom || "Each", value: pf.value || 0, unlocked: qty > 0, promo: pf.promo || "Offer" }
+      ] });
+    });
+    // Order-wide example offers — keyed by the offer name so each stays its own
+    // row. They unlock as soon as the order has at least one ordered line.
+    CART_LEVEL_OFFERS.forEach(function (o) {
+      groups.push({ product: o.promo, promo: o.promo, items: [
+        { label: o.label, note: o.note, units: o.units || 1, uom: o.uom || "Each", value: o.value || 0, unlocked: anyOrdered, promo: o.promo }
       ] });
     });
     return groups;
@@ -1293,6 +1323,7 @@
             "</td>" +
             '<td class="mfg-free-table__uom">' + esc(it.uom || "") + "</td>" +
             '<td class="mfg-free-table__qty">' + fmtNum(it.units) + "</td>" +
+            '<td class="mfg-free-table__promo">' + esc(it.promo || "—") + "</td>" +
             '<td class="mfg-free-table__value">' +
               '<span class="mfg-free-table__list-price">' + fmtMoney(it.value) + "</span> " +
               '<span class="mfg-free-table__free-price">' + fmtMoney(0) + "</span>" +
@@ -1306,6 +1337,7 @@
             '<th scope="col">Free item</th>' +
             '<th scope="col" class="mfg-free-table__uom">UoM</th>' +
             '<th scope="col" class="mfg-free-table__qty">Qty</th>' +
+            '<th scope="col" class="mfg-free-table__promo">Promotions</th>' +
             '<th scope="col" class="mfg-free-table__value">Price</th>' +
           "</tr></thead>" +
           "<tbody>" + flatBody + "</tbody>" +
@@ -1329,6 +1361,7 @@
             "</td>" +
             '<td class="mfg-free-table__uom">' + esc(it.uom || "") + "</td>" +
             '<td class="mfg-free-table__qty">' + fmtNum(it.units) + "</td>" +
+            '<td class="mfg-free-table__promo">' + esc(it.promo || "—") + "</td>" +
             '<td class="mfg-free-table__value">' +
               '<span class="mfg-free-table__list-price">' + fmtMoney(it.value) + "</span> " +
               '<span class="mfg-free-table__free-price">' + fmtMoney(0) + "</span>" +
@@ -1344,6 +1377,7 @@
           '<th scope="col">Free item</th>' +
           '<th scope="col" class="mfg-free-table__uom">UoM</th>' +
           '<th scope="col" class="mfg-free-table__qty">Qty</th>' +
+          '<th scope="col" class="mfg-free-table__promo">Promotions</th>' +
           '<th scope="col" class="mfg-free-table__value">Price</th>' +
         "</tr></thead>" +
         "<tbody>" + body + "</tbody>" +
@@ -1361,7 +1395,7 @@
   function productUomSub(p) {
     return p.productUom || "";
   }
-  var LEAD_PROMO = { header: "Promotion", main: function (p) { return p.promo || "Promotion"; }, sub: function () { return ""; } };
+  var LEAD_PROMO = { header: "Offer", main: function (p) { return p.promo || "Offer"; }, sub: function () { return ""; } };
   var LEAD_PRODUCT = { header: "Product", main: function (p) { return p.product; }, sub: productUomSub };
   // Custom free items club by category (Snacks, Beverages, …) instead of product.
   var LEAD_CATEGORY = { header: "Category", main: function (p) { return p.category; }, sub: itemCountSub };
@@ -1392,7 +1426,7 @@
   // block, and the product/promotion lead cell clubs across its group's rows.
   function freeFlatTableHTML(promo, product, direct) {
     var blocks = [
-      { type: "Promotion offer", mod: "promo", lead: LEAD_PROMO, groups: promo },
+      { type: "Offer", mod: "promo", lead: LEAD_PROMO, groups: promo },
       { type: "Product reward", mod: "product", lead: LEAD_PRODUCT, groups: product },
       { type: "Custom free item", mod: "cart", lead: LEAD_CATEGORY, groups: direct }
     ].filter(function (b) { return b.groups.length; });
@@ -1460,8 +1494,8 @@
       return '<div class="mfg-free-drawer__scroll mfg-free-drawer__flat">' + freeFlatTableHTML(promo, product, direct) + "</div>";
     }
     var sections =
-      freeAccordion("Promotion offers", "",
-        promo, "No promotion offers yet — add a product that has a promotion.", LEAD_PROMO) +
+      freeAccordion("Offers", "",
+        promo, "No offers yet — add a product that has an offer.", null) +
       freeAccordion("Product rewards", "",
         product, "No product rewards yet — increase order quantities to unlock rewards.", LEAD_PRODUCT) +
       freeAccordion("Manually added free items", "",
@@ -1576,7 +1610,7 @@
       card._freeTotals = {
         count: unlocked, value: grand,
         parts: [
-          { label: "Promotion offers", n: promo.n, val: promo.val },
+          { label: "Offers", n: promo.n, val: promo.val },
           { label: "Product rewards", n: product.n, val: product.val },
           { label: "Manually added free items", n: direct.n, val: direct.val }
         ]
@@ -1623,7 +1657,7 @@
           '<div class="slds-media__body mfg-free-notif__body">' +
             '<span class="mfg-free-notif__title">Free items on this order &middot; <strong>' + fmtMoney(grand) + "</strong> total value</span>" +
             '<span class="mfg-free-notif__breakdown">' +
-              aspect("Promotion offers", promo) +
+              aspect("Offers", promo) +
               aspect("Product rewards", product) +
               aspect("Manually added free items", direct) +
             "</span>" +
