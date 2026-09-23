@@ -1494,7 +1494,7 @@
       return '<div class="mfg-free-drawer__scroll mfg-free-drawer__flat">' + freeFlatTableHTML(promo, product, direct) + "</div>";
     }
     var sections =
-      freeAccordion("Offers", "",
+      freeAccordion("Header Rewards", "",
         promo, "No offers yet — add a product that has an offer.", null) +
       freeAccordion("Product rewards", "",
         product, "No product rewards yet — increase order quantities to unlock rewards.", LEAD_PRODUCT) +
