@@ -70,6 +70,8 @@
   --mfg-v-12px: 12px;
   --mfg-v-318px: 318px;
   --mfg-v-neg6px: -6px;
+  --mfg-v-24px: 24px;
+  --mfg-v-48px: 48px;
   --mfg-v-1280px: 1280px;
   --mfg-v-13px: 13px;
   --mfg-v-1440px: 1440px;
@@ -156,6 +158,7 @@ html, body {
 }
 .mfg-link { color: var(--mfg-accent-1); text-decoration: none; }
 .mfg-link:hover { text-decoration: underline; }
+.mfg-link:focus-visible { outline: var(--mfg-v-2px, 2px) solid var(--mfg-accent-1); outline-offset: var(--mfg-v-1px, 1px); border-radius: var(--mfg-radius-1); }
 
 /* ----------------------------- Page header ----------------------------- */
 .mfg-page-header {
@@ -170,6 +173,14 @@ html, body {
   font-weight: var(--slds-g-font-weight-4, 400);
   color: var(--mfg-on-surface-3);
 }
+/* The record page-header <h1> wraps its visible title in child spans, so the h1
+   element itself inherits the 13px base — measuring smaller than the 16px card
+   <h2> and inverting the document heading hierarchy. Give the h1 a token size
+   (18px, on-scale and >= the h2) so it correctly outranks lower headings; the
+   visible title (.mfg-record-name, 24px) keeps its size, and the eyebrow label
+   is pinned so it does not grow with the wrapper. */
+.slds-page-header__name-title h1 { font-size: var(--mfg-v-18px, 18px); }
+.slds-page-header__name-title .slds-page-header__title-label { font-size: var(--slds-g-font-scale-base, 13px); }
 
 /* ----------------------------- Path ----------------------------- */
 .mfg-path-wrapper {
@@ -253,10 +264,14 @@ body.mfg-single .mfg-style-switch { display: none; }
 }
 .mfg-breadcrumb__back {
   display: inline-flex; align-items: center; gap: var(--mfg-spacing-1);
-  color: var(--mfg-accent-1); text-decoration: none; font-weight: var(--slds-g-font-weight-6, 600);
+  /* accent-2 (deeper blue) instead of accent-1: on the #f3f3f3 breadcrumb strip
+     accent-1 (#066afe) only reaches 4.21:1, below WCAG AA 4.5:1 for body text;
+     accent-2 (#0250d9) clears it at ~6:1. */
+  color: var(--mfg-accent-2); text-decoration: none; font-weight: var(--slds-g-font-weight-6, 600);
 }
 .mfg-breadcrumb__back:hover { text-decoration: underline; }
-.mfg-breadcrumb__icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-accent-1); }
+.mfg-breadcrumb__back:focus-visible { outline: var(--mfg-v-2px, 2px) solid var(--mfg-accent-1); outline-offset: var(--mfg-v-2px, 2px); border-radius: var(--mfg-radius-1); }
+.mfg-breadcrumb__icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-accent-2); }
 .mfg-breadcrumb__sep { color: var(--mfg-on-surface-1); }
 .mfg-breadcrumb__current { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-6, 600); }
 /* Breadcrumb row on the single-variant page: sits ABOVE the record card, top-left.
@@ -292,8 +307,48 @@ body.mfg-single .mfg-style-switch { display: none; }
   gap: var(--mfg-spacing-4);
   flex-wrap: wrap;
 }
-.mfg-toggle { align-items: center; }
+.mfg-toggle { align-items: center; position: relative; }
+/* The faux switch is decorative (aria-hidden); let clicks fall through to the
+   real <input> so the control is operable by pointer + automation. */
+.mfg-toggle__faux { pointer-events: none; }
+/* SLDS visually hides the checkbox to a 1x1 box, which no pointer/automation can
+   click. Overlay a transparent, switch-sized hit area of the real input on top
+   of the faux so a direct click on the control toggles it. */
+.mfg-toggle > input[type="checkbox"] {
+  position: absolute; left: 0; top: var(--mfg-v-50pct); transform: translateY(-50%);
+  width: var(--mfg-v-48px); height: var(--mfg-v-24px);
+  margin: 0; opacity: 0; cursor: pointer; z-index: 2;
+  /* SLDS clips the input to nothing (clip-path: inset(50%)), which also removes
+     it from hit-testing. Un-clip so the transparent hit area is clickable. */
+  clip: auto; clip-path: none;
+}
 .mfg-toggle__label { font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); white-space: nowrap; padding-left: var(--mfg-spacing-2); }
+/* Row-actions overflow menu (opened from the per-line action button). Gives a
+   pointer/keyboard/AT path to quick line edits — set-to-suggested and remove. */
+.mfg-rowmenu {
+  position: fixed; z-index: 9999;
+  background: var(--mfg-surface);
+  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
+  border-radius: var(--mfg-radius-2);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  padding: var(--mfg-spacing-1);
+}
+.mfg-rowmenu__item {
+  display: flex; align-items: center; gap: var(--mfg-spacing-2);
+  width: var(--mfg-v-100pct);
+  padding: var(--mfg-spacing-2) var(--mfg-spacing-3);
+  background: transparent; border: 0; border-radius: var(--mfg-radius-1);
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
+  text-align: left; cursor: pointer; white-space: nowrap;
+}
+.mfg-rowmenu__item:hover, .mfg-rowmenu__item:focus-visible {
+  background: var(--mfg-surface-container-2); outline: none;
+}
+.mfg-rowmenu__item_danger { color: var(--mfg-error-fg); }
+.mfg-rowmenu__item_danger:hover, .mfg-rowmenu__item_danger:focus-visible {
+  background: var(--mfg-error-container);
+}
+.mfg-rowmenu__icon { width: var(--mfg-v-14px); height: var(--mfg-v-14px); flex: none; fill: currentColor; }
 .mfg-template { display: flex; flex-direction: column; gap: 2px; }
 .mfg-template__label { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
 .mfg-template__menu {
@@ -332,6 +387,41 @@ body.mfg-single .mfg-style-switch { display: none; }
   overflow-x: auto;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* Variant E (inspection feedback): move the vertical scroll from the page to
+   the grid body so the scoped "unlocked free items" notification (and the
+   permanently-expanded Order Summary below the grid) stay in view on load.
+   --mfg-grid-scroll-max is set per-card by setupGridScroll() in app.js from
+   the live viewport; the vh fallback covers the pre-JS / no-JS paint. */
+.mfg-assortment-card[data-variant="e"] .mfg-grid-wrapper {
+  overflow-y: auto;
+  max-height: var(--mfg-grid-scroll-max, calc(100vh - 320px));
+}
+/* Keep the column headers pinned while the grid body scrolls internally. */
+.mfg-assortment-card[data-variant="e"] .mfg-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+/* With the grid capped to fit the viewport, the card already ends above the
+   fold — the only thing still forcing a page scrollbar is the empty bottom
+   padding beneath the card. Trim it in single (full-screen) mode when an E card
+   is on the page so the page itself no longer scrolls; :has() keeps every other
+   variant/layout untouched. */
+body.mfg-single:has(.mfg-assortment-card[data-variant="e"]) .mfg-page {
+  /* No bottom padding: the Order Summary is the last element and the grid's
+     self-fitting max-height lands it flush at the viewport bottom. Any padding
+     here would show as an empty gap below the summary (or force a page scroll). */
+  padding-bottom: 0;
+}
+body.mfg-single:has(.mfg-assortment-card[data-variant="e"]) .slds-tabs_default__content {
+  padding-bottom: 0;
+}
+/* The variant stack's 4rem bottom margin only separates stacked variants; in
+   single mode there is just one card, so it is empty space that forces scroll. */
+body.mfg-single:has(.mfg-assortment-card[data-variant="e"]) .mfg-variant-stack {
+  margin-bottom: 0;
 }
 
 /* ------------------------- Free-items side panel ------------------------- */
@@ -414,7 +504,7 @@ body.mfg-single .mfg-style-switch { display: none; }
   align-self: flex-start;
   font-size: var(--slds-g-font-scale-1, 14px);
   font-weight: var(--slds-g-font-weight-7, 700);
-  color: var(--mfg-success-fg);
+  color: var(--mfg-on-surface-2);
 }
 .mfg-free-item.is-locked .mfg-free-item__qty { color: var(--mfg-on-surface-1); }
 .mfg-free-item__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -428,7 +518,7 @@ body.mfg-single .mfg-style-switch { display: none; }
   font-weight: var(--slds-g-font-weight-6, 600);
   color: var(--mfg-on-surface-1);
 }
-.mfg-free-item__status_on { color: var(--mfg-success-fg); }
+.mfg-free-item__status_on { color: var(--mfg-on-surface-2); }
 .mfg-free-item__status-icon { width: var(--slds-g-sizing-4, 12px); height: var(--slds-g-sizing-4, 12px); fill: currentColor; }
 .mfg-free-panel__empty {
   display: flex; align-items: flex-start; gap: var(--mfg-spacing-2);
@@ -478,24 +568,170 @@ body.mfg-single .mfg-style-switch { display: none; }
   padding: var(--mfg-spacing-4);
   overflow-y: auto;
 }
-.mfg-detail-list { margin: 0; display: flex; flex-direction: column; gap: var(--mfg-spacing-3); }
-.mfg-detail-row { display: flex; justify-content: space-between; gap: var(--mfg-spacing-3); }
-.mfg-detail-row dt { color: var(--mfg-on-surface-1); font-size: var(--slds-g-font-scale-base, 13px); }
-.mfg-detail-row dd {
-  margin: 0; text-align: right; color: var(--mfg-on-surface-3);
-  font-size: var(--slds-g-font-scale-base, 13px); font-weight: var(--slds-g-font-weight-6, 600);
+/* Details tab (Figma node 44:110544): description block + collapsible sections. */
+.mfg-detail-desc { margin-bottom: var(--mfg-spacing-4); }
+.mfg-detail-desc__label {
+  font-size: var(--slds-g-font-scale-base, 13px);
+  font-weight: var(--slds-g-font-weight-6, 590);
+  color: var(--mfg-on-surface-2); line-height: 18px; margin-bottom: var(--mfg-spacing-1);
+}
+.mfg-detail-desc__text {
+  margin: 0; font-size: var(--slds-g-font-scale-neg-1, 12px);
+  color: var(--mfg-on-surface-1); line-height: 17px;
+}
+.mfg-detail-section { margin-bottom: var(--mfg-spacing-3); }
+.mfg-detail-section__header {
+  display: flex; align-items: center; gap: var(--mfg-spacing-2);
+  height: 32px; padding: 0 var(--mfg-spacing-2);
+  background: var(--mfg-surface-container-2); border-radius: var(--mfg-radius-2);
+  cursor: pointer; list-style: none;
+}
+.mfg-detail-section__header::-webkit-details-marker { display: none; }
+.mfg-detail-section__chevron {
+  width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-on-surface-1);
+  flex: 0 0 auto; transition: transform .12s ease;
+}
+.mfg-detail-section[open] > .mfg-detail-section__header .mfg-detail-section__chevron {
+  transform: rotate(90deg);
+}
+.mfg-detail-section__title {
+  font-size: var(--slds-g-font-scale-2, 16px); font-weight: var(--slds-g-font-weight-4, 400);
+  color: var(--mfg-on-surface-2); line-height: 22px;
+}
+.mfg-detail-section__grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--mfg-spacing-3);
+  padding: var(--mfg-spacing-4) var(--mfg-spacing-3) var(--mfg-spacing-2);
+}
+.mfg-detail-field { display: flex; flex-direction: column; gap: var(--mfg-spacing-1); min-width: 0; }
+.mfg-detail-field__label {
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-1); line-height: 18px;
+}
+.mfg-detail-field__value {
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); line-height: 18px;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .mfg-detail-freehead {
   margin-bottom: var(--mfg-spacing-3);
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
 }
-.mfg-detail-freehead strong { color: var(--mfg-success-fg); font-weight: var(--slds-g-font-weight-7, 700); }
+.mfg-detail-freehead strong { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-7, 700); }
 .mfg-detail-promo-icon { width: var(--mfg-v-15px); height: var(--mfg-v-15px); fill: var(--mfg-accent-1); }
 .mfg-detail-empty {
   display: flex; align-items: flex-start; gap: var(--mfg-spacing-2);
   font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-1);
 }
 .mfg-detail-empty__icon { width: var(--mfg-v-15px); height: var(--mfg-v-15px); fill: var(--mfg-on-surface-1); flex: 0 0 auto; margin-top: var(--mfg-v-1px); }
+
+/* ---- Free-items tab: unlock-progress view (Variants C & F) ---------------- */
+/* Overall milestone track: a filled bar from 0 → highest threshold, with a dot
+   per reward that turns green once its threshold is met. */
+/* Order-quantity control that drives the unlock progress. */
+.mfg-free-qtyset { margin-bottom: var(--mfg-spacing-4); }
+.mfg-free-qtyset__label {
+  display: block; font-size: var(--slds-g-font-scale-base, 13px);
+  font-weight: var(--slds-g-font-weight-6, 590); color: var(--mfg-on-surface-2);
+  line-height: 18px; margin-bottom: var(--mfg-spacing-1);
+}
+.mfg-free-qtyset__row { display: flex; align-items: center; gap: var(--mfg-spacing-2); }
+.mfg-free-qtyset__row .mfg-free-qty-input { width: 96px; text-align: right; }
+.mfg-free-qtyset__uom { font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-1); }
+.mfg-free-qtyset__hint {
+  margin: var(--mfg-spacing-1) 0 0; font-size: var(--slds-g-font-scale-neg-1, 12px);
+  color: var(--mfg-on-surface-1); line-height: 16px;
+}
+
+/* Milestone track doubles as a draggable slider: the native range input sits on
+   top (transparent track, visible thumb) over the visual fill + threshold dots. */
+.mfg-free-slider-wrap {
+  position: relative; height: 20px; display: flex; align-items: center;
+  margin: var(--mfg-spacing-3) 0 var(--mfg-spacing-2);
+}
+.mfg-free-slider-wrap .mfg-free-track {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); margin: 0;
+}
+.mfg-free-slider {
+  -webkit-appearance: none; appearance: none;
+  position: relative; z-index: 2; width: 100%; height: 20px; margin: 0;
+  background: transparent; cursor: pointer;
+}
+.mfg-free-slider:focus { outline: none; }
+.mfg-free-slider::-webkit-slider-runnable-track { background: transparent; height: 20px; border: 0; }
+.mfg-free-slider::-moz-range-track { background: transparent; height: 20px; border: 0; }
+.mfg-free-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--slds-g-color-surface-1, #fff); border: 2px solid var(--mfg-accent-1);
+  box-shadow: 0 1px 2px rgba(0,0,0,.25); cursor: grab;
+}
+.mfg-free-slider::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--slds-g-color-surface-1, #fff); border: 2px solid var(--mfg-accent-1);
+  box-shadow: 0 1px 2px rgba(0,0,0,.25); cursor: grab;
+}
+.mfg-free-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--mfg-accent-container, rgba(11,109,244,.25)); }
+.mfg-free-slider:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--mfg-accent-container, rgba(11,109,244,.25)); }
+.mfg-free-slider:active::-webkit-slider-thumb { cursor: grabbing; }
+
+.mfg-free-progress { margin-bottom: var(--mfg-spacing-4); }
+.mfg-free-progress__caption {
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
+  margin-bottom: var(--mfg-spacing-2);
+}
+.mfg-free-progress__caption strong { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-7, 700); }
+.mfg-free-track {
+  position: relative; height: 8px; border-radius: 999px;
+  background: var(--mfg-surface-container-3, #e5e5e5);
+  margin: var(--mfg-spacing-3) 0 var(--mfg-spacing-2);
+}
+.mfg-free-track__fill {
+  position: absolute; inset: 0 auto 0 0; height: 100%;
+  border-radius: 999px; background: var(--mfg-success-fg);
+  transition: width 200ms ease;
+}
+.mfg-free-track__marker {
+  position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--slds-g-color-surface-1, #fff);
+  border: 2px solid var(--mfg-on-surface-1, #747474);
+}
+.mfg-free-track__marker.is-on { border-color: var(--mfg-success-fg); background: var(--mfg-success-fg); }
+.mfg-free-track__scale {
+  position: relative; height: 15px;
+  font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1);
+}
+.mfg-free-track__tick {
+  position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap;
+}
+.mfg-free-track__tick.is-first { left: 0; transform: none; }
+.mfg-free-track__tick.is-last { transform: none; }
+.mfg-free-track__tick.is-on { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-6, 600); }
+.mfg-free-progress__next {
+  margin-top: var(--mfg-spacing-2);
+  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2);
+}
+.mfg-free-progress__next strong { color: var(--mfg-on-surface-3); font-weight: var(--slds-g-font-weight-7, 700); }
+
+/* Per-reward progress rows */
+.mfg-free-goals { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--mfg-spacing-3); }
+.mfg-free-goal {
+  padding: var(--mfg-spacing-3);
+  border: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
+  border-radius: var(--slds-g-radius-border-2, 4px);
+  background: var(--slds-g-color-surface-1, #fff);
+}
+.mfg-free-goal.is-unlocked { border-color: var(--mfg-success-border); background: var(--mfg-success-container); }
+.mfg-free-goal__top { display: flex; align-items: center; justify-content: space-between; gap: var(--mfg-spacing-2); }
+.mfg-free-goal__name { font-weight: var(--slds-g-font-weight-6, 600); color: var(--mfg-on-surface-3); font-size: var(--slds-g-font-scale-base, 13px); }
+.mfg-free-goal__note { margin-top: var(--mfg-spacing-1); font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
+.mfg-free-goal__bar {
+  height: 6px; border-radius: 999px; margin: var(--mfg-spacing-2) 0 var(--mfg-spacing-1);
+  background: var(--mfg-surface-container-3, #e5e5e5); overflow: hidden;
+}
+.mfg-free-goal__bar-fill { height: 100%; border-radius: 999px; background: var(--mfg-success-fg); transition: width 200ms ease; }
+.mfg-free-goal.is-locked .mfg-free-goal__bar-fill { background: var(--mfg-accent-1); }
+.mfg-free-goal__meta { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
+
 .mfg-grid { border-collapse: collapse; width: var(--mfg-v-100pct); min-width: var(--mfg-v-1280px); font-size: var(--slds-g-font-scale-base, 13px); }
 .mfg-grid thead th {
   background: var(--mfg-surface-container-2);
@@ -525,8 +761,27 @@ body.mfg-single .mfg-style-switch { display: none; }
 .mfg-grid td.mfg-num-col { text-align: right; }
 .mfg-col-rowaction { width: var(--mfg-v-40px); text-align: center; }
 
+/* Base variants (A / E / F): widen the data columns so the grid overflows its
+   scroll container (.mfg-grid-wrapper) and the horizontal scrollbar appears.
+   Scoped away from variant B, which owns its own frozen-column geometry. */
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid { min-width: var(--mfg-v-2100px); }
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid .mfg-num-col { min-width: var(--mfg-v-150px); }
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid thead th:nth-child(5),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid tbody td:nth-child(5),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid thead th:nth-child(6),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid tbody td:nth-child(6),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid thead th:nth-child(7),
+.mfg-assortment-card:not([data-variant="b"]) .mfg-grid tbody td:nth-child(7) { min-width: var(--mfg-v-180px); }
+.mfg-assortment-card:not([data-variant="b"]) .mfg-col-product { width: var(--mfg-v-280px); }
+
+/* Variant F: dedicated Free Items column sits right after Order Qty. */
+.mfg-col-freeitems { width: var(--mfg-v-130px, 130px); white-space: nowrap; }
+.mfg-grid td.mfg-col-freeitems { text-align: left; }
+.mfg-freeitems-empty { color: var(--mfg-on-surface-3, #a8b3c2); }
+
 .mfg-grid .mfg-product-link { color: var(--mfg-accent-1); text-decoration: none; }
 .mfg-grid .mfg-product-link:hover { text-decoration: underline; }
+.mfg-grid .mfg-product-link:focus-visible { outline: var(--mfg-v-2px, 2px) solid var(--mfg-accent-1); outline-offset: var(--mfg-v-1px, 1px); border-radius: var(--mfg-radius-1); }
 
 /* Variant B: wider, resizable Product column (width lives in a custom prop set
    by the drag handle) to fit the free-items badge. */
@@ -617,6 +872,10 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
   border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-surface-container-3, #d8dde3);
 }
 .mfg-freecount-badge_on { background: var(--mfg-success-container); color: var(--mfg-success-fg); border-color: var(--mfg-success-border); }
+/* The unlocked "+N free items" badge is interactive — opens a details popover. */
+.mfg-freecount-badge_on { cursor: pointer; }
+.mfg-freecount-badge_on:hover { border-color: var(--mfg-success-fg); }
+.mfg-freecount-badge_on:focus-visible { outline: var(--mfg-v-2px, 2px) solid var(--mfg-accent-1); outline-offset: var(--mfg-v-1px, 1px); }
 .mfg-freecount-badge_none { background: var(--mfg-surface-container-2, #f1f1f1); color: var(--mfg-on-surface-1, #8a8a8a); }
 /* Free Items template loaded in the grid: these are free items themselves, so
    never show the "+N free items" earned badge on their product cells. */
@@ -687,6 +946,10 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 }
 .mfg-promo-pop__body { max-height: 60vh; overflow-y: auto; }
 .mfg-promo-pop__item { padding: var(--mfg-spacing-3) 0; }
+/* When reused inside the detail side panel, the panel body already supplies the
+   outer padding, so drop the first item's top pad. */
+.mfg-detail-promos { max-height: none; }
+.mfg-detail-promos .mfg-promo-pop__item:first-child { padding-top: 0; }
 .mfg-promo-pop__item + .mfg-promo-pop__item { border-top: var(--mfg-v-1px) solid var(--mfg-border-1); }
 .mfg-promo-pop__title { font-size: var(--mfg-v-14px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
 .mfg-promo-pop__desc { font-size: var(--mfg-v-13px); color: var(--mfg-on-surface-1); line-height: var(--mfg-v-1_35); margin-top: var(--mfg-spacing-2); }
@@ -698,6 +961,42 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 }
 .mfg-promo-pop__terms svg { width: var(--slds-g-sizing-5, 14px); height: var(--slds-g-sizing-5, 14px); fill: var(--mfg-accent-1); }
 .mfg-promo-pop__terms:hover { text-decoration: underline; }
+
+/* Free-items popover — reuses the .mfg-promo-pop shell (position/border/nubbin);
+   these rules style its heading count + the unlocked free-item list rows. */
+/* "N Free Items" title — Body/font-scale-2/Regular, navy (Figma 120:446796). */
+.mfg-free-pop__count {
+  display: block; margin-top: var(--mfg-v-2px, 2px);
+  font-size: var(--slds-g-font-scale-2, 16px); font-weight: var(--slds-g-font-weight-4, 400);
+  line-height: var(--slds-g-font-line-height-3, 1.375);
+  color: var(--mfg-on-surface-3);
+}
+.mfg-free-pop__body { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow-y: auto; }
+.mfg-free-pop__item {
+  display: flex; gap: var(--mfg-spacing-2, 8px); align-items: flex-start;
+  padding: var(--mfg-spacing-3, 12px) 0;
+}
+.mfg-free-pop__item + .mfg-free-pop__item { border-top: var(--mfg-v-1px, 1px) solid var(--mfg-border-1); }
+.mfg-free-pop__item-icon {
+  flex: 0 0 auto; display: inline-flex; margin-top: var(--mfg-v-2px, 2px);
+  width: var(--slds-g-sizing-6, 16px); height: var(--slds-g-sizing-6, 16px);
+  align-items: center; justify-content: center;
+}
+.mfg-free-pop__item-icon svg {
+  width: var(--slds-g-sizing-5, 14px); height: var(--slds-g-sizing-5, 14px);
+  fill: var(--mfg-success-fg);
+}
+.mfg-free-pop__item-body { min-width: 0; display: flex; flex-direction: column; gap: var(--mfg-v-2px, 2px); }
+/* Item name — Body/font-scale-1/Bold (14px / 700). Meta + value — font-scale-neg-1
+   (12px / 400) in muted grey, uniform weight (Figma 120:446796). */
+.mfg-free-pop__item-name {
+  font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-7, 700);
+  line-height: var(--slds-g-font-line-height-3, 1.375);
+  color: var(--mfg-on-surface-2);
+}
+.mfg-free-pop__item-note { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1); }
+.mfg-free-pop__item-meta { font-size: var(--slds-g-font-scale-neg-1, 12px); font-weight: var(--slds-g-font-weight-4, 400); color: var(--mfg-on-surface-1); }
+.mfg-free-pop__item-value { color: var(--mfg-on-surface-1); font-weight: var(--slds-g-font-weight-4, 400); }
 
 .mfg-row-action { background: none; border: none; cursor: pointer; padding: var(--mfg-v-2px); }
 .mfg-row-action svg { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); fill: var(--mfg-on-surface-1); }
@@ -863,6 +1162,145 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
 .mfg-assortment-card[data-variant="b"].mfg-summary-resized .mfg-free-acc__body {
   max-height: var(--mfg-free-acc-body-h);
 }
+/* ===================== Variant E — inspection feedback ===================== */
+/* The free-items figure lives INSIDE the Order Summary as a "Free items (N)
+   $value · View free items" metric alongside the priced totals (SLDS2/Kondo
+   global tokens only). No top strip, no scoped notification, no right-side
+   panel. The "View free items" CTA opens a modal listing every free item; the
+   modal drawer is relocated there. Per-row unlock badges sit next to the Net
+   Total number. The top strip element is kept but hidden. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-free-summary { display: none; }
+/* "Free items" metric inside the Order Summary totals row. */
+.mfg-free-total { display: inline-flex; align-items: center; gap: var(--slds-g-spacing-2, 8px); }
+.mfg-free-total__count { color: var(--slds-g-color-on-surface-1, #747474); }
+.mfg-free-total__value {
+  font-weight: var(--slds-g-font-weight-7, 700);
+  color: var(--slds-g-color-on-surface-3, #181818);
+}
+.mfg-free-total__cta {
+  border: 0; background: transparent; padding: 0;
+  color: var(--slds-g-color-accent-1, #0176d3);
+  font-size: var(--slds-g-font-scale-1, 14px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  cursor: pointer; text-decoration: underline;
+}
+.mfg-free-total__cta:hover { color: var(--slds-g-color-accent-2, #014486); }
+.mfg-free-total__cta[hidden] { display: none; }
+/* Per-row unlock badge pinned to the right of the (frozen) Product Name cell. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) td.mfg-product-cell {
+  display: flex; align-items: center; gap: var(--slds-g-spacing-2, 8px);
+}
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) td.mfg-product-cell .mfg-product-link {
+  flex: 0 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Freeze the leading columns (expand, #, check, Product Name) to the left so the
+   rest of the row scrolls horizontally beneath them. The Product column gets a
+   wider fixed width to fit the "Product Name + badge"; the grid is forced wider
+   than the card so horizontal scrolling always demonstrates the frozen columns.
+   Left offsets = cumulative widths (check is display:none → contributes 0):
+   expand 32 + # 32 = 64 for Product. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-col-product { width: var(--mfg-v-320px, 320px); }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid { min-width: var(--mfg-v-1800px, 1800px); }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-product,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-product {
+  position: sticky;
+  z-index: 2;
+  background: var(--slds-g-color-surface-1, #fff);
+}
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-expand { left: 0; }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-num { left: var(--slds-g-spacing-6, 32px); }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-check { left: var(--slds-g-spacing-10, 64px); }
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-product,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-product { left: var(--slds-g-spacing-10, 64px); }
+/* Frozen header cells sit above frozen body cells. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid thead th.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid thead th.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid thead th.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid thead th.mfg-col-product {
+  z-index: 3;
+  background: var(--mfg-surface-container-2);
+}
+/* Keep frozen cells opaque on row hover. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr:hover td.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr:hover td.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr:hover td.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr:hover td.mfg-col-product {
+  background: var(--slds-g-color-surface-container-2, #f7f9fb);
+}
+/* Shadow marking the frozen/scrolling boundary at the Product column's edge. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid th.mfg-col-product,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid td.mfg-col-product {
+  box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.18);
+}
+/* Order Summary stays permanently expanded — the header is a static label, so
+   the chevron reads as decorative (no collapse affordance). */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-order-summary__toggle { cursor: default; }
+/* Sticky footer stack: the Cancel/Add-to-Cart bar (edit footer) and the Order
+   Summary (header + totals) stay pinned together at the viewport bottom while
+   the grid scrolls, then settle at the card's bottom. The edit footer sticks
+   just above the summary (bottom: --mfg-summary-bar-h, published by JS). */
+body.mfg-single .mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-order-summary {
+  position: sticky;
+  bottom: 0;
+  z-index: 90;
+  border-radius: 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.14);
+}
+/* Free-items modal: bigger footprint + the relocated drawer flows normally. */
+.mfg-free-modal .slds-modal__container {
+  width: 95vw; max-width: var(--mfg-v-1360px, 1360px);
+}
+.mfg-free-modal .mfg-free-drawer { padding: 0; border-bottom: 0; background: transparent; }
+.mfg-free-modal .mfg-free-drawer__scroll { max-height: none; }
+/* In the modal each expanded section grows to its full height (no internal
+   260px scroll) so the WHOLE modal grows/shrinks with what's expanded — the
+   modal body (.mfg-free-modal__content) is the single scroll region. */
+.mfg-free-modal .mfg-free-acc__body { max-height: none; overflow-y: visible; }
+/* Height follows the content: short when the accordions are collapsed, growing
+   as they expand, capped at 90vh (then the body scrolls). No min-height, so a
+   fully-collapsed modal stays compact. */
+.mfg-free-modal__content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+/* Total line at the top of the modal body — below the header, above the
+   expandable sections — summing the full free-items value across all sources.
+   The 8px inner padding matches the section pills' padding, so the "Total free
+   items" label lines up with the section titles and the count · value lines up
+   with each section's own count · value (they read as one column). */
+/* Typography matches the Figma node (Body/font-scale-2/Regular): SF Pro,
+   font-scale-2 (16px), font-weight-4 (400), 22px line-height, on-surface-2. */
+/* Two-line total header (Figma node 120:446727): a semibold headline over a
+   regular per-source breakdown, stacked with a 4px gap. */
+.mfg-free-modal__total {
+  display: flex; flex-direction: column; gap: var(--slds-g-spacing-1, 4px);
+  margin: 0 0 var(--mfg-spacing-3, 12px);
+  padding: 0 var(--slds-g-spacing-2, 8px) var(--mfg-spacing-3, 12px);
+  border-bottom: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-border-1);
+  font-family: var(--slds-g-font-family-base, "SF Pro", "Salesforce Sans", -apple-system, BlinkMacSystemFont, Arial, sans-serif);
+  color: var(--mfg-on-surface-2, #444);
+}
+.mfg-free-modal__total-head {
+  font-size: var(--slds-g-font-scale-2, 16px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: var(--slds-g-font-line-height-3, 1.375); /* 16px × 1.375 = 22px */
+}
+.mfg-free-modal__total-list {
+  font-size: var(--slds-g-font-scale-1, 14px);
+  font-weight: var(--slds-g-font-weight-4, 400);
+  line-height: var(--slds-g-font-line-height-3, 1.375); /* 14px × 1.375 ≈ 19px */
+}
+
 .mfg-order-summary__toggle {
   display: flex; align-items: center; gap: var(--mfg-spacing-2);
   width: var(--mfg-v-100pct); background: var(--mfg-surface-container-2);
@@ -892,44 +1330,89 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
 }
 /* Scoped notification summarising the free-item value by aspect + grand total */
 .mfg-free-notif {
-  display: flex; align-items: flex-start; gap: var(--mfg-spacing-3);
+  display: flex; align-items: center; gap: var(--slds-g-spacing-3, 12px);
   padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
-  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-success-border);
-  border-radius: var(--slds-g-radius-border-2, 4px);
-  background: var(--mfg-success-container);
+  border: 0;
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  /* SLDS2 --slds-g-color-success-container-1 (#acf3e4) */
+  background: #acf3e4;
 }
 .mfg-free-notif__figure { margin: 0; flex: 0 0 auto; }
-.mfg-free-notif__icon { width: var(--mfg-v-18px); height: var(--mfg-v-18px); fill: var(--mfg-success-fg); margin-top: var(--mfg-v-1px); }
+/* SLDS2 --slds-g-color-on-success-1 (#056764) */
+.mfg-free-notif__icon { width: var(--mfg-v-18px); height: var(--mfg-v-18px); fill: #056764; }
 .mfg-free-notif__body {
   flex: 1 1 auto; min-width: 0;
   display: flex; align-items: baseline; flex-wrap: wrap;
-  gap: var(--mfg-spacing-1, 4px) var(--mfg-spacing-3, 12px);
+  gap: var(--slds-g-spacing-1, 4px) var(--slds-g-spacing-3, 12px);
+  /* SLDS2 Body/font-scale-base/Semibold: 13 / Semibold / 18 */
+  font-size: var(--slds-g-font-size-base, 13px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: 18px;
+  color: #056764;
 }
 .mfg-free-notif__title {
-  font-size: var(--slds-g-font-scale-1, 14px); color: var(--mfg-success-fg);
+  font-size: var(--slds-g-font-size-base, 13px);
+  color: #056764;
 }
-.mfg-free-notif__title strong { font-weight: var(--slds-g-font-weight-7, 700); }
+.mfg-free-notif__title strong { font-weight: inherit; }
 .mfg-free-notif__breakdown {
   display: inline-flex; flex-wrap: wrap; align-items: baseline;
-  gap: var(--mfg-spacing-1, 4px) var(--mfg-spacing-3, 12px);
+  gap: var(--slds-g-spacing-1, 4px) var(--slds-g-spacing-3, 12px);
 }
 .mfg-free-notif__breakdown::before {
-  content: "·"; margin-right: var(--mfg-spacing-1, 4px); color: var(--mfg-on-surface-1);
+  content: "·"; margin-right: var(--slds-g-spacing-1, 4px); color: #056764;
 }
 .mfg-free-notif__aspect {
-  display: inline-flex; align-items: baseline; gap: var(--mfg-spacing-1, 4px);
-  font-size: var(--slds-g-font-scale-1, 14px); color: var(--mfg-on-surface-2);
+  display: inline-flex; align-items: baseline; gap: var(--slds-g-spacing-1, 4px);
+  font-size: var(--slds-g-font-size-base, 13px); color: #056764;
 }
 .mfg-free-notif__aspect + .mfg-free-notif__aspect::before {
-  content: "·"; margin-right: var(--mfg-spacing-2, 8px); color: var(--mfg-on-surface-1);
+  content: "·"; margin-right: var(--mfg-spacing-2, 8px); color: #056764;
 }
-.mfg-free-notif__aspect-val { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg); }
+.mfg-free-notif__aspect-val { font-weight: inherit; color: #056764; }
 .mfg-free-summary__cta {
   border: 0; background: transparent; cursor: pointer; padding: 0;
-  font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-6, 600);
-  color: var(--mfg-accent-2); white-space: nowrap; flex: 0 0 auto; margin-left: auto;
+  /* SLDS2 Body/font-scale-base/Underline Semibold: 13 / Semibold / 18, on-success-1 */
+  font-size: var(--slds-g-font-size-base, 13px); font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: 18px; text-decoration: underline;
+  color: #056764; white-space: nowrap; flex: 0 0 auto; margin-left: auto;
 }
 .mfg-free-summary__cta:hover { text-decoration: underline; }
+
+/* Variant E: blue scoped notification docked just above the grid, shown only
+   when a free item has been unlocked. Uses the Figma "info container" blue
+   (--mfg-promo-container #d8e6fe) with on-info blue (--mfg-on-info #0b5cab). */
+.mfg-unlock-notif {
+  display: flex; align-items: center; gap: var(--slds-g-spacing-3, 12px);
+  margin: 0 var(--mfg-spacing-4) var(--mfg-spacing-3);
+  padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
+  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-promo-container, #d8e6fe);
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  background: var(--mfg-promo-container, #d8e6fe);
+  color: var(--mfg-on-info, #0b5cab);
+}
+.mfg-unlock-notif[hidden] { display: none; }
+.mfg-unlock-notif__figure { margin: 0; flex: 0 0 auto; display: inline-flex; }
+.mfg-unlock-notif__icon {
+  width: var(--mfg-v-18px, 18px); height: var(--mfg-v-18px, 18px);
+  fill: var(--mfg-on-info, #0b5cab);
+}
+.mfg-unlock-notif__body { flex: 1 1 auto; min-width: 0; }
+.mfg-unlock-notif__title {
+  font-size: var(--slds-g-font-size-base, 13px);
+  font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: 18px; color: var(--mfg-on-info, #0b5cab);
+}
+.mfg-unlock-notif__cta {
+  border: 0; background: transparent; cursor: pointer; padding: 0;
+  font-size: var(--slds-g-font-size-base, 13px); font-weight: var(--slds-g-font-weight-6, 600);
+  line-height: 18px; text-decoration: underline;
+  color: var(--mfg-accent-2, #0250d9); white-space: nowrap; flex: 0 0 auto; margin-left: auto;
+}
+.mfg-unlock-notif__cta:hover { text-decoration: underline; }
+.mfg-unlock-notif__cta:focus-visible {
+  outline: 2px solid var(--mfg-accent-1, #066afe); outline-offset: 2px; border-radius: 2px;
+}
 
 /* The free-items region lives INSIDE the Order Summary, directly under its
    header. Expanding it (via the header chevron or "Learn more") grows the
@@ -961,7 +1444,10 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
 /* Free items rendered as a table; a product spans multiple rows (rowspan) */
 .mfg-free-table {
   width: var(--mfg-v-100pct); border-collapse: collapse; table-layout: fixed;
-  font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-3);
+  font-family: var(--slds-g-font-family-base, "SF Pro", "Salesforce Sans", -apple-system, BlinkMacSystemFont, Arial, sans-serif);
+  font-size: var(--slds-g-font-scale-base, 13px);
+  line-height: var(--slds-g-font-line-height-4, 1.5);
+  color: var(--mfg-on-surface-3);
   background: var(--slds-g-color-surface-1, #fff);
   border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-surface-container-3);
   border-radius: var(--slds-g-radius-border-2, 4px);
@@ -1004,8 +1490,13 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
   display: block; margin-top: var(--mfg-spacing-1);
   font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-surface-1);
 }
-.mfg-free-table__uom { color: var(--mfg-on-surface-2); white-space: nowrap; }
-.mfg-free-table__qty { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg); white-space: nowrap; }
+/* Fixed widths for the trailing columns so they line up across ALL sections —
+   including Custom free items, whose table has no lead column. With
+   table-layout:fixed the remaining width goes to the lead + Free item columns,
+   which sums to the same in every table, so UoM/Qty/Price share one geometry. */
+.mfg-free-table__uom { color: var(--mfg-on-surface-2); white-space: nowrap; width: 13%; }
+.mfg-free-table__qty { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); white-space: nowrap; width: 8%; }
+.mfg-free-table__promo { color: var(--mfg-on-surface-2); width: 17%; }
 .mfg-free-table__at { color: var(--mfg-on-surface-1); white-space: nowrap; }
 /* Variant D flat table: reward-type is a clubbed (rowspan) leading column that
    holds a colored badge; product/promotion clubs within it via .mfg-free-table__prod. */
@@ -1041,10 +1532,11 @@ body.mfg-row-resizing { cursor: ns-resize; user-select: none; }
   position: sticky; left: 0; z-index: 2;
 }
 .mfg-free-drawer__scroll .mfg-free-table_flat thead th:first-child { z-index: 3; }
+.mfg-free-table__value { width: 18%; }
 th.mfg-free-table__value { text-align: right; }
 td.mfg-free-table__value {
   text-align: right; white-space: nowrap;
-  font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-success-fg);
+  font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2);
 }
 /* List price is struck through (it's waived); the $0.00 free price sits beside
    it as the true final price. */
@@ -1054,7 +1546,7 @@ td.mfg-free-table__value {
   font-weight: var(--slds-g-font-weight-4, 400);
   margin-right: var(--mfg-spacing-1, 4px);
 }
-.mfg-free-table__free-price { color: var(--mfg-success-fg); font-weight: var(--slds-g-font-weight-7, 700); }
+.mfg-free-table__free-price { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-7, 700); }
 .mfg-free-table__row.is-locked .mfg-free-table__qty { color: var(--mfg-on-surface-1); }
 .mfg-free-table__row.is-locked { color: var(--mfg-on-surface-1); }
 
@@ -1069,30 +1561,40 @@ td.mfg-free-table__value {
 
 /* --- Free-items drawer: accordions by source (promotion / product / added) --- */
 .mfg-free-acc { background: var(--slds-g-color-surface-1, #fff); }
-.mfg-free-acc + .mfg-free-acc { margin-top: var(--mfg-spacing-4); }
+/* Figma spec (node 12:16799): sections are separated by an 8px gap. */
+.mfg-free-acc + .mfg-free-acc { margin-top: var(--slds-g-spacing-2, 8px); }
+/* Figma spec: the section header is a standalone rounded pill — 32px tall,
+   surface-container-2 (#f3f3f3) background, 8px radius, 8px horizontal padding,
+   8px gap between chevron/title, no connecting border. */
 .mfg-free-acc__head {
-  display: flex; align-items: center; gap: var(--mfg-spacing-3);
+  display: flex; align-items: center; gap: var(--slds-g-spacing-2, 8px);
   width: var(--mfg-v-100pct); text-align: left; cursor: pointer;
-  padding: var(--mfg-spacing-3) var(--mfg-spacing-4);
-  background: var(--mfg-surface-container-2, #f3f3f3);
-  border: 0; border-bottom: var(--mfg-v-1px) solid var(--mfg-surface-container-3);
-  font: inherit; color: var(--mfg-on-surface-3);
+  min-height: var(--mfg-v-32px, 32px);
+  padding: 0 var(--slds-g-spacing-2, 8px);
+  background: var(--slds-g-color-surface-container-2, #f3f3f3);
+  border: 0;
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  font-family: var(--slds-g-font-family-base, "SF Pro", "Salesforce Sans", -apple-system, BlinkMacSystemFont, Arial, sans-serif);
+  color: var(--slds-g-color-on-surface-2, #2e2e2e);
 }
-.mfg-free-acc.is-collapsed .mfg-free-acc__head { border-bottom: 0; }
 .mfg-free-acc__head:hover { background: var(--mfg-surface-container-3); }
 .mfg-free-acc__head:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-accent-1); outline-offset: -2px; }
+/* Figma spec: chevron icon renders at 12px. */
 .mfg-free-acc__chevron {
-  width: var(--mfg-v-14px); height: var(--mfg-v-14px); flex: 0 0 auto;
-  fill: var(--mfg-on-surface-2); transition: transform .15s ease;
+  width: var(--mfg-v-12px, 12px); height: var(--mfg-v-12px, 12px); flex: 0 0 auto;
+  fill: var(--slds-g-color-on-surface-2, #2e2e2e); transition: transform .15s ease;
 }
 .mfg-free-acc.is-collapsed .mfg-free-acc__chevron { transform: rotate(-90deg); }
 .mfg-free-acc__titles {
   flex: 1 1 auto; min-width: 0;
   display: flex; align-items: baseline; gap: var(--mfg-spacing-2);
 }
+/* Figma spec: title is font-scale-2 (16px), weight 400, on-surface-2, lh 22px. */
 .mfg-free-acc__title {
-  flex: 0 0 auto; font-weight: var(--slds-g-font-weight-7, 700);
-  color: var(--mfg-on-surface-3); font-size: var(--slds-g-font-scale-base, 13px);
+  flex: 0 0 auto; font-weight: var(--slds-g-font-weight-4, 400);
+  color: var(--slds-g-color-on-surface-2, #2e2e2e);
+  font-size: var(--slds-g-font-scale-2, 16px);
+  line-height: var(--slds-g-font-line-height-3, 1.375); /* 16px × 1.375 = 22px */
 }
 .mfg-free-acc__sub {
   flex: 1 1 auto; min-width: 0;
@@ -1161,7 +1663,6 @@ td.mfg-free-table__value {
   border-radius: var(--mfg-radius-1);
   border-color: var(--mfg-accent-1);
 }
-
 /* ----------------------------- Qty popover ----------------------------- */
 .mfg-qty-popover {
   position: absolute; z-index: 200;
@@ -1251,6 +1752,14 @@ td.mfg-free-table__value {
   transition: left .25s ease;
 }
 .mfg-gg-marker { position: absolute; top: var(--slds-g-spacing-2, 8px); transform: translate(-50%, -50%); z-index: 2; text-align: center; }
+/* Variant G: the progress bar is an interactive slider — drag the track/knob or
+   click a milestone. (Variant A's popover is display-only, so these cursors are
+   scoped to the interactive popover.) */
+.mfg-qty-popover_interactive .mfg-gg-track { cursor: pointer; touch-action: none; }
+.mfg-qty-popover_interactive .mfg-gg-knob { cursor: grab; }
+.mfg-qty-popover_interactive .mfg-gg-knob:active { cursor: grabbing; }
+.mfg-qty-popover_interactive .mfg-gg-marker { cursor: pointer; }
+.mfg-qty-popover_interactive .mfg-gg-marker:hover .mfg-gg-dot { box-shadow: 0 0 0 3px rgba(6,106,254,0.30); }
 .mfg-gg-dot {
   display: flex; align-items: center; justify-content: center;
   width: var(--mfg-v-22px); height: var(--mfg-v-22px); border-radius: var(--mfg-v-50pct);
@@ -1263,7 +1772,7 @@ td.mfg-free-table__value {
 /* marker states */
 .mfg-gg-marker.is-unlocked .mfg-gg-dot { background: var(--slds-g-color-palette-green-50, #2e844a); box-shadow: 0 0 0 1px var(--slds-g-color-palette-green-50, #2e844a); }
 .mfg-gg-marker.is-unlocked .mfg-gg-dot-icon { fill: var(--slds-g-color-on-accent-1, #fff); }
-.mfg-gg-marker.is-unlocked .mfg-gg-ml { color: var(--slds-g-color-palette-green-50, #2e844a); font-weight: var(--slds-g-font-weight-6, 600); }
+.mfg-gg-marker.is-unlocked .mfg-gg-ml { color: var(--mfg-on-surface-2); font-weight: var(--slds-g-font-weight-6, 600); }
 .mfg-gg-marker.is-next .mfg-gg-dot { background: var(--mfg-promo-container); box-shadow: 0 0 0 3px rgba(6,106,254,0.25); border-color: var(--mfg-surface); }
 .mfg-gg-marker.is-next .mfg-gg-dot-icon { fill: var(--mfg-on-surface-3); }
 .mfg-gg-marker.is-next .mfg-gg-ml { color: var(--mfg-accent-1); font-weight: var(--slds-g-font-weight-7, 700); }
@@ -1388,3 +1897,213 @@ td.mfg-free-table__value {
     scroll-behavior: auto !important;
   }
 }
+/* =====================================================================
+   VARIANT M2 — purpose-built Manufacturing Cloud order & pricing grid
+   (rendered by assets/m2.js). Scoped under .mfg-m2.
+   ===================================================================== */
+.mfg-m2 .mfg-card-title { font-weight: 700; }
+
+/* ---- Agreement context bar + toolbar (replaces the CPG filter row) ---- */
+.mfg-m2 .m2-context-wrap { display: block; padding: 0.75rem 1rem 0.5rem; }
+.m2-agr {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;
+  padding: 0.75rem; margin-bottom: 0.75rem;
+  background: var(--mfg-accent-container, #eaf2ff);
+  border: 1px solid var(--mfg-border-1, #c9c9c9);
+  border-radius: var(--slds-g-radius-border-2, 0.25rem);
+}
+.m2-agr__item { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.m2-agr__k { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mfg-on-surface-1, #5c5c5c); font-weight: 700; }
+.m2-agr__v { font-size: 0.95rem; font-weight: 700; color: var(--mfg-on-surface-2, #2e2e2e); display: flex; align-items: center; gap: 0.35rem; }
+.m2-agr__sub { font-size: 0.72rem; color: var(--mfg-on-surface-1, #5c5c5c); line-height: 1.3; }
+.m2-agr__accr { font-size: 0.7rem; font-weight: 600; color: var(--mfg-on-info, #0b5cab); }
+.m2-agr__item + .m2-agr__item { border-left: 1px solid var(--mfg-border-1, #c9c9c9); padding-left: 0.75rem; }
+.m2-meter { height: 7px; border-radius: 4px; background: #fff; border: 1px solid var(--mfg-border-1, #c9c9c9); overflow: hidden; margin: 0.2rem 0; }
+.m2-meter__fill { display: block; height: 100%; background: var(--mfg-accent-1, #066afe); }
+.m2-badge { font-size: 0.65rem; font-weight: 700; padding: 0.05rem 0.4rem; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+.m2-badge_ok { background: #d7f4e3; color: #1a7f45; }
+.m2-badge_warn { background: var(--mfg-error-container, #fef1ee); color: var(--mfg-error-fg, #a4341f); }
+
+.m2-toolbar { display: flex; align-items: center; gap: 0.5rem; }
+.m2-search { flex: 1 1 auto; }
+.m2-search .slds-input { width: 100%; }
+.m2-btn { font: inherit; font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: var(--slds-g-radius-border-2, 0.25rem); border: 1px solid var(--mfg-border-1, #c9c9c9); background: #fff; color: var(--mfg-on-surface-2, #2e2e2e); cursor: pointer; white-space: nowrap; }
+.m2-btn:hover { background: #f4f6f9; }
+.m2-btn_brand { background: var(--mfg-accent-1, #066afe); border-color: var(--mfg-accent-1, #066afe); color: #fff; }
+.m2-btn_brand:hover { background: var(--mfg-accent-2, #0250d9); }
+.m2-btn_light { background: #fff; }
+.m2-btn_mini { font-size: 0.72rem; padding: 0.15rem 0.5rem; }
+
+/* ---- Grid ---- */
+.mfg-m2 .mfg-grid-layout { display: block; padding: 0 1rem 0.5rem; }
+.m2-grid-wrap { overflow-x: auto; border: 1px solid var(--mfg-border-1, #c9c9c9); border-radius: var(--slds-g-radius-border-2, 0.25rem); }
+.m2-grid { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.m2-grid thead th { text-align: left; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mfg-on-surface-1, #5c5c5c); font-weight: 700; padding: 0.5rem 0.6rem; background: var(--mfg-page-bg, #f3f3f3); border-bottom: 2px solid var(--mfg-border-1, #c9c9c9); position: sticky; top: 0; z-index: 1; }
+.m2-grid td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--mfg-border-1, #e4e4e4); vertical-align: top; }
+.m2-row:hover td { background: #f7faff; }
+.m2-row_active td { background: #f0f6ff; }
+.m2-row_active:hover td { background: #e8f1ff; }
+.m2-c-exp { width: 2rem; text-align: center; }
+.m2-c-num { width: 2rem; color: var(--mfg-on-surface-1, #5c5c5c); }
+.m2-c-uom { width: 9rem; }
+.m2-c-qty { width: 9rem; }
+.m2-c-price { width: 8.5rem; }
+.m2-c-avail { width: 11rem; }
+.m2-c-total { width: 7rem; text-align: right; }
+.m2-c-act { width: 2.5rem; text-align: center; }
+.m2-c-total, .m2-line-total { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.m2-exp, .m2-kebab { border: none; background: transparent; cursor: pointer; font-size: 0.9rem; color: var(--mfg-on-surface-1, #5c5c5c); line-height: 1; padding: 0.15rem 0.25rem; border-radius: 3px; }
+.m2-exp:hover, .m2-kebab:hover { background: #e6eefc; color: var(--mfg-accent-1, #066afe); }
+
+.m2-prod__name { font-weight: 600; color: var(--mfg-on-surface-2, #2e2e2e); }
+.m2-prod__meta { font-size: 0.72rem; color: var(--mfg-on-surface-1, #5c5c5c); margin-top: 0.1rem; }
+.m2-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.3rem; }
+.m2-chip { font-size: 0.64rem; font-weight: 700; padding: 0.08rem 0.4rem; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
+.m2-chip_kit { background: #ede3ff; color: #5a2ca0; }
+.m2-chip_agr { background: #d8e6fe; color: #0b5cab; }
+.m2-chip_con { background: #d7f4e3; color: #1a7f45; }
+.m2-chip_inc { background: #fff1cc; color: #8a5b00; }
+.m2-chip_hold { background: var(--mfg-error-container, #fef1ee); color: var(--mfg-error-fg, #a4341f); }
+
+.m2-uom-select { width: 100%; font: inherit; font-size: 0.8rem; padding: 0.25rem 0.35rem; border: 1px solid var(--mfg-border-1, #c9c9c9); border-radius: 3px; background: #fff; }
+
+.m2-stepper { display: inline-flex; align-items: stretch; border: 1px solid var(--mfg-border-1, #c9c9c9); border-radius: 4px; overflow: hidden; background: #fff; }
+.m2-step { border: none; background: #f4f6f9; cursor: pointer; width: 1.9rem; font-size: 1rem; color: var(--mfg-on-surface-2, #2e2e2e); }
+.m2-step:hover { background: var(--mfg-accent-1, #066afe); color: #fff; }
+.m2-qty { width: 3rem; border: none; border-left: 1px solid var(--mfg-border-1, #c9c9c9); border-right: 1px solid var(--mfg-border-1, #c9c9c9); text-align: center; font: inherit; font-weight: 600; padding: 0.25rem 0; }
+.m2-qty:focus { outline: 2px solid var(--mfg-accent-1, #066afe); outline-offset: -2px; }
+.m2-qty-hint { font-size: 0.66rem; color: var(--mfg-on-surface-1, #5c5c5c); margin-top: 0.2rem; }
+.m2-qty-hint_flash { color: var(--mfg-error-fg, #a4341f); font-weight: 700; }
+
+.m2-price { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+.m2-price__list { font-size: 0.72rem; color: var(--mfg-on-surface-1, #5c5c5c); text-decoration: line-through; }
+.m2-price__now { font-weight: 700; color: var(--mfg-on-surface-2, #2e2e2e); font-variant-numeric: tabular-nums; }
+.m2-why { border: none; background: transparent; padding: 0; font-size: 0.66rem; font-weight: 700; color: var(--mfg-accent-1, #066afe); cursor: pointer; }
+.m2-why:hover { text-decoration: underline; }
+
+.m2-atp { display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.45rem; border-radius: 10px; line-height: 1.3; }
+.m2-atp_in { background: #d7f4e3; color: #1a7f45; }
+.m2-atp_lead { background: #d8e6fe; color: #0b5cab; }
+.m2-atp_cto { background: #ede3ff; color: #5a2ca0; }
+.m2-atp_warn { background: #fff1cc; color: #8a5b00; }
+
+/* ---- Expandable detail row ---- */
+.m2-detail-row td { background: #fbfcfe; padding: 0; }
+.m2-detail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1.5rem; padding: 0.85rem 1.25rem 1rem 3rem; }
+.m2-d-sec { min-width: 0; }
+.m2-d-h { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; color: var(--mfg-accent-2, #0250d9); margin-bottom: 0.4rem; }
+.m2-d-note { font-size: 0.7rem; color: var(--mfg-on-surface-1, #5c5c5c); margin-top: 0.35rem; line-height: 1.35; }
+
+.m2-ladder { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.m2-tier { display: flex; flex-direction: column; gap: 0.05rem; padding: 0.3rem 0.55rem; border: 1px solid var(--mfg-border-1, #c9c9c9); border-radius: 5px; background: #fff; min-width: 5.5rem; }
+.m2-tier__q { font-size: 0.66rem; color: var(--mfg-on-surface-1, #5c5c5c); font-weight: 600; }
+.m2-tier__l { font-size: 0.8rem; font-weight: 700; color: var(--mfg-on-surface-2, #2e2e2e); }
+.m2-tier__r { font-size: 0.66rem; color: var(--mfg-on-surface-1, #5c5c5c); }
+.m2-tier_free { background: #fffaf0; border-color: #f0d68a; }
+.m2-tier_on { border-color: var(--mfg-accent-1, #066afe); box-shadow: 0 0 0 1px var(--mfg-accent-1, #066afe) inset; background: #eef5ff; }
+.m2-tier_next { border-style: dashed; border-color: var(--mfg-accent-1, #066afe); }
+.m2-tier_next::after { content: "next"; display: block; font-size: 0.6rem; font-weight: 700; color: var(--mfg-accent-1, #066afe); text-transform: uppercase; }
+
+.m2-bom { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+.m2-bom td { padding: 0.25rem 0.5rem; border-bottom: 1px solid #ececec; }
+.m2-bom__roll td { font-weight: 700; border-top: 1.5px solid var(--mfg-border-1, #c9c9c9); border-bottom: none; }
+
+.m2-alt { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.m2-uom-alt { font-size: 0.74rem; padding: 0.2rem 0.5rem; background: #fff; border: 1px solid var(--mfg-border-1, #c9c9c9); border-radius: 4px; }
+.m2-perk { font-size: 0.78rem; color: #1a7f45; }
+.m2-perk__note { color: var(--mfg-on-surface-1, #5c5c5c); }
+.m2-deliv { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; }
+.m2-split { font-size: 0.74rem; color: #8a5b00; margin-top: 0.35rem; }
+
+/* ---- Rich order summary ---- */
+.mfg-m2 .m2-summary { display: block; padding: 0.75rem 1rem 1rem; }
+.m2-sum { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.5rem; align-items: start; }
+.m2-sum__row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0; border-bottom: 1px solid #ececec; font-size: 0.82rem; color: var(--mfg-on-surface-2, #2e2e2e); }
+.m2-sum__row span:first-child { color: var(--mfg-on-surface-1, #5c5c5c); }
+.m2-sum__save .m2-sum-savings { color: #1a7f45; font-weight: 700; }
+.m2-sum__held span:last-child { color: var(--mfg-error-fg, #a4341f); }
+.m2-sum__foot { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem; background: var(--mfg-page-bg, #f3f3f3); border-radius: var(--slds-g-radius-border-2, 0.25rem); }
+.m2-sum__grand { display: flex; justify-content: space-between; font-size: 1.05rem; font-weight: 800; color: var(--mfg-on-surface-2, #2e2e2e); }
+.m2-sum__grand span:last-child { font-variant-numeric: tabular-nums; }
+.m2-sum__btns { display: flex; gap: 0.5rem; }
+.m2-sum__btns .m2-btn { flex: 1; text-align: center; }
+
+@media (max-width: 900px) {
+  .m2-agr { grid-template-columns: repeat(2, 1fr); }
+  .m2-detail { grid-template-columns: 1fr; }
+  .m2-sum { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   Variant M3 — AG Grid Community host.
+   Map AG Grid's Quartz theme (--ag-*) onto the prototype's --mfg-* tokens so
+   the AG-rendered grid matches Variant M2's hand-built table exactly. All the
+   cell content (.m2-prod, .m2-chip, .m2-uom-select, .m2-stepper, .m2-price,
+   .m2-atp, .m2-tier, .m2-detail …) reuses M2's classes already defined above.
+   ===================================================================== */
+.mfg-m3 .m2-grid-wrap { width: 100%; }
+.mfg-m3 .m2-grid-theme {
+  width: 100%; height: auto;
+  --ag-font-family: inherit;
+  --ag-font-size: 13px;
+  --ag-foreground-color: var(--mfg-on-surface-2, #2e2e2e);
+  --ag-background-color: var(--mfg-surface, #fff);
+  --ag-header-background-color: var(--mfg-surface-container-1, #f3f3f3);
+  --ag-header-foreground-color: var(--mfg-on-surface-1, #5c5c5c);
+  --ag-border-color: var(--mfg-border-1, #e5e5e5);
+  --ag-row-border-color: var(--mfg-border-1, #e5e5e5);
+  --ag-row-hover-color: var(--mfg-accent-container, #f0f6ff);
+  --ag-active-color: var(--mfg-accent-1, #066afe);
+  --ag-input-focus-border-color: var(--mfg-accent-1, #066afe);
+  --ag-borders: solid 1px;
+  --ag-wrapper-border-radius: var(--mfg-radius-2, 0.25rem);
+  --ag-header-height: 44px;
+  --ag-cell-horizontal-padding: 14px;
+}
+.mfg-m3 .m2-grid-theme .ag-header-cell-text {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700;
+}
+.mfg-m3 .m2-grid-theme .ag-cell { display: flex; align-items: center; }
+.mfg-m3 .m2-grid-theme .ag-cell.m2-c-total { justify-content: flex-end; }
+.mfg-m3 .m2-grid-theme .ag-full-width-row,
+.mfg-m3 .m2-grid-theme .ag-full-width-row .ag-cell { background: var(--mfg-surface-container-1, #fbfcfe); }
+/* qty cell: stepper stacked over the min/mult hint (AG cell is flex-row by default) */
+.mfg-m3 .m2-qty-cell { display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-start; }
+/* the M2 detail markup expects to sit in a block, not a flex cell */
+.mfg-m3 .m2-detail-host { width: 100%; }
+
+/* ---- M3 redesign: live pricing, search, menus, toasts (all-JTBD) ---- */
+/* price cell must stack now/badge/nudge — override the flex-row .ag-cell */
+.mfg-m3 .m2-grid-theme .ag-cell .m2-price { flex-direction: column; align-items: flex-start; gap: 0.12rem; }
+.m2-price__badge { font-size: 0.6rem; font-weight: 800; padding: 0.05rem 0.35rem; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
+.m2-price__badge_vol { background: #fff1cc; color: #8a5b00; }         /* volume tier applied */
+.m2-price__badge_con { background: #d7f4e3; color: #1a7f45; }         /* contract price applied */
+.m2-nudge { font-size: 0.64rem; font-weight: 700; color: var(--mfg-accent-1, #066afe); white-space: nowrap; }
+
+.m2-count { font-size: 0.72rem; font-weight: 600; color: var(--mfg-on-surface-1, #5c5c5c); white-space: nowrap; padding: 0 0.25rem; }
+.m3-menu-wrap { position: relative; }
+
+/* over-committed draw-down turns the meter red (error visibility) */
+.m2-meter__fill_over { background: var(--mfg-error-fg, #a4341f) !important; }
+
+/* editable requested-date + warning (JTBD 8) */
+.m2-deliv__req { display: inline-flex; align-items: center; gap: 0.35rem; }
+.m2-date { font: inherit; font-size: 0.76rem; padding: 0.1rem 0.3rem; border: 1px solid var(--mfg-border-1, #c9c9c9); border-radius: 3px; }
+.m2-date-warn { font-size: 0.72rem; color: #8a5b00; margin-top: 0.35rem; font-weight: 600; }
+.m2-bom th, .m2-bom__swap { white-space: nowrap; }
+
+/* floating menu (kebab actions + saved lists) — user control & freedom */
+.m3-menu { position: absolute; z-index: 9999; min-width: 180px; background: #fff; border: 1px solid var(--mfg-border-1, #c9c9c9); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.16); padding: 0.25rem; }
+.m3-menu__item { display: block; width: 100%; text-align: left; border: none; background: transparent; font: inherit; font-size: 0.82rem; padding: 0.4rem 0.6rem; border-radius: 4px; cursor: pointer; color: var(--mfg-on-surface-2, #2e2e2e); }
+.m3-menu__item:hover { background: var(--mfg-accent-container, #eaf2ff); }
+.m3-menu__item_danger { color: var(--mfg-error-fg, #a4341f); }
+.m3-menu__item_danger:hover { background: var(--mfg-error-container, #fef1ee); }
+
+/* toast (visibility of system status) */
+.m3-toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 16px); background: #032a5e; color: #fff; font-size: 0.82rem; font-weight: 600; padding: 0.6rem 1rem; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease; z-index: 10000; }
+.m3-toast_show { opacity: 1; transform: translate(-50%, 0); }
+
+/* empty state when a search matches nothing (error recovery) */
+.m3-empty { padding: 1.5rem; text-align: center; color: var(--mfg-on-surface-1, #5c5c5c); font-size: 0.85rem; line-height: 1.6; }
+.m3-empty span { font-weight: 700; color: var(--mfg-on-surface-2, #2e2e2e); }
