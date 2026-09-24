@@ -10,7 +10,7 @@
 (function () {
   "use strict";
 
-  var UTIL = "assets/icons/utility-sprite/svg/symbols.svg";
+  var UTIL = "assets/icons/utility-sprite/svg/symbols.svg?v=2";
 
   // --- helpers ---------------------------------------------------------------
   function icon(sprite, name, cls) {
@@ -1308,6 +1308,14 @@
   // Render one grouped free-items table. `lead` configures the first (rowgroup)
   // column — its header text and how to derive each group's main + sub line —
   // so a promotion-scoped table can lead with the promotion instead of a product.
+  // Promotions-cell content: the promo-seal icon + neutral campaign name when a
+  // promotion applies; a plain em dash when the reward carries none.
+  function promoCellHTML(promo) {
+    if (!promo) return "—";
+    return '<span class="mfg-free-promo">' + icon(UTIL, "promo_seal", "mfg-free-promo__icon") +
+      '<span class="mfg-free-promo__name">' + esc(promo) + "</span></span>";
+  }
+
   function freeTableHTML(groups, lead) {
     // lead === null → a plain flat list (no rowgroup lead column). Custom Free
     // items use this: they're not clubbed by category, so the table starts
@@ -1323,7 +1331,7 @@
             "</td>" +
             '<td class="mfg-free-table__uom">' + esc(it.uom || "") + "</td>" +
             '<td class="mfg-free-table__qty">' + fmtNum(it.units) + "</td>" +
-            '<td class="mfg-free-table__promo">' + esc(it.promo || "—") + "</td>" +
+            '<td class="mfg-free-table__promo">' + promoCellHTML(it.promo) + "</td>" +
             '<td class="mfg-free-table__value">' +
               '<span class="mfg-free-table__list-price">' + fmtMoney(it.value) + "</span> " +
               '<span class="mfg-free-table__free-price">' + fmtMoney(0) + "</span>" +
@@ -1361,7 +1369,7 @@
             "</td>" +
             '<td class="mfg-free-table__uom">' + esc(it.uom || "") + "</td>" +
             '<td class="mfg-free-table__qty">' + fmtNum(it.units) + "</td>" +
-            '<td class="mfg-free-table__promo">' + esc(it.promo || "—") + "</td>" +
+            '<td class="mfg-free-table__promo">' + promoCellHTML(it.promo) + "</td>" +
             '<td class="mfg-free-table__value">' +
               '<span class="mfg-free-table__list-price">' + fmtMoney(it.value) + "</span> " +
               '<span class="mfg-free-table__free-price">' + fmtMoney(0) + "</span>" +

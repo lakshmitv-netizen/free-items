@@ -1495,8 +1495,18 @@ body.mfg-single .mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .
    table-layout:fixed the remaining width goes to the lead + Free item columns,
    which sums to the same in every table, so UoM/Qty/Price share one geometry. */
 .mfg-free-table__uom { color: var(--mfg-on-surface-2); white-space: nowrap; width: 13%; }
-.mfg-free-table__qty { font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); white-space: nowrap; width: 8%; }
+.mfg-free-table__qty { color: var(--mfg-on-surface-2); white-space: nowrap; width: 8%; }
 .mfg-free-table__promo { color: var(--mfg-on-surface-2); width: 17%; }
+.mfg-free-promo { display: inline-flex; align-items: center; gap: var(--mfg-spacing-1, 4px); }
+/* on-success-1 / teal-40 — literal hex; the theme's --slds-g-color-on-success-1
+   is a near-white text-on-green value, so we don't reference the token here. */
+.mfg-free-promo__icon { width: var(--mfg-v-14px, 14px); height: var(--mfg-v-14px, 14px); fill: #056764; flex: none; }
+.mfg-free-promo__name { color: #056764; font-weight: var(--slds-g-font-weight-6, 600); }
+/* Nothing in the free-items tables is a link — keep all names neutral (no navy /
+   brand blue that could read as clickable). Scoped to the tables so the grid
+   outside the modal is unaffected. */
+.mfg-free-table .mfg-free-item__name,
+.mfg-free-table .mfg-free-table__prod-name { color: var(--mfg-on-surface-2); }
 .mfg-free-table__at { color: var(--mfg-on-surface-1); white-space: nowrap; }
 /* Variant D flat table: reward-type is a clubbed (rowspan) leading column that
    holds a colored badge; product/promotion clubs within it via .mfg-free-table__prod. */
@@ -1589,10 +1599,10 @@ td.mfg-free-table__value {
   flex: 1 1 auto; min-width: 0;
   display: flex; align-items: baseline; gap: var(--mfg-spacing-2);
 }
-/* Figma spec: title is font-scale-2 (16px), weight 400, on-surface-2, lh 22px. */
+/* Section titles use on-surface-3 (dark navy) per the latest direction. */
 .mfg-free-acc__title {
   flex: 0 0 auto; font-weight: var(--slds-g-font-weight-4, 400);
-  color: var(--slds-g-color-on-surface-2, #2e2e2e);
+  color: var(--mfg-on-surface-3, #001e5b);
   font-size: var(--slds-g-font-scale-2, 16px);
   line-height: var(--slds-g-font-line-height-3, 1.375); /* 16px × 1.375 = 22px */
 }
