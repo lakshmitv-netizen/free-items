@@ -943,14 +943,14 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
   height: auto;
   padding-top: 10px;
   padding-bottom: 10px;
-  /* Greyed-out (light grey) fill marks the earned/read-only rows. */
-  background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  /* Greyed-out (very light grey) fill marks the earned/read-only rows. */
+  background-color: var(--slds-g-color-neutral-base-97, #f8f8f8);
   background-image: none;
 }
 /* Read-only rows don't react to hover — keep the same light grey so the generic
    row-hover fill can't repaint them. */
 .mfg-grid tbody tr.mfg-row-unlocked:hover > td {
-  background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  background-color: var(--slds-g-color-neutral-base-97, #f8f8f8);
   background-image: none;
 }
 /* The frozen (sticky) columns (#, expand, Product Name) stay white — only the
