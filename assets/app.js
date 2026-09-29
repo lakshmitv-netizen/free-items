@@ -512,19 +512,40 @@
     var qtyData =
       ' data-uom="' + esc(r.uom) + '"' +
       ' data-category="' + esc(r.category || "") + '"' +
+      ' data-brand="' + esc(r.brand || "") + '"' +
       ' data-net="' + parseMoney(r.netUnit) + '"' +
       " data-promofree=\"" + encodeURIComponent(JSON.stringify(r.promoFree || null)) + "\"" +
       " data-tiers=\"" + encodeURIComponent(JSON.stringify(r.promoTiers || [])) + "\"";
-    // ---- editable Order Qty cell (click/Enter to edit) ----
-    var qtyCellTd =
-      '<td class="mfg-num-col mfg-qty-cell" tabindex="0" role="button" aria-label="' +
-        esc("Edit Order Qty: " + r.product + " (" + r.uom + "), current " + r.qty) + '"' +
-        qtyData + ">" +
-        '<span class="mfg-qty-value">' + r.qty + "</span>" +
-        '<span class="mfg-qty-pencil">' + icon(UTIL, "edit") + "</span>" +
-      "</td>";
+    // ---- Order Qty cell ----
+    // Unlocked free items are earned from a promotion; their quantity is fixed
+    // and must NOT be editable. The read-only state is conveyed three ways so it
+    // never depends on colour alone (WCAG 1.4.1): a visible lock icon, a
+    // screen-reader-only "not editable" sentence, and aria-disabled + no
+    // tabindex/role so it is neither focusable nor announced as a button.
+    var qtyCellTd = r.unlocked
+      ? '<td class="mfg-num-col mfg-qty-cell mfg-qty-cell_locked" aria-disabled="true"' +
+          qtyData + ">" +
+          '<span class="mfg-qty-value">' + r.qty + "</span>" +
+          '<span class="slds-assistive-text">' +
+            esc("Order quantity locked — free item earned from a promotion, not editable") +
+          "</span>" +
+        "</td>"
+      // ---- editable Order Qty cell (click/Enter to edit) ----
+      : '<td class="mfg-num-col mfg-qty-cell" tabindex="0" role="button" aria-label="' +
+          esc("Edit Order Qty: " + r.product + " (" + r.uom + "), current " + r.qty) + '"' +
+          qtyData + ">" +
+          '<span class="mfg-qty-value">' + r.qty + "</span>" +
+          '<span class="mfg-qty-pencil">' + icon(UTIL, "edit") + "</span>" +
+        "</td>";
     return (
-      '<td class="mfg-col-product"><a href="#" class="mfg-product-link">' + r.product + "</a></td>" +
+      '<td class="mfg-col-product">' +
+        (r.unlocked
+          ? '<span class="mfg-product-stack"><a href="#" class="mfg-product-link">' + r.product + "</a>" +
+              '<span class="mfg-row-sublabel">' +
+                '<span class="mfg-row-sublabel__badge">' + icon(UTIL, "check", "mfg-row-sublabel__tick") + "</span>" +
+                "Already unlocked</span></span>"
+          : '<a href="#" class="mfg-product-link">' + r.product + "</a>") +
+      "</td>" +
       "<td>" + r.category + "</td>" +
       "<td>" + promoCell(r) + "</td>" +
       "<td>" + r.uom + "</td>" +
@@ -537,19 +558,67 @@
       '<td class="mfg-num-col">' + valueCell(r.netUnit) + "</td>" +
       '<td class="mfg-num-col">' + r.spPrice + "</td>" +
       '<td class="mfg-num-col mfg-nettotal-cell"><span class="mfg-nettotal-value">' + r.netTotal + "</span></td>" +
-      '<td class="mfg-col-rowaction"><button class="mfg-row-action" title="Row actions" aria-haspopup="menu" aria-label="' +
-        esc("Row actions for " + r.product + " (" + r.uom + ")") + '">' + icon(UTIL, "down") + "</button></td>"
+      '<td class="mfg-col-rowaction"><button class="mfg-row-action" title="Row actions" aria-haspopup="menu"' +
+        (r.unlocked
+          ? ' disabled aria-label="' + esc("Row actions unavailable — " + r.product + " is a locked free item") + '"'
+          : ' aria-label="' + esc("Row actions for " + r.product + " (" + r.uom + ")") + '"') +
+        ">" + icon(UTIL, "down") + "</button></td>"
     );
   }
 
-  function checkboxCell(id) {
+  function checkboxCell(id, disabled) {
+    // A disabled checkbox blocks bulk actions (which mutate quantity) on locked
+    // free items; native `disabled` is announced by assistive tech and the
+    // assistive-text label states why, so the state is perceivable without colour.
     return (
       '<td class="mfg-col-check"><span class="slds-checkbox">' +
-      '<input type="checkbox" class="mfg-row-check" id="' + id + '" />' +
+      '<input type="checkbox" class="mfg-row-check" id="' + id + '"' + (disabled ? " disabled" : "") + " />" +
       '<label class="slds-checkbox__label" for="' + id + '">' +
       '<span class="slds-checkbox_faux"></span>' +
-      '<span class="slds-assistive-text">Select row</span></label></span></td>'
+      '<span class="slds-assistive-text">' + (disabled ? "Selection unavailable — locked free item" : "Select row") + "</span></label></span></td>"
     );
+  }
+
+  // Build the <tr>s for one data row (parent + any children). `i` is the row's
+  // index in the source array (kept stable for data-row / checkbox ids / expand
+  // wiring); `displayNum` is what shows in the "#" column; `extraClass` lets the
+  // caller tag the parent row (e.g. an unlocked free item).
+  function rowTRsHTML(r, i, displayNum, prefix, variant, extraClass) {
+    var hasChildren = r.children && r.children.length;
+    var expanded = !!r.expanded;
+    var html = '<tr class="mfg-parent-row' + (extraClass ? " " + extraClass : "") +
+      '" data-row="' + i + '"' +
+      (r.unlocked ? ' title="Already unlocked — this free item can’t be edited"' : "") +
+      '><td class="mfg-col-expand">';
+    if (hasChildren) {
+      html += '<button class="mfg-expand-btn" aria-expanded="' + expanded + '" data-toggle="' + i + '" title="Expand">' + icon(UTIL, "chevronright") + "</button>";
+    }
+    html += "</td>";
+    html += '<td class="mfg-col-num">' + displayNum + "</td>";
+    html += checkboxCell(prefix + "-r-" + i, r.unlocked);
+    html += rowCells(r, variant);
+    html += "</tr>";
+    if (hasChildren) {
+      r.children.forEach(function (c, j) {
+        html += '<tr class="mfg-child-row' + (expanded ? "" : " mfg-hidden") + '" data-parent="' + i + '">';
+        html += '<td class="mfg-col-expand"></td><td class="mfg-col-num"></td>';
+        html += checkboxCell(prefix + "-r-" + i + "-" + j);
+        html += rowCells(c, variant);
+        html += "</tr>";
+      });
+    }
+    return html;
+  }
+
+  // A full-width divider row that labels a group of grid rows. Carries no
+  // product/checkbox, so the counting/collection helpers (which key off
+  // .mfg-product-link / .mfg-row-check) skip it harmlessly.
+  function groupRowHTML(label, count, kind) {
+    return '<tr class="mfg-group-row mfg-group-row_' + kind + '" aria-hidden="true">' +
+      '<td class="mfg-group-cell" colspan="15">' +
+      '<span class="mfg-group-title">' + esc(label) + "</span>" +
+      '<span class="mfg-group-count">' + count + "</span>" +
+      "</td></tr>";
   }
 
   function renderInto(body, prefix, rows) {
@@ -558,30 +627,26 @@
     // tbodies (e.g. the cart clone) have no card ancestor → legacy button cell.
     var ownerCard = body.closest && body.closest(".mfg-assortment-card");
     var variant = ownerCard ? ownerCard.getAttribute("data-variant") : null;
+    rows = rows || window.MFG_ROWS;
     var html = "";
-    (rows || window.MFG_ROWS).forEach(function (r, i) {
-      var hasChildren = r.children && r.children.length;
-      var expanded = !!r.expanded;
-      html += '<tr class="mfg-parent-row" data-row="' + i + '"><td class="mfg-col-expand">';
-      if (hasChildren) {
-        html += '<button class="mfg-expand-btn" aria-expanded="' + expanded + '" data-toggle="' + i + '" title="Expand">' + icon(UTIL, "chevronright") + "</button>";
-      }
-      html += "</td>";
-      html += '<td class="mfg-col-num">' + r.num + "</td>";
-      html += checkboxCell(prefix + "-r-" + i);
-      html += rowCells(r, variant);
-      html += "</tr>";
-
-      if (hasChildren) {
-        r.children.forEach(function (c, j) {
-          html += '<tr class="mfg-child-row' + (expanded ? "" : " mfg-hidden") + '" data-parent="' + i + '">';
-          html += '<td class="mfg-col-expand"></td><td class="mfg-col-num"></td>';
-          html += checkboxCell(prefix + "-r-" + i + "-" + j);
-          html += rowCells(c, variant);
-          html += "</tr>";
-        });
-      }
-    });
+    // Free-items catalog: rows flagged `unlocked` are free items the order has
+    // already earned. They sort to the top and carry the green-hatch read-only
+    // treatment + "Already unlocked" label, so no group-divider headers are
+    // needed to tell earned rewards apart from the general free-items menu.
+    var unlocked = rows.filter(function (r) { return r.unlocked; });
+    if (unlocked.length) {
+      var n = 0;
+      rows.forEach(function (r, i) {
+        if (r.unlocked) html += rowTRsHTML(r, i, ++n, prefix, variant, "mfg-row-unlocked");
+      });
+      rows.forEach(function (r, i) {
+        if (!r.unlocked) html += rowTRsHTML(r, i, ++n, prefix, variant, "");
+      });
+    } else {
+      rows.forEach(function (r, i) {
+        html += rowTRsHTML(r, i, r.num, prefix, variant, "");
+      });
+    }
     body.innerHTML = html;
   }
 
@@ -2064,6 +2129,8 @@
       product: link ? link.textContent : "This product",
       category: txt(4), promo: txt(5),
       uom: cell.getAttribute("data-uom") || txt(6),
+      brand: cell.getAttribute("data-brand") || "",
+      unlocked: !!(cell && cell.classList.contains("mfg-qty-cell_locked")),
       list: txt(7), suggested: txt(8), qty: qty,
       discount: txt(10), netUnit: txt(11), spPrice: txt(12), netTotal: txt(13),
       tiers: tiers
@@ -2120,6 +2187,57 @@
       "</div>" +
       detailSection("Product Details", true, productDetails) +
       detailSection("Pricing Details", false, pricingDetails)
+    );
+  }
+
+  // A stable, catalog-style product code derived from the product name (the
+  // prototype data has no real SKUs). Same name → same "PROD-#######".
+  function productCode(name) {
+    var h = 0, s = String(name || "");
+    for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+    var digits = String(h % 10000000);
+    while (digits.length < 7) digits = "0" + digits;
+    return "PROD-" + digits;
+  }
+
+  // Variant E details tab (matches the requested side-panel layout): a product
+  // description (brand), then Product Information, Pricing Information and Unit
+  // of Measure sections of read-only fields.
+  function detailsTabEHTML(d) {
+    var productInfo =
+      detailField("Product Name", d.product) +
+      detailField("Product Code", productCode(d.product));
+    var listN = parseMoney(d.list), netN = parseMoney(d.netUnit);
+    var discPct = listN > 0 ? Math.round((1 - netN / listN) * 100) : 0;
+    var pricing =
+      detailField("List Price", d.list) +
+      detailField("Net Unit Price", d.netUnit) +
+      detailField("Special Price", d.spPrice) +
+      detailField("Discount", discPct + "%") +
+      detailField("Net Total", d.netTotal) +
+      detailField("Suggested Quantity", d.suggested) +
+      detailField("Order Quantity", fmtNum(d.qty)) +
+      detailField("Currency", "USD");
+    // Unlocked free items are earned rewards with a set quantity — surface that
+    // as an info notice. Icon + text carry the meaning without relying on colour.
+    var lockedBadge = d.unlocked
+      ? '<div class="mfg-detail-badge" role="status">' +
+          icon(UTIL, "info", "mfg-detail-badge__icon") +
+          '<div class="mfg-detail-badge__text">' +
+            "<strong>Unlocked free item</strong>" +
+            "<span>Order quantity is set automatically and can’t be edited.</span>" +
+          "</div>" +
+        "</div>"
+      : "";
+    return (
+      lockedBadge +
+      '<div class="mfg-detail-desc">' +
+        '<div class="mfg-detail-desc__label">Product Description</div>' +
+        '<p class="mfg-detail-desc__text">' + esc(d.brand || d.category || "—") + "</p>" +
+      "</div>" +
+      detailSection("Product Information", true, productInfo) +
+      detailSection("Pricing Information", true, pricing) +
+      detailSection("Unit of Measure", true, detailField("Unit of Measure", d.uom))
     );
   }
 
@@ -2280,8 +2398,13 @@
     { id: "promotions", label: "Promotions", body: promotionsTabHTML },
     { id: "free", label: "Free items", body: freeTabHTML }
   ];
+  // Variant E: a single Details tab with the product-detail layout above.
+  var DETAIL_TABS_E = [
+    { id: "details", label: "Details", body: detailsTabEHTML }
+  ];
 
-  function setupDetailPanel(card, body) {
+  function setupDetailPanel(card, body, tabs) {
+    tabs = tabs || DETAIL_TABS;
     var layout = card.querySelector(".mfg-grid-layout");
     if (!layout) return;
     var panel = document.createElement("aside");
@@ -2299,14 +2422,14 @@
       if (!current) return;
       // Roving tabindex + aria-controls/labelledby so the panel is a proper
       // tab/tabpanel pair for screen readers.
-      var tabsHTML = DETAIL_TABS.map(function (t) {
+      var tabsHTML = tabs.map(function (t) {
         var on = t.id === active;
         return '<button type="button" class="mfg-detail-tab' + (on ? " is-active" : "") +
           '" data-tab="' + t.id + '" id="mfg-dtab-' + t.id + '" role="tab"' +
           ' aria-selected="' + on + '" tabindex="' + (on ? "0" : "-1") + '"' +
           ' aria-controls="mfg-dpanel">' + t.label + "</button>";
       }).join("");
-      var tab = DETAIL_TABS.filter(function (t) { return t.id === active; })[0] || DETAIL_TABS[0];
+      var tab = tabs.filter(function (t) { return t.id === active; })[0] || tabs[0];
       panel.innerHTML =
         '<div class="mfg-detail-panel__head">' +
           '<div class="mfg-detail-panel__title">' + esc(current.product) + "</div>" +
@@ -2373,17 +2496,19 @@
       if (e.key === "Escape") { close(); return; }
       var tabBtn = e.target.closest(".mfg-detail-tab");
       if (!tabBtn) return;
-      var idx = DETAIL_TABS.findIndex(function (t) { return t.id === active; });
+      var idx = tabs.findIndex(function (t) { return t.id === active; });
       var next;
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = DETAIL_TABS[(idx + 1) % DETAIL_TABS.length];
-      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = DETAIL_TABS[(idx - 1 + DETAIL_TABS.length) % DETAIL_TABS.length];
-      else if (e.key === "Home") next = DETAIL_TABS[0];
-      else if (e.key === "End") next = DETAIL_TABS[DETAIL_TABS.length - 1];
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = tabs[(idx + 1) % tabs.length];
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = tabs[(idx - 1 + tabs.length) % tabs.length];
+      else if (e.key === "Home") next = tabs[0];
+      else if (e.key === "End") next = tabs[tabs.length - 1];
       if (next) { e.preventDefault(); active = next.id; render(); panel.querySelector(".mfg-detail-tab.is-active").focus(); }
     });
   }
 
   function startEdit(cell) {
+    // Locked (unlocked free-item) cells are read-only — never enter edit mode.
+    if (cell.classList.contains("mfg-qty-cell_locked")) return;
     if (edit) commitEdit();
     var valueSpan = cell.querySelector(".mfg-qty-value");
     var qty = parseInt(valueSpan.textContent, 10) || 0;
@@ -2627,6 +2752,7 @@
     if (card._isCart) applyCartEmptyState(card);
     updateCountFor(body, countEl);
     updateOrderTotals(card); // seed the Order Summary totals from the initial grid
+    setupGridSearch(card, body);
 
     body.addEventListener("click", function (e) {
       var toggle = e.target.closest("[data-toggle]");
@@ -2661,7 +2787,10 @@
       if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End") {
         var cells = Array.prototype.filter.call(
           body.querySelectorAll(".mfg-qty-cell"),
-          function (c) { return c.offsetParent !== null; } // visible only
+          function (c) {
+            // visible, and skip locked (read-only) cells so arrow-nav never lands on them
+            return c.offsetParent !== null && !c.classList.contains("mfg-qty-cell_locked");
+          }
         );
         var idx = cells.indexOf(qtyCell);
         if (idx === -1) return;
@@ -2683,7 +2812,7 @@
 
     if (selectAll) {
       selectAll.addEventListener("change", function () {
-        body.querySelectorAll(".mfg-row-check").forEach(function (cb) { cb.checked = selectAll.checked; });
+        body.querySelectorAll(".mfg-row-check").forEach(function (cb) { if (!cb.disabled) cb.checked = selectAll.checked; });
         updateCountFor(body, countEl);
       });
     }
@@ -2707,7 +2836,7 @@
     // Variant M (manufacturing) reuses the exact Inspection-feedback wiring —
     // proving the interaction model is data-agnostic — plus a detail side panel
     // so bundle/kit BOM components and specs can be inspected per line.
-    else if (variant === "e" || variant === "m") { setupFreeSummary(card, body); setupFreeModal(card); if (variant === "e") setupGridScroll(card); }
+    else if (variant === "e" || variant === "m") { setupFreeSummary(card, body); setupFreeModal(card); if (variant === "e") { setupGridScroll(card); setupDetailPanel(card, body, DETAIL_TABS_E); } }
     // Variant F: same as E (notification + free-items modal), but instead of a
     // dedicated column, clicking a line item opens a tabbed detail side panel
     // (Details / Promotions / Free items with an unlock-progress view).
@@ -2717,6 +2846,55 @@
     // Dual-identity variant "g" (mfg-ux-gamified): the E base plus Variant A's
     // gamified qty-edit progress-bar popover — wired directly in startEdit (no
     // per-card setup needed), so nothing extra is initialised here.
+  }
+
+  // Live search over the grid. Matches each row's product name + category against
+  // the query; a parent shows if it (or any of its child rows) matches, and a
+  // group divider hides when nothing under it survives. Uses its own
+  // `mfg-search-hidden` class so it never fights the collapse (`mfg-hidden`)
+  // state. Exposed as card._applySearch so a template switch can re-filter the
+  // freshly rendered grid.
+  function setupGridSearch(card, body) {
+    var input = card.querySelector(".mfg-filter_search input");
+    if (!input) return;
+    function rowText(tr) {
+      var name = ((tr.querySelector(".mfg-product-link") || {}).textContent || "");
+      var qc = tr.querySelector(".mfg-qty-cell");
+      var cat = qc ? (qc.getAttribute("data-category") || "") : "";
+      return (name + " " + cat).toLowerCase();
+    }
+    function apply() {
+      var q = (input.value || "").trim().toLowerCase();
+      if (!q) {
+        body.querySelectorAll(".mfg-search-hidden").forEach(function (r) {
+          r.classList.remove("mfg-search-hidden");
+        });
+        return;
+      }
+      body.querySelectorAll("tr.mfg-parent-row").forEach(function (p) {
+        var idx = p.getAttribute("data-row");
+        var pMatch = rowText(p).indexOf(q) !== -1;
+        var anyChild = false;
+        var children = idx != null ? body.querySelectorAll('.mfg-child-row[data-parent="' + idx + '"]') : [];
+        children.forEach(function (c) {
+          var cMatch = rowText(c).indexOf(q) !== -1;
+          if (cMatch) anyChild = true;
+          c.classList.toggle("mfg-search-hidden", !cMatch);
+        });
+        p.classList.toggle("mfg-search-hidden", !(pMatch || anyChild));
+      });
+      // A group divider is visible only while a parent row under it survives.
+      body.querySelectorAll("tr.mfg-group-row").forEach(function (g) {
+        var visible = false, row = g.nextElementSibling;
+        while (row && !row.classList.contains("mfg-group-row")) {
+          if (row.classList.contains("mfg-parent-row") && !row.classList.contains("mfg-search-hidden")) { visible = true; break; }
+          row = row.nextElementSibling;
+        }
+        g.classList.toggle("mfg-search-hidden", !visible);
+      });
+    }
+    input.addEventListener("input", apply);
+    card._applySearch = apply;
   }
 
   // Cart grid empty state: a single centred placeholder row when the cart has no
@@ -3302,6 +3480,7 @@
             }
             if (card._isCart) applyCartEmptyState(card);
             updateCountFor(gridBody, card.querySelector(".mfg-selected-count"));
+            if (card._applySearch) card._applySearch();
           } else {
             card.classList.toggle("mfg-mode-free", freeMode);
           }

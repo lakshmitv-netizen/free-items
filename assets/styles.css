@@ -144,7 +144,7 @@ html, body {
 .mfg-app-name {
   font-weight: var(--slds-g-font-weight-7, 700);
   color: var(--mfg-on-surface-2);
-  font-size: var(--mfg-v-15px);
+  font-size: var(--slds-g-font-scale-2, 16px);
   font-style: normal;
 }
 .mfg-context-bar__edit { display: flex; align-items: center; padding: 0 var(--mfg-spacing-4); margin-left: auto; }
@@ -179,7 +179,7 @@ html, body {
    (18px, on-scale and >= the h2) so it correctly outranks lower headings; the
    visible title (.mfg-record-name, 24px) keeps its size, and the eyebrow label
    is pinned so it does not grow with the wrapper. */
-.slds-page-header__name-title h1 { font-size: var(--mfg-v-18px, 18px); }
+.slds-page-header__name-title h1 { font-size: var(--slds-g-font-scale-3, 20px); }
 .slds-page-header__name-title .slds-page-header__title-label { font-size: var(--slds-g-font-scale-base, 13px); }
 
 /* ----------------------------- Path ----------------------------- */
@@ -298,7 +298,7 @@ body.mfg-single .mfg-style-switch { display: none; }
   flex-wrap: wrap;
 }
 .mfg-lead-list-icon { background: var(--slds-g-color-palette-hot-orange-60, #ff5d2d); border-radius: var(--mfg-v-50pct); display: inline-flex; padding: var(--mfg-v-6px); }
-.mfg-card-title { font-size: var(--mfg-v-18px); font-weight: var(--slds-g-font-weight-6, 600); color: var(--mfg-on-surface-3); }
+.mfg-card-title { font-size: var(--slds-g-font-scale-3, 20px); font-weight: var(--slds-g-font-weight-6, 600); color: var(--mfg-on-surface-3); }
 .mfg-selected-count { color: var(--mfg-on-surface-1); margin-top: var(--mfg-v-2px); }
 
 .mfg-assortment-header__actions {
@@ -529,7 +529,7 @@ body.mfg-single:has(.mfg-assortment-card[data-variant="e"]) .mfg-variant-stack {
 
 /* --- Variant C: click-to-open tabbed product detail side panel ------------- */
 .mfg-detail-panel {
-  flex: 0 0 340px;
+  flex: 0 0 440px;
   display: flex; flex-direction: column;
   border-left: var(--mfg-v-1px) solid var(--mfg-border-1);
   background: var(--slds-g-color-surface-1, #fff);
@@ -568,6 +568,22 @@ body.mfg-single:has(.mfg-assortment-card[data-variant="e"]) .mfg-variant-stack {
   padding: var(--mfg-spacing-4);
   overflow-y: auto;
 }
+/* Locked free-item notice at the top of the Details tab — standard SLDS blue
+   scoped notification (info-container blue #d8e6fe / on-info #0b5cab), matching
+   the "unlocked free items" notification above the grid. */
+.mfg-detail-badge {
+  display: flex; align-items: flex-start; gap: var(--mfg-spacing-2, 8px);
+  padding: var(--mfg-spacing-3, 12px);
+  margin-bottom: var(--mfg-spacing-4);
+  background: var(--mfg-promo-container, #d8e6fe);
+  border: var(--slds-g-sizing-border-1, 1px) solid var(--mfg-promo-container, #d8e6fe);
+  border-radius: var(--slds-g-radius-border-2, 8px);
+  color: var(--mfg-on-info, #0b5cab);
+}
+.mfg-detail-badge__icon { width: var(--mfg-v-14px, 14px); height: var(--mfg-v-14px, 14px); fill: var(--mfg-on-info, #0b5cab); flex: none; margin-top: 2px; }
+.mfg-detail-badge__text { display: flex; flex-direction: column; gap: 2px; }
+.mfg-detail-badge__text strong { font-size: var(--slds-g-font-scale-base, 13px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-info, #0b5cab); }
+.mfg-detail-badge__text span { font-size: var(--slds-g-font-scale-neg-1, 12px); color: var(--mfg-on-info, #0b5cab); line-height: 16px; }
 /* Details tab (Figma node 44:110544): description block + collapsible sections. */
 .mfg-detail-desc { margin-bottom: var(--mfg-spacing-4); }
 .mfg-detail-desc__label {
@@ -884,6 +900,9 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
    dropped everywhere (header cell + every row cell). */
 .mfg-col-check { display: none; }
 .mfg-grid .mfg-value-link { color: var(--mfg-accent-1); }
+/* Disabled (unlocked) rows: scrolling-cell values are not links — render the
+   Net Unit Price as plain text, not the blue link colour. */
+.mfg-grid tbody tr.mfg-row-unlocked .mfg-value-link { color: var(--mfg-on-surface-2, #2e2e2e); }
 
 /* tree expand toggle */
 .mfg-expand-btn {
@@ -893,6 +912,80 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 .mfg-expand-btn svg { width: var(--mfg-v-14px); height: var(--mfg-v-14px); fill: var(--mfg-on-surface-1); transition: transform .15s ease; }
 .mfg-expand-btn[aria-expanded="true"] svg { transform: rotate(90deg); }
 .mfg-child-row.mfg-hidden { display: none; }
+/* Rows filtered out by the live grid search (independent of collapse state). */
+.mfg-search-hidden { display: none; }
+
+/* Free-items grid: group divider rows + unlocked-row treatment. The grid
+   splits into "Unlocked free items" (rewards already earned) and "More free
+   items" so earned rewards read apart from the general free-items menu. */
+.mfg-group-row td.mfg-group-cell {
+  background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  border-top: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+  padding: var(--mfg-spacing-2, 8px) var(--mfg-spacing-3, 12px);
+  font-size: var(--slds-g-font-scale-neg-1, 12px);
+  font-weight: var(--slds-g-font-weight-7, 700);
+  color: var(--mfg-on-surface-1, #5c5c5c);
+}
+.mfg-group-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; margin-left: var(--mfg-spacing-2, 8px);
+  padding: 0 6px; border-radius: 999px;
+  font-size: var(--slds-g-font-scale-neg-2, 11px); font-weight: var(--slds-g-font-weight-7, 700);
+  background: var(--slds-g-color-neutral-base-90, #e5e5e5); color: var(--mfg-on-surface-2, #2e2e2e);
+}
+/* Earned free-item rows are read-only. Rows keep a normal white/full-contrast
+   look; the state is carried by an "Already unlocked" sub-label under the product
+   name (literal text = perceivable by screen readers, not colour), plus the
+   in-row lock icons and disabled controls. A not-allowed cursor is a mouse-only
+   bonus cue on top of that. */
+.mfg-grid tbody tr.mfg-row-unlocked > td {
+  cursor: not-allowed;
+  height: auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  /* Greyed-out (light grey) fill marks the earned/read-only rows. */
+  background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  background-image: none;
+}
+/* Read-only rows don't react to hover — keep the same light grey so the generic
+   row-hover fill can't repaint them. */
+.mfg-grid tbody tr.mfg-row-unlocked:hover > td {
+  background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+  background-image: none;
+}
+/* The frozen (sticky) columns (#, expand, Product Name) stay white — only the
+   scrolling cells carry the grey read-only fill. These already win specificity
+   against the generic hover rule. */
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr.mfg-row-unlocked td.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr.mfg-row-unlocked td.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr.mfg-row-unlocked td.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr.mfg-row-unlocked td.mfg-col-product,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr.mfg-row-unlocked:hover td.mfg-col-expand,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr.mfg-row-unlocked:hover td.mfg-col-num,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr.mfg-row-unlocked:hover td.mfg-col-check,
+.mfg-assortment-card:is([data-variant="e"],[data-variant="f"]) .mfg-grid tbody tr.mfg-row-unlocked:hover td.mfg-col-product {
+  background-color: var(--slds-g-color-surface-1, #fff);
+  background-image: none;
+}
+/* Viewing is still allowed, so the product link + expand toggle stay clickable. */
+.mfg-row-unlocked .mfg-product-link,
+.mfg-row-unlocked .mfg-expand-btn { cursor: pointer; }
+/* Product name + sub-label stack vertically (flex column guarantees the line
+   break regardless of the cell's inline flow). */
+.mfg-product-stack { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.mfg-product-stack .mfg-row-sublabel {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--slds-g-font-scale-neg-1, 12px);
+  line-height: 16px;
+  color: var(--mfg-on-surface-2, #2e2e2e);
+}
+/* White checkmark inside a green filled circle. */
+.mfg-row-sublabel__badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: #056764; flex: none;
+}
+.mfg-row-sublabel__tick { width: 8px; height: 8px; fill: #fff; }
 
 /* promotion badge */
 .mfg-promo-badge {
@@ -939,7 +1032,7 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 }
 .mfg-promo-pop__close svg { width: var(--slds-g-sizing-base, 16px); height: var(--slds-g-sizing-base, 16px); fill: var(--mfg-on-surface-1); }
 .mfg-promo-pop__header {
-  font-size: var(--mfg-v-15px); font-weight: var(--slds-g-font-weight-4, 400);
+  font-size: var(--slds-g-font-scale-2, 16px); font-weight: var(--slds-g-font-weight-4, 400);
   color: var(--mfg-on-surface-2);
   padding-right: var(--mfg-spacing-4); padding-bottom: var(--mfg-spacing-2);
   border-bottom: var(--mfg-v-1px) solid var(--mfg-border-1);
@@ -951,12 +1044,12 @@ body.mfg-col-resizing { cursor: col-resize; user-select: none; }
 .mfg-detail-promos { max-height: none; }
 .mfg-detail-promos .mfg-promo-pop__item:first-child { padding-top: 0; }
 .mfg-promo-pop__item + .mfg-promo-pop__item { border-top: var(--mfg-v-1px) solid var(--mfg-border-1); }
-.mfg-promo-pop__title { font-size: var(--mfg-v-14px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
-.mfg-promo-pop__desc { font-size: var(--mfg-v-13px); color: var(--mfg-on-surface-1); line-height: var(--mfg-v-1_35); margin-top: var(--mfg-spacing-2); }
-.mfg-promo-pop__exp { font-size: var(--mfg-v-13px); color: var(--mfg-on-surface-2); margin-top: var(--mfg-spacing-2); }
+.mfg-promo-pop__title { font-size: var(--slds-g-font-scale-1, 14px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
+.mfg-promo-pop__desc { font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-1); line-height: var(--mfg-v-1_35); margin-top: var(--mfg-spacing-2); }
+.mfg-promo-pop__exp { font-size: var(--slds-g-font-scale-base, 13px); color: var(--mfg-on-surface-2); margin-top: var(--mfg-spacing-2); }
 .mfg-promo-pop__terms {
   display: inline-flex; align-items: center; gap: var(--mfg-spacing-1);
-  margin-top: var(--mfg-spacing-2); font-size: var(--mfg-v-13px);
+  margin-top: var(--mfg-spacing-2); font-size: var(--slds-g-font-scale-base, 13px);
   color: var(--mfg-accent-1); text-decoration: none;
 }
 .mfg-promo-pop__terms svg { width: var(--slds-g-sizing-5, 14px); height: var(--slds-g-sizing-5, 14px); fill: var(--mfg-accent-1); }
@@ -1660,13 +1753,20 @@ td.mfg-free-table__value {
 .mfg-qty-rounded_down .mfg-qty-rounded-icon { fill: var(--mfg-error-fg); }
 .mfg-qty-cell .mfg-qty-pencil { display: none; margin-left: var(--mfg-spacing-1); vertical-align: middle; }
 .mfg-qty-cell .mfg-qty-pencil svg { width: var(--slds-g-sizing-4, 12px); height: var(--slds-g-sizing-4, 12px); fill: var(--mfg-on-surface-1); }
-.mfg-qty-cell:hover { background: var(--slds-g-color-accent-light-1, #eef4fd) !important; }
+.mfg-qty-cell:not(.mfg-qty-cell_locked):hover { background: var(--slds-g-color-accent-light-1, #eef4fd) !important; }
 .mfg-qty-cell:hover .mfg-qty-pencil { display: inline-flex; }
 .mfg-qty-cell:focus-visible { outline: var(--slds-g-sizing-border-2, 2px) solid var(--mfg-on-surface-2); outline-offset: -2px; }
 /* unsaved / dirty cell — SLDS inline-edit pattern: pale yellow fill */
 .mfg-grid td.mfg-qty-cell.mfg-is-edited { background: var(--mfg-edited-bg) !important; }
 .mfg-grid td.mfg-qty-cell.mfg-is-edited:hover { background: var(--mfg-edited-bg) !important; }
 .mfg-grid td.mfg-qty-cell.mfg-qty-editing { padding: 0 var(--mfg-spacing-1); background: var(--mfg-surface); }
+/* Locked Order Qty cell — read-only unlocked free item. State is shown by the
+   persistent lock icon + assistive text (not colour alone); no hover-accent, no
+   edit cursor, no focus outline since the cell is not focusable/editable. */
+.mfg-qty-cell_locked { cursor: not-allowed; }
+.mfg-qty-cell_locked .mfg-qty-value { color: var(--mfg-on-surface-1); }
+.mfg-qty-cell_locked .mfg-qty-lock { display: inline-flex; margin-left: var(--mfg-spacing-1); vertical-align: middle; }
+.mfg-qty-cell_locked .mfg-qty-lock svg { width: var(--slds-g-sizing-4, 12px); height: var(--slds-g-sizing-4, 12px); fill: var(--mfg-on-surface-1); }
 .mfg-qty-input {
   width: var(--mfg-v-100pct); min-width: var(--mfg-v-56px); text-align: right;
   height: var(--slds-g-sizing-8, 28px);
@@ -1777,7 +1877,7 @@ td.mfg-free-table__value {
   box-shadow: 0 0 0 1px var(--mfg-border-1);
 }
 .mfg-gg-dot-icon { width: var(--slds-g-sizing-4, 12px); height: var(--slds-g-sizing-4, 12px); fill: var(--mfg-on-surface-1); }
-.mfg-gg-mq { position: absolute; top: var(--mfg-v-20px); left: var(--mfg-v-50pct); transform: translateX(-50%); font-size: var(--mfg-v-11px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
+.mfg-gg-mq { position: absolute; top: var(--mfg-v-20px); left: var(--mfg-v-50pct); transform: translateX(-50%); font-size: var(--slds-g-font-scale-neg-2, 11px); font-weight: var(--slds-g-font-weight-7, 700); color: var(--mfg-on-surface-2); }
 .mfg-gg-ml { position: absolute; top: var(--mfg-v-33px); left: var(--mfg-v-50pct); transform: translateX(-50%); font-size: var(--slds-g-font-scale-neg-2, 10px); white-space: nowrap; color: var(--mfg-on-surface-1); }
 /* marker states */
 .mfg-gg-marker.is-unlocked .mfg-gg-dot { background: var(--slds-g-color-palette-green-50, #2e844a); box-shadow: 0 0 0 1px var(--slds-g-color-palette-green-50, #2e844a); }
