@@ -554,10 +554,10 @@
       '<td class="mfg-num-col">' + r.list + "</td>" +
       '<td class="mfg-num-col">' + r.suggested + "</td>" +
       qtyCellTd +
-      '<td class="mfg-num-col">' + r.discount + "</td>" +
-      '<td class="mfg-num-col">' + valueCell(r.netUnit) + "</td>" +
-      '<td class="mfg-num-col">' + r.spPrice + "</td>" +
-      '<td class="mfg-num-col mfg-nettotal-cell"><span class="mfg-nettotal-value">' + r.netTotal + "</span></td>" +
+      '<td class="mfg-num-col mfg-dep-cell mfg-discount-cell">' + r.discount + "</td>" +
+      '<td class="mfg-num-col mfg-dep-cell mfg-netunit-cell">' + valueCell(r.netUnit) + "</td>" +
+      '<td class="mfg-num-col mfg-dep-cell mfg-spprice-cell">' + r.spPrice + "</td>" +
+      '<td class="mfg-num-col mfg-dep-cell mfg-nettotal-cell"><span class="mfg-nettotal-value">' + r.netTotal + "</span></td>" +
       '<td class="mfg-col-rowaction"><button class="mfg-row-action" title="Row actions" aria-haspopup="menu"' +
         (r.unlocked
           ? ' disabled aria-label="' + esc("Row actions unavailable — " + r.product + " is a locked free item") + '"'
@@ -2619,6 +2619,73 @@
     else commitEdit(round.value, round.dir, true);
   }
 
+  // --- Instant Pricing loading state ----------------------------------------
+  // When "Instant Pricing" is on, committing an Order Qty simulates a live
+  // pricing-engine round-trip: the qty-dependent cells in that row (Discount,
+  // Net Unit Price, Sp. Price, Net Total) show SLDS loading stencils for a short
+  // beat, then the recomputed values — plus the green "+N free items" badge and
+  // the blue scoped notification — reveal together. Only those cells stencil;
+  // the badge and notification are net-new content, so they fade in (a stencil
+  // implies "this value is reloading", which neither of them was).
+  var PRICING_DELAY = 700; // ms — long enough to read as a real pricing call
+
+  function instantPricingOn(card) {
+    // Match by name, not id: clones uniquify ids (…-e, …-b) but keep the name.
+    var t = card ? card.querySelector('input[name="instant-pricing"]') : null;
+    if (!t) t = document.querySelector('input[name="instant-pricing"]');
+    return !!(t && t.checked);
+  }
+
+  // Stencil bar sized to roughly match each column's content.
+  function stencilFor(td) {
+    var w = "md";
+    if (td.classList.contains("mfg-discount-cell") || td.classList.contains("mfg-spprice-cell")) w = "sm";
+    else if (td.classList.contains("mfg-nettotal-cell")) w = "lg";
+    return '<span class="mfg-stencil mfg-stencil_' + w + '" aria-hidden="true"></span>' +
+      '<span class="slds-assistive-text">Recalculating pricing…</span>';
+  }
+
+  // One-shot reveal animation: add the class, then strip it once it has played so
+  // the element can animate again on a later edit.
+  function revealOnce(el) {
+    if (!el) return;
+    el.classList.add("mfg-reveal");
+    setTimeout(function () { el.classList.remove("mfg-reveal"); }, 420);
+  }
+
+  // Replace the dependent cells of `tr` with stencils; after PRICING_DELAY run
+  // apply() (which recomputes those cells + badge + notification + totals) and
+  // reveal the newly-earned badge and scoped notification.
+  function runPricingLoad(tr, apply) {
+    if (!tr) { apply(); return; }
+    // Supersede any in-flight load on this same row (rapid successive edits).
+    if (tr._pricingTimer) { clearTimeout(tr._pricingTimer); tr._pricingTimer = null; }
+    var cells = tr.querySelectorAll(".mfg-dep-cell");
+    var card = tr.closest(".mfg-assortment-card");
+    var notif = card && card._unlockNotif;
+    var notifWasHidden = notif ? notif.hidden : true;
+    tr.setAttribute("aria-busy", "true");
+    cells.forEach(function (td) {
+      if (td._depHTML == null) td._depHTML = td.innerHTML; // snapshot once
+      td.classList.add("mfg-cell-loading");
+      td.innerHTML = stencilFor(td);
+    });
+    tr._pricingTimer = setTimeout(function () {
+      tr._pricingTimer = null;
+      tr.removeAttribute("aria-busy");
+      cells.forEach(function (td) {
+        td.classList.remove("mfg-cell-loading");
+        if (td._depHTML != null) { td.innerHTML = td._depHTML; td._depHTML = null; }
+        revealOnce(td);
+      });
+      apply(); // sets Net Total, badges, notification, order totals, cart
+      // Fade in the newly-earned badge on this row…
+      revealOnce(tr.querySelector(".mfg-freecount-badge_on"));
+      // …and the scoped notification, but only when it just appeared.
+      if (notif && notifWasHidden && !notif.hidden) revealOnce(notif);
+    }, PRICING_DELAY);
+  }
+
   // overrideValue: committed qty (defaults to the typed value)
   // roundDir:  "up" | "down" when a rounding was applied — adds a marker to the saved cell
   // edited:    true when this is a real edit (Enter / blur / confirm) — flags the cell dirty
@@ -2639,16 +2706,25 @@
     cell.setAttribute("tabindex", "0");
     cell.setAttribute("aria-label", "Edit Order Qty: " + edit.product + " (" + edit.uom + "), current " + qty);
     cell.innerHTML = qtyCellHTML(qty, roundDir);
-    if (netEl) setNetTotal(netEl, fmtMoney(qty * net)); // Net Total is plain black, not a link
     hideFreePanel();
     edit = null;
     if (refocus) cell.focus();
 
+    // Dirty/save-bar state updates immediately so the footer stays responsive…
     if (edited) markEdited(cell, netEl, net, orig);
-    // keep the free-items summary (variant B) in sync with the new qty
-    if (card && card._refreshFreeSummary) card._refreshFreeSummary();
-    updateOrderTotals(card); // live Order Summary totals track the qty change
-    syncCartFromGrid(card);  // persist entered qty into the cart immediately
+
+    // …while the priced outcome — the dependent cells, the free-items badge, the
+    // scoped notification and the summary totals — is applied here. With Instant
+    // Pricing on, a real edit routes through a short loading-stencil beat first.
+    var apply = function () {
+      if (netEl) setNetTotal(netEl, fmtMoney(qty * net)); // Net Total is plain black, not a link
+      // keep the free-items summary (variant B) in sync with the new qty
+      if (card && card._refreshFreeSummary) card._refreshFreeSummary();
+      updateOrderTotals(card); // live Order Summary totals track the qty change
+      syncCartFromGrid(card);  // persist entered qty into the cart immediately
+    };
+    if (edited && instantPricingOn(card)) runPricingLoad(cell.closest("tr"), apply);
+    else apply();
   }
 
   // Programmatically set a line's Order Qty (used by the Row-actions menu, e.g.
@@ -2666,12 +2742,16 @@
     if (orig === qty) return;
     cell.setAttribute("aria-label", "Edit Order Qty: " + product + " (" + uom + "), current " + qty);
     cell.innerHTML = qtyCellHTML(qty, null);
-    if (netEl) setNetTotal(netEl, fmtMoney(qty * net));
     var card = cell.closest(".mfg-assortment-card");
     markEdited(cell, netEl, net, orig);
-    if (card && card._refreshFreeSummary) card._refreshFreeSummary();
-    updateOrderTotals(card);
-    syncCartFromGrid(card);  // persist entered qty into the cart immediately
+    var apply = function () {
+      if (netEl) setNetTotal(netEl, fmtMoney(qty * net));
+      if (card && card._refreshFreeSummary) card._refreshFreeSummary();
+      updateOrderTotals(card);
+      syncCartFromGrid(card);  // persist entered qty into the cart immediately
+    };
+    if (instantPricingOn(card)) runPricingLoad(cell.closest("tr"), apply);
+    else apply();
   }
 
   // --- inline-edit dirty tracking + docked save bar -------------------------

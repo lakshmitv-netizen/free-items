@@ -2217,3 +2217,42 @@ td.mfg-free-table__value {
 /* empty state when a search matches nothing (error recovery) */
 .m3-empty { padding: 1.5rem; text-align: center; color: var(--mfg-on-surface-1, #5c5c5c); font-size: 0.85rem; line-height: 1.6; }
 .m3-empty span { font-weight: 700; color: var(--mfg-on-surface-2, #2e2e2e); }
+
+/* ---- Instant Pricing loading stencils (SLDS "Loading" skeleton pattern) ----
+   While a pricing recompute is in flight, the qty-dependent cells show an
+   animated grey placeholder sized to the column. Only those cells stencil; the
+   free-items badge + scoped notification fade in via .mfg-reveal when revealed. */
+.mfg-dep-cell.mfg-cell-loading { color: transparent; }
+.mfg-stencil {
+  display: inline-block;
+  height: 0.75rem;
+  border-radius: var(--mfg-radius-1, 4px);
+  background-color: var(--slds-g-color-surface-container-3, #e5e5e5);
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: mfg-stencil-shimmer 1.2s ease-in-out infinite;
+  vertical-align: middle;
+}
+.mfg-stencil_sm { width: 2.25rem; }
+.mfg-stencil_md { width: 3.25rem; }
+.mfg-stencil_lg { width: 4.5rem; }
+
+@keyframes mfg-stencil-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Reveal: freshly-priced values, the "+N free items" badge, and the scoped
+   notification fade/rise in once pricing settles. */
+.mfg-reveal { animation: mfg-reveal-fade 0.32s ease-out both; }
+@keyframes mfg-reveal-fade {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Honour reduced-motion: static placeholder, no shimmer or fade (SLDS a11y). */
+@media (prefers-reduced-motion: reduce) {
+  .mfg-stencil { animation: none; background-image: none; }
+  .mfg-reveal { animation: none; }
+}
