@@ -2506,7 +2506,23 @@
     });
   }
 
-  function startEdit(cell) {
+  // The editable Order Qty cells of a grid body, in visual order: visible
+  // (collapsed child rows skipped) and fillable (locked/read-only cells left
+  // out). Shared by arrow-key navigation and the variant-E Excel-style
+  // move-down-on-commit so both walk the exact same cell set.
+  function visibleQtyCells(body) {
+    return Array.prototype.filter.call(
+      body.querySelectorAll(".mfg-qty-cell"),
+      function (c) {
+        return c.offsetParent !== null && !c.classList.contains("mfg-qty-cell_locked");
+      }
+    );
+  }
+
+  // seedChar: variant-E "type to edit" — when a printable digit (or "" for
+  // Backspace/Delete) opens the editor from a selected cell, the input starts
+  // from that character instead of the current qty, mirroring Excel.
+  function startEdit(cell, seedChar) {
     // Locked (unlocked free-item) cells are read-only — never enter edit mode.
     if (cell.classList.contains("mfg-qty-cell_locked")) return;
     if (edit) commitEdit();
@@ -2580,9 +2596,33 @@
       if (gamified) wireGamifiedSlider(edit);
     }
     input.focus();
-    input.select();
+    // Excel-style "type to edit": a seeded character replaces the value and
+    // leaves the caret at the end (no select-all). Otherwise select the whole
+    // existing qty so the first keystroke overwrites it, as before.
+    if (seedChar != null) {
+      input.value = seedChar;
+      if (!plain) refreshPopover(); // reflect the seeded value in the popover
+    } else {
+      input.select();
+    }
     input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); commitActive(); }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        // Variant E (incl. its gamified "g" sub-variant, which also carries
+        // data-variant="e") mirrors Excel: Enter commits, then the selection
+        // box drops to the next editable cell below. Capture the committed
+        // cell before commitActive rebuilds/refocuses it, then advance.
+        var advance = edit && edit.variant === "e" ? edit.cell : null;
+        commitActive();
+        if (advance) {
+          var body2 = advance.closest(".mfg-grid-body");
+          if (body2) {
+            var cells = visibleQtyCells(body2);
+            var next = cells[cells.indexOf(advance) + 1];
+            if (next) next.focus();
+          }
+        }
+      }
       else if (e.key === "Escape") { e.preventDefault(); commitEdit(edit.orig, null, false); }
     });
   }
@@ -2862,16 +2902,26 @@
         return;
       }
 
+      // Variant E — Excel-style "type to edit": from a selected (focused, not
+      // yet editing) Order Qty cell, a bare digit opens the editor seeded with
+      // that digit, and Backspace/Delete opens it empty. No Enter needed first.
+      if (variant === "e" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (e.key.length === 1 && e.key >= "0" && e.key <= "9") {
+          e.preventDefault();
+          startEdit(qtyCell, e.key);
+          return;
+        }
+        if (e.key === "Backspace" || e.key === "Delete") {
+          e.preventDefault();
+          startEdit(qtyCell, "");
+          return;
+        }
+      }
+
       // Arrow-key navigation up/down the Order Qty column. Only visible cells
       // (collapsed child rows are skipped) participate; Home/End jump to ends.
       if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End") {
-        var cells = Array.prototype.filter.call(
-          body.querySelectorAll(".mfg-qty-cell"),
-          function (c) {
-            // visible, and skip locked (read-only) cells so arrow-nav never lands on them
-            return c.offsetParent !== null && !c.classList.contains("mfg-qty-cell_locked");
-          }
-        );
+        var cells = visibleQtyCells(body);
         var idx = cells.indexOf(qtyCell);
         if (idx === -1) return;
         var next;
