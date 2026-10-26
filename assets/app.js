@@ -1474,9 +1474,9 @@
   var LEAD_CATEGORY = { header: "Category", main: function (p) { return p.category; }, sub: itemCountSub };
 
   // One collapsible accordion section wrapping a free-items table (or empty state).
-  function freeAccordion(title, subtitle, groups, emptyMsg, lead) {
+  function freeAccordion(title, subtitle, groups, emptyMsg, lead, startOpen) {
     var count = groups.reduce(function (n, g) { return n + g.items.length; }, 0);
-    var open = false; // all sections start collapsed; the buyer expands what they want
+    var open = !!startOpen; // sections start collapsed unless opted open (e.g. Cart Rewards)
     var inner = count
       ? freeTableHTML(groups, lead)
       : '<div class="mfg-free-drawer__empty">' + icon(UTIL, "info", "mfg-free-drawer__empty-icon") + "<span>" + esc(emptyMsg) + "</span></div>";
@@ -1485,7 +1485,7 @@
         '<button type="button" class="mfg-free-acc__head" aria-expanded="' + open + '">' +
           icon(UTIL, "chevrondown", "mfg-free-acc__chevron") +
           '<span class="mfg-free-acc__titles">' +
-            '<span class="mfg-free-acc__title">' + esc(title) + "</span>" +
+            '<span class="mfg-free-acc__title">' + esc(title) + " (" + count + ")</span>" +
             (subtitle ? '<span class="mfg-free-acc__sub">' + esc(subtitle) + "</span>" : "") +
           "</span>" +
         "</button>" +
@@ -1567,8 +1567,8 @@
       return '<div class="mfg-free-drawer__scroll mfg-free-drawer__flat">' + freeFlatTableHTML(promo, product, direct) + "</div>";
     }
     var sections =
-      freeAccordion("Header Rewards", "",
-        promo, "No offers yet — add a product that has an offer.", null) +
+      freeAccordion("Cart Rewards", "",
+        promo, "No offers yet — add a product that has an offer.", null, true) +
       freeAccordion("Product rewards", "",
         product, "No product rewards yet — increase order quantities to unlock rewards.", LEAD_PRODUCT) +
       freeAccordion("Manually added free items", "",
@@ -1683,7 +1683,7 @@
       card._freeTotals = {
         count: unlocked, value: grand,
         parts: [
-          { label: "Offers", n: promo.n, val: promo.val },
+          { label: "Cart Rewards", n: promo.n, val: promo.val },
           { label: "Product rewards", n: product.n, val: product.val },
           { label: "Manually added free items", n: direct.n, val: direct.val }
         ]
